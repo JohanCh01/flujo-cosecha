@@ -1130,10 +1130,22 @@ async function ghCheck(tok){
   var j=await r.json();
   return (j.permissions && j.permissions.push===false) ? 'El token no tiene permiso de escritura (Contents: Read and write).' : true;
 }
+async function fetchPkg(tok){
+  if(tok){
+    try{
+      var h=ghH(tok); h.Accept='application/vnd.github.raw+json';
+      var r=await fetch(SITE.api+'/contents/datos.json',{headers:h,cache:'no-store'});
+      if(r.ok) return await r.json();
+      if(r.status===404) return null;
+    }catch(e){}
+  }
+  try{ var r2=await fetch(SITE.url+'?t='+Date.now(),{cache:'no-store'}); return r2.ok ? await r2.json() : null; }catch(e){ return null; }
+}
 async function publishSite(onStep){
   var pk=await buildPackage(S.dnis||[],onStep,S.admPass), url=SITE.api+'/contents/datos.json', sha=null;
   var g=await fetch(url,{headers:ghH(S.tok),cache:'no-store'});
   if(g.status===200) sha=(await g.json()).sha; else if(g.status!==404) throw ghErr(g.status);
+  if(sha && !PKG) throw {msg:'En el enlace ya hay datos publicados que esta sesión no llegó a leer. Recarga la página antes de publicar, para no reemplazarlos.'};
   var body={message:'Actualiza datos ('+pk.gen+')', content:b64(te.encode(JSON.stringify(pk)))}; if(sha) body.sha=sha;
   var r=await fetch(url,{method:'PUT',headers:ghH(S.tok),body:JSON.stringify(body)});
   if(!r.ok) throw ghErr(r.status);
@@ -1143,6 +1155,7 @@ async function adminEnter(pass,tok){
   if(!window.crypto || !crypto.subtle) return 'Este navegador no permite cifrar aquí.';
   if(String(pass).length<8) return 'La clave de administrador debe tener al menos 8 caracteres.';
   var docs={'meta/indice':{dias:[],uas:[],cargas:[]}}, dnis=[];
+  PKG=await fetchPkg(tok);
   if(PKG && PKG.adm){
     try{
       var ak=await dniKey('adm:'+pass,unb64(PKG.adm.s),PKG.it);
@@ -1159,9 +1172,9 @@ async function adminEnter(pass,tok){
 }
 async function siteStart(){
   S.site=true; S.canWrite=false;
-  try{ var r=await fetch(SITE.url+'?t='+Date.now(),{cache:'no-store'}); PKG=r.ok ? await r.json() : null; }catch(e){ PKG=null; }
   var ap=null, tk=null; try{ ap=localStorage.getItem('fc.adm'); tk=localStorage.getItem('fc.tok'); }catch(e){}
   if(ap && tk){ try{ if((await adminEnter(ap,tk))===true) return; }catch(e){} }
+  PKG=await fetchPkg(null);
   openLogin();
 }
 function showAdmin(on){ $('#loginF').hidden=on; $('#adminF').hidden=!on; (on?$('#ap'):$('#lu')).focus(); $('#aBack').hidden=!PKG; }
