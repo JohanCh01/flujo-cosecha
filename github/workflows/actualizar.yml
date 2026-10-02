@@ -1,0 +1,58 @@
+name: Actualizar datos de cosecha
+
+on:
+  schedule:
+    - cron: "7 12 * * *"        # todos los días a las 7:07 a. m. de Lima (la hora va en UTC: Lima + 5)
+  workflow_dispatch:            # botón "Run workflow" para correrlo a mano
+    inputs:
+      dias:
+        description: "Días hacia atrás a traer (1 = solo ayer)"
+        default: "1"
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar lo necesario
+        run: pip install --quiet selenium openpyxl cryptography
+
+      - name: Descargar de la intranet y actualizar datos.json
+        env:
+          INTRANET_USUARIO: ${{ secrets.INTRANET_USUARIO }}
+          INTRANET_CLAVE: ${{ secrets.INTRANET_CLAVE }}
+          ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
+          DIAS_ATRAS: ${{ github.event.inputs.dias }}
+          DESCARGAS_DIR: ${{ runner.temp }}/descargas
+        run: python actualizar.py
+
+      - name: Publicar el cambio
+        run: |
+          if git diff --quiet -- datos.json; then
+            echo "Sin cambios en datos.json."
+            exit 0
+          fi
+          git config user.name "actualizacion-automatica"
+          git config user.email "actions@users.noreply.github.com"
+          git add datos.json
+          git commit -m "Actualiza datos (automático $(TZ=America/Lima date +%d/%m/%Y))"
+          git push || { echo "No se pudo guardar: alguien publicó desde la página al mismo tiempo. Vuelve a ejecutar (Run workflow)."; exit 1; }
+          # pide a GitHub Pages que vuelva a publicar el sitio con el datos.json nuevo
+          curl -sS -o /dev/null -w "Publicación del sitio: respuesta %{http_code}\n" -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds" || true
