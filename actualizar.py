@@ -431,77 +431,208 @@ def _control(driver, etiqueta, tipo, segundos=25):
     raise Detener(f"No apareció en pantalla: {'la lista' if tipo == 'lista' else 'el campo'} «{etiqueta}».")
 
 
-def _cerrar_lista(driver):
-    from selenium.webdriver.common.action_chains import ActionChains
-    from selenium.webdriver.common.keys import Keys
+JS_VALOR = """
+var e = arguments[0];
+if (e.tagName === 'SELECT') return e.selectedIndex >= 0 ? e.options[e.selectedIndex].text : '';
+var v = e.querySelector('.mat-select-value-text, .mat-mdc-select-value-text');
+if (v) return v.innerText || '';
+if (e.querySelector('.mat-select-placeholder, .mat-mdc-select-placeholder')) return '';   // se ve solo el texto de ayuda: no hay valor
+return (e.innerText || '');
+"""
+
+JS_BUSCADOR = """
+var ins = document.querySelectorAll('.cdk-overlay-container input');
+for (var i = 0; i < ins.length; i++) {
+  var e = ins[i];
+  if (e.getClientRects().length && !/hidden/.test(e.className)) {
+    e.focus();
+    if (e.value) { e.value = ''; e.dispatchEvent(new Event('input', {bubbles: true})); }   // se deja vacío
+    return e;
+  }
+}
+return null;
+"""
+
+JS_ACTIVA = """
+var o = document.querySelector('mat-option.mat-active, mat-option.mat-mdc-option-active, [role="option"].mat-active, [role="option"].mat-mdc-option-active');
+return o ? (o.innerText || o.textContent || '').replace(/\\s+/g,' ').trim() : '';
+"""
+
+JS_EVENTOS = """
+var el = arguments[0], t = el.querySelector('.mat-option-text, .mdc-list-item__primary-text') || el;
+['pointerdown','mousedown','pointerup','mouseup','click'].forEach(function(tipo){
+  t.dispatchEvent(new MouseEvent(tipo, {bubbles: true, cancelable: true, view: window}));
+});
+"""
+
+
+def _opciones(driver):
     try:
-        ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+        return driver.execute_script(JS_OPCIONES) or []
+    except Exception:
+        return []
+
+
+def _teclas(driver, *teclas):
+    from selenium.webdriver.common.action_chains import ActionChains
+    a = ActionChains(driver)
+    for t in teclas:
+        a = a.send_keys(t)
+    a.perform()
+
+
+def _cerrar_lista(driver):
+    from selenium.webdriver.common.keys import Keys
+    if not _opciones(driver):
+        return
+    try:
+        _teclas(driver, Keys.ESCAPE)
     except Exception:
         pass
     time.sleep(0.4)
+    if _opciones(driver):   # si Escape no la cerró, se pulsa fuera de la lista
+        try:
+            driver.execute_script("var b = document.querySelectorAll('.cdk-overlay-backdrop'); if (b.length) b[b.length - 1].click();")
+        except Exception:
+            pass
+        time.sleep(0.4)
 
 
-def _abrir_lista(driver, control, forma):
-    """Tres formas de desplegar la lista; se van alternando hasta que una funcione."""
+def _valor_lista(driver, etiqueta):
+    try:
+        return _norm(driver.execute_script(JS_VALOR, _control(driver, etiqueta, "lista", 5)))
+    except Exception:
+        return ""
+
+
+def _desplegar(driver, etiqueta):
+    """Deja la lista abierta y devuelve sus opciones visibles ([] si no se pudo)."""
+    from selenium.webdriver.common.keys import Keys
+    ops = _opciones(driver)
+    if ops:
+        return ops
+    for forma in range(3):
+        control = _control(driver, etiqueta, "lista")
+        try:
+            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", control)
+            time.sleep(0.3)
+            if forma == 0:
+                control.click()
+            elif forma == 1:
+                driver.execute_script("var t = arguments[0].querySelector('.mat-select-trigger, .mat-mdc-select-trigger') || arguments[0]; t.click();", control)
+            else:
+                driver.execute_script("arguments[0].focus();", control)
+                _teclas(driver, Keys.ENTER)
+        except Exception:
+            pass
+        tope = time.time() + 3
+        while time.time() < tope:
+            ops = _opciones(driver)
+            if ops:
+                time.sleep(0.5)   # la lista termina de desplegarse
+                return _opciones(driver) or ops
+            time.sleep(0.4)
+    return []
+
+
+def _elegir(driver, etiqueta, opcion, segundos=150):
+    """
+    Elige una opción de una lista desplegable y COMPRUEBA que quedó puesta.
+    Las opciones llegan del servidor y pueden tardar, y no todas las formas de
+    pulsar funcionan en un navegador sin pantalla; por eso se alternan varias
+    (clic, teclado con el buscador de la lista, ratón, eventos y flechas).
+    """
     from selenium.webdriver.common.action_chains import ActionChains
     from selenium.webdriver.common.keys import Keys
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", control)
-    time.sleep(0.3)
-    try:
-        if forma == 0:
-            control.click()
-        elif forma == 1:
-            driver.execute_script("var t = arguments[0].querySelector('.mat-select-trigger, .mat-mdc-select-trigger') || arguments[0]; t.click();", control)
-        else:
-            driver.execute_script("arguments[0].focus();", control)
-            ActionChains(driver).send_keys(Keys.ARROW_DOWN).perform()
-    except Exception:
-        pass
-
-
-def _elegir(driver, etiqueta, opcion, segundos=90):
-    """
-    Abre la lista desplegable de esa etiqueta y elige la opción. Las opciones se
-    cargan desde el servidor y pueden tardar: se reintenta hasta que aparezcan.
-    """
     quiero = _norm(opcion)
+    formas = ["clic", "teclado", "ratón", "eventos", "flechas"]
     fin = time.time() + segundos
-    vistas, abrio, vuelta = [], False, 0
+    vistas, abrio, n = [], False, 0
     while time.time() < fin:
-        control = _control(driver, etiqueta, "lista")
-        _abrir_lista(driver, control, vuelta % 3)
-        vuelta += 1
-        opciones = []
-        tope = time.time() + 6
-        while time.time() < tope:
-            try:
-                opciones = driver.execute_script(JS_OPCIONES) or []
-            except Exception:
-                opciones = []
-            if any(_norm(t) == quiero for _, t in opciones):
-                break
-            time.sleep(0.5)
-        if opciones:
-            abrio, vistas = True, [t for _, t in opciones]
-        elegida = next((el for el, t in opciones if _norm(t) == quiero), None)
-        if elegida is None:
+        if _valor_lista(driver, etiqueta) == quiero:
             _cerrar_lista(driver)
-            time.sleep(2)
-            continue
-        _clic(driver, elegida)
-        time.sleep(1.0)
-        _cerrar_lista(driver)
-        try:   # se comprueba que la lista quedó con la opción puesta
-            caja = driver.execute_script("var c = arguments[0].closest('mat-form-field') || arguments[0].parentElement; return c ? c.innerText : '';", _control(driver, etiqueta, "lista"))
-        except Exception:
-            caja = ""
-        if quiero in _norm(caja):
             log(f"   {etiqueta}: {opcion}")
             return
-        time.sleep(1)
+        forma = formas[n % len(formas)]
+        n += 1
+        nota = ""
+        try:
+            if forma == "flechas":
+                # Con la lista cerrada, cada flecha abajo pasa a la opción siguiente.
+                if not vistas:
+                    continue
+                _cerrar_lista(driver)
+                driver.execute_script("arguments[0].focus();", _control(driver, etiqueta, "lista"))
+                for _ in range(len(vistas) + 2):
+                    _teclas(driver, Keys.ARROW_DOWN)
+                    time.sleep(0.3)
+                    if _valor_lista(driver, etiqueta) == quiero:
+                        break
+            else:
+                opciones = _desplegar(driver, etiqueta)
+                tope = time.time() + 6   # si la lista abrió pero la opción aún no llega, se espera un poco
+                while opciones and not any(_norm(t) == quiero for _, t in opciones) and time.time() < tope:
+                    time.sleep(0.5)
+                    opciones = _opciones(driver)
+                if not opciones:
+                    _cerrar_lista(driver)
+                    time.sleep(2)
+                    continue
+                abrio, vistas = True, [t for _, t in opciones]
+                el = next((e for e, t in opciones if _norm(t) == quiero), None)
+                if el is None:
+                    log(f"   {etiqueta}: la lista abrió con {len(vistas)} opciones pero ninguna es «{opcion}»")
+                    _cerrar_lista(driver)
+                    time.sleep(2)
+                    continue
+                if n == 1:
+                    try:
+                        log("   (opción: " + str(driver.execute_script(
+                            "var e = arguments[0]; return e.tagName.toLowerCase() + ' | clases: ' + e.className + ' | desactivada: ' + e.getAttribute('aria-disabled');", el))
+                            + f" | visible para el robot: {el.is_displayed()})")
+                    except Exception:
+                        pass
+                driver.execute_script("arguments[0].scrollIntoView({block:'nearest'});", el)
+                time.sleep(0.3)
+                if forma == "clic":
+                    el.click()
+                elif forma == "ratón":
+                    ActionChains(driver).move_to_element(el).pause(0.2).click().perform()
+                elif forma == "eventos":
+                    driver.execute_script(JS_EVENTOS, el)
+                else:   # teclado: se escribe en el buscador de la lista y se confirma con Enter
+                    if driver.execute_script(JS_BUSCADOR) is not None:
+                        _teclas(driver, opcion)
+                        time.sleep(1.2)
+                        if not any(_norm(t) == quiero for _, t in _opciones(driver)):
+                            driver.execute_script(JS_BUSCADOR)   # el buscador no la encontró: se borra y se baja con flechas
+                            time.sleep(1.0)
+                    for _ in range(max(len(vistas), 3) + 2):
+                        if _norm(driver.execute_script(JS_ACTIVA) or "") == quiero:
+                            _teclas(driver, Keys.ENTER)
+                            break
+                        _teclas(driver, Keys.ARROW_DOWN)
+                        time.sleep(0.2)
+                    else:
+                        nota = "no se pudo marcar la opción con el teclado"
+        except Detener:
+            raise
+        except Exception as e:
+            nota = f"error {type(e).__name__}"
+        time.sleep(1.0)
+        ok = _valor_lista(driver, etiqueta) == quiero
+        log(f"   {etiqueta}: intento {n} ({forma}) → " + ("quedó elegida" if ok else (nota or "no quedó elegida")))
+        if not ok:
+            _cerrar_lista(driver)
+            time.sleep(1)
+    if _valor_lista(driver, etiqueta) == quiero:
+        log(f"   {etiqueta}: {opcion}")
+        return
     if not abrio:
         raise SinOpciones(f"La lista «{etiqueta}» no llegó a mostrar opciones.")
-    raise Detener(f"La lista «{etiqueta}» no tiene la opción «{opcion}». Opciones vistas: {vistas[:20]}")
+    if not any(_norm(t) == quiero for t in vistas):
+        raise Detener(f"La lista «{etiqueta}» no tiene la opción «{opcion}». Opciones vistas: {vistas[:20]}")
+    raise Detener(f"La opción «{opcion}» aparece en «{etiqueta}» pero no quedó elegida con ninguna de las formas probadas.")
 
 
 def _escribir_fecha(driver, etiqueta, fecha, invertido):
