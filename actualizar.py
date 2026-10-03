@@ -12,6 +12,8 @@ Qué hace, en orden:
    en el otro orden; si aun así no coinciden, se detiene SIN publicar.
 4. Abre datos.json (los datos cifrados del enlace), reemplaza los días
    descargados, vuelve a cifrar con la misma lista de DNIs y guarda.
+   En "Bases cargadas" queda una sola base por mes (p. ej. "Octubre 2026
+   (automático)"), que va creciendo con cada descarga.
 
 Pensado para correr en GitHub Actions (ver .github/workflows/actualizar.yml),
 pero también corre en una PC con Python:
@@ -237,7 +239,7 @@ def _llave_dni(v):
 
 
 def abrir_datos(clave_admin):
-    """Descifra datos.json con la clave de administrador. Devuelve (contenido, lista_dnis, iteraciones)."""
+    """Descifra datos.json con la clave de administrador. Devuelve (contenido, lista_dnis, iteraciones, sal)."""
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     from cryptography.exceptions import InvalidTag
 
@@ -256,17 +258,19 @@ def abrir_datos(clave_admin):
     plano = AESGCM(base64.b64decode(a["k"])).decrypt(base64.b64decode(pk["iv"]), base64.b64decode(pk["data"]), None)
     if pk.get("z"):
         plano = gzip.decompress(plano)
-    return json.loads(plano), list(a.get("dnis") or []), it
+    return json.loads(plano), list(a.get("dnis") or []), it, base64.b64decode(pk["salt"])
 
 
-def guardar_datos(contenido, dnis, clave_admin, iteraciones, hoy):
+def guardar_datos(contenido, dnis, clave_admin, iteraciones, hoy, sal=None):
+    """Vuelve a cifrar. Se conserva la misma 'sal' para que las sesiones recordadas
+    en los equipos (Mantener sesión iniciada) sigan valiendo después de cada actualización."""
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
     plano = gzip.compress(json.dumps(contenido, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), mtime=0)
     cruda = os.urandom(32)
     iv = os.urandom(12)
     datos = AESGCM(cruda).encrypt(iv, plano, None)
-    sal = os.urandom(16)
+    sal = sal or os.urandom(16)
     llaves = []
     for dni in dnis:   # una "cerradura" por cada DNI autorizado
         kiv = os.urandom(12)
@@ -281,8 +285,21 @@ def guardar_datos(contenido, dnis, clave_admin, iteraciones, hoy):
     RUTA_DATOS.write_text(json.dumps(pk, separators=(",", ":")), encoding="utf-8")
 
 
-def combinar(contenido, por_dia, etiqueta):
-    """Reemplaza, en cada día descargado, las unidades agrícolas que trae el Excel (igual que Cargar Excel)."""
+MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+ETIQUETA_ANTIGUA = "Automático (intranet)"
+
+
+def nombre_base(mes):
+    """'2026-10' -> 'Octubre 2026 (automático)': el nombre de la base consolidada de ese mes."""
+    return f"{MESES[int(mes[5:7]) - 1]} {mes[:4]} (automático)"
+
+
+def combinar(contenido, por_dia):
+    """
+    Reemplaza, en cada día descargado, las unidades agrícolas que trae el Excel (igual que Cargar Excel)
+    y deja UNA sola base por mes en "Bases cargadas": cada descarga se suma a la del mes en curso, y
+    cuando empieza un mes nuevo se abre otra con el nombre de ese mes.
+    """
     dias = contenido.setdefault("days", {})
     indice = contenido.setdefault("index", {"dias": [], "uas": [], "cargas": []})
     total = 0
@@ -291,13 +308,27 @@ def combinar(contenido, por_dia, etiqueta):
         uas = {f["ua"] for f in nuevas}
         dias[dia] = empacar(dia, [f for f in previas if f["ua"] not in uas] + nuevas)
         total += len(nuevas)
-    claves = sorted(por_dia)
-    indice["dias"] = sorted(set(indice.get("dias", [])) | set(claves))
+    indice["dias"] = sorted(set(indice.get("dias", [])) | set(por_dia))
     indice["uas"] = sorted(set(indice.get("uas", [])) | {f["ua"] for fs in por_dia.values() for f in fs})
-    nueva = {"nombre": etiqueta, "filas": total, "desde": claves[0], "hasta": claves[-1],
-             "cuando": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")}
-    cargas = [c for c in indice.get("cargas", []) if not (c.get("nombre") == nueva["nombre"] and c.get("desde") == nueva["desde"] and c.get("hasta") == nueva["hasta"])]
-    indice["cargas"] = (cargas + [nueva])[-40:]
+
+    ahora = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    cargas = list(indice.get("cargas", []))
+    # las entradas sueltas de versiones anteriores (una por descarga) pasan a su base mensual
+    meses = {d[:7] for d in por_dia}
+    for c in cargas:
+        if c.get("nombre") == ETIQUETA_ANTIGUA:
+            for d in (c.get("desde"), c.get("hasta")):
+                if d:
+                    meses.add(str(d)[:7])
+    cargas = [c for c in cargas if c.get("nombre") != ETIQUETA_ANTIGUA]
+    for mes in sorted(meses):
+        del_mes = [d for d in indice["dias"] if d[:7] == mes and d in dias]
+        if not del_mes:
+            continue
+        nueva = {"nombre": nombre_base(mes), "filas": sum(len(dias[d].get("r") or []) for d in del_mes),
+                 "desde": del_mes[0], "hasta": del_mes[-1], "cuando": ahora}
+        cargas = [c for c in cargas if c.get("nombre") != nueva["nombre"]] + [nueva]
+    indice["cargas"] = cargas[-40:]
     return total
 
 
@@ -751,6 +782,7 @@ def main():
     ap.add_argument("--visible", action="store_true", help="mostrar el navegador (para pruebas en tu PC)")
     ap.add_argument("--solo-descarga", action="store_true", help="descargar y resumir, sin tocar datos.json")
     ap.add_argument("--hoy", help="fecha de hoy AAAA-MM-DD (solo para pruebas)")
+    ap.add_argument("--incluir-hoy", action="store_true", help="publicar también lo que va de hoy (día incompleto)")
     a = ap.parse_args()
 
     hoy = datetime.strptime(a.hoy, "%Y-%m-%d").date() if a.hoy else datetime.now(LIMA).date()
@@ -797,8 +829,13 @@ def main():
         return 0
     log(f"El Excel trae {len(filas)} recojos.")
 
-    # Solo se publican días completos: desde Fecha Inicio hasta ayer. Lo de hoy todavía está a medias.
-    objetivo = {(inicio + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(dias)}
+    # Normalmente solo se publican días completos: desde Fecha Inicio hasta ayer.
+    # En la corrida de la tarde se agrega lo que va de hoy; la corrida de la mañana
+    # siguiente lo reemplaza por el día completo.
+    incluir_hoy = a.incluir_hoy or os.environ.get("INCLUIR_HOY", "").strip().lower() in ("1", "true", "si", "sí")
+    objetivo = {(inicio + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(dias + (1 if incluir_hoy else 0))}
+    if incluir_hoy:
+        log("Esta corrida incluye lo que va de hoy (día todavía incompleto).")
     por_dia = {}
     for f in filas:
         d = dia_de(f["r"])
@@ -816,9 +853,9 @@ def main():
     clave_admin = os.environ.get("ADMIN_CLAVE", "")
     if not clave_admin:
         raise Detener("Falta el secreto ADMIN_CLAVE.")
-    contenido, dnis, it = abrir_datos(clave_admin)
-    total = combinar(contenido, por_dia, "Automático (intranet)")
-    guardar_datos(contenido, dnis, clave_admin, it, hoy)
+    contenido, dnis, it, sal = abrir_datos(clave_admin)
+    total = combinar(contenido, por_dia)
+    guardar_datos(contenido, dnis, clave_admin, it, hoy, sal)
     log(f"datos.json actualizado: {total} recojos en {len(por_dia)} día(s); {len(contenido['index']['dias'])} días en total; {len(dnis)} DNIs con acceso.")
     return 0
 
