@@ -52,6 +52,10 @@ class Detener(Exception):
     """Error esperado: se muestra el mensaje y no se publica nada."""
 
 
+class SinOpciones(Detener):
+    """Una lista desplegable no mostró opciones (todavía no cargan o no se desplegó)."""
+
+
 # ============================================================
 # 1. LECTURA DEL EXCEL (mismas reglas que la página web)
 # ============================================================
@@ -306,6 +310,55 @@ def combinar(contenido, por_dia, etiqueta):
 # 3. DESCARGA DESDE LA INTRANET (Selenium)
 # ============================================================
 
+MENU = ["Gestión Agrícola", "Recojo Materia Prima", "Reportes", "Recepción Materia Prima"]
+
+# Busca un control (lista o casilla) por el texto de su recuadro, sin depender de cómo esté armada la página.
+JS_CONTROL = """
+var etiqueta = arguments[0], tipo = arguments[1];
+function plano(s){ return (s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/\\s+/g,' ').trim(); }
+function visible(e){ return !!(e && e.getClientRects().length); }
+var q = plano(etiqueta), mejor = null;
+var lista = Array.prototype.slice.call(document.querySelectorAll(tipo === 'lista' ? 'mat-select, select, [role="combobox"]' : 'input'));
+for (var i = 0; i < lista.length; i++) {
+  var e = lista[i];
+  if (!visible(e)) continue;
+  var caja = e.closest('mat-form-field') || e.parentElement;
+  var propios = plano([e.getAttribute('aria-label'), e.getAttribute('placeholder'), e.getAttribute('data-placeholder'), e.getAttribute('formcontrolname'), e.getAttribute('name')].join(' '));
+  var texto = plano(caja ? caja.innerText : '');
+  if (texto.indexOf(q) === 0) return e;                      // el recuadro empieza con la etiqueta
+  if (!mejor && (texto.indexOf(q) >= 0 || propios.indexOf(q) >= 0 || propios.replace(/ /g,'').indexOf(q.replace(/ /g,'')) >= 0)) mejor = e;
+}
+return mejor;
+"""
+
+JS_OPCIONES = """
+var r = [], ops = document.querySelectorAll('mat-option, [role="option"], .cdk-overlay-container li');
+for (var i = 0; i < ops.length; i++) {
+  var o = ops[i];
+  if (!o.getClientRects().length) continue;
+  var t = (o.innerText || o.textContent || '').replace(/\\s+/g,' ').trim();
+  if (t) r.push([o, t]);
+}
+return r;
+"""
+
+JS_PISTAS = """
+function corto(s){ return (s||'').replace(/\\s+/g,' ').trim().slice(0,70); }
+function visible(e){ return !!e.getClientRects().length; }
+var r = {listas:[], casillas:[], opciones:[], capas:0, paginador:''};
+Array.prototype.slice.call(document.querySelectorAll('mat-select, select, [role="combobox"]')).filter(visible).slice(0,10).forEach(function(e){
+  var c = e.closest('mat-form-field') || e.parentElement;
+  r.listas.push(e.tagName.toLowerCase() + (e.getAttribute('aria-disabled') === 'true' ? ' (desactivada)' : '') + ': ' + corto(c ? c.innerText : '')); });
+Array.prototype.slice.call(document.querySelectorAll('input')).filter(visible).slice(0,12).forEach(function(e){
+  var c = e.closest('mat-form-field') || e.parentElement;
+  r.casillas.push((e.type||'text') + ' [' + corto([e.getAttribute('placeholder'), e.getAttribute('data-placeholder'), e.getAttribute('aria-label'), e.getAttribute('formcontrolname')].filter(Boolean).join(' | ')) + ']: ' + corto(c ? c.innerText : '')); });
+Array.prototype.slice.call(document.querySelectorAll('mat-option, [role="option"]')).filter(visible).slice(0,25).forEach(function(e){ r.opciones.push(corto(e.innerText)); });
+var capa = document.querySelector('.cdk-overlay-container'); r.capas = capa ? capa.children.length : 0;
+var p = document.querySelector('.mat-paginator-range-label, .mat-mdc-paginator-range-label'); r.paginador = p ? corto(p.innerText) : '';
+return r;
+"""
+
+
 def _navegador(carpeta, visible):
     from selenium import webdriver
 
@@ -334,7 +387,14 @@ def _navegador(carpeta, visible):
 
 def _visibles(driver, xpath):
     from selenium.webdriver.common.by import By
-    return [e for e in driver.find_elements(By.XPATH, xpath) if e.is_displayed()]
+    salida = []
+    for e in driver.find_elements(By.XPATH, xpath):
+        try:
+            if e.is_displayed():
+                salida.append(e)
+        except Exception:   # el elemento se redibujó mientras se revisaba
+            pass
+    return salida
 
 
 def _esperar_visible(driver, xpaths, segundos, que):
@@ -357,23 +417,91 @@ def _clic(driver, el):
         driver.execute_script("arguments[0].click();", el)
 
 
-def _elegir(driver, etiqueta, opcion):
-    """Abre la lista desplegable que tiene esa etiqueta y elige la opción exacta."""
-    control = _esperar_visible(driver, [
-        f"//mat-form-field[.//mat-label[contains(normalize-space(.),'{etiqueta}')] or .//label[contains(normalize-space(.),'{etiqueta}')]]//mat-select",
-        f"//*[contains(text(),'{etiqueta}')]/ancestor::*[self::div or self::mat-form-field][1]//*[self::mat-select or self::select or @role='combobox']",
-    ], 25, f"la lista «{etiqueta}»")
-    _clic(driver, control)
-    time.sleep(1.0)
-    op = _esperar_visible(driver, [
-        f"//mat-option[normalize-space(.)='{opcion}']",
-        f"//mat-option[.//span[normalize-space(.)='{opcion}']]",
-        f"//li[contains(@class,'option') and normalize-space(.)='{opcion}']",
-        f"//option[normalize-space(.)='{opcion}']",
-    ], 25, f"la opción «{opcion}» en «{etiqueta}»")
-    _clic(driver, op)
-    time.sleep(0.8)
-    log(f"   {etiqueta}: {opcion}")
+def _control(driver, etiqueta, tipo, segundos=25):
+    """Encuentra la lista ('lista') o la casilla ('casilla') que lleva esa etiqueta."""
+    fin = time.time() + segundos
+    while time.time() < fin:
+        try:
+            el = driver.execute_script(JS_CONTROL, etiqueta, tipo)
+        except Exception:
+            el = None
+        if el is not None:
+            return el
+        time.sleep(0.5)
+    raise Detener(f"No apareció en pantalla: {'la lista' if tipo == 'lista' else 'el campo'} «{etiqueta}».")
+
+
+def _cerrar_lista(driver):
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.webdriver.common.keys import Keys
+    try:
+        ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+    except Exception:
+        pass
+    time.sleep(0.4)
+
+
+def _abrir_lista(driver, control, forma):
+    """Tres formas de desplegar la lista; se van alternando hasta que una funcione."""
+    from selenium.webdriver.common.action_chains import ActionChains
+    from selenium.webdriver.common.keys import Keys
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", control)
+    time.sleep(0.3)
+    try:
+        if forma == 0:
+            control.click()
+        elif forma == 1:
+            driver.execute_script("var t = arguments[0].querySelector('.mat-select-trigger, .mat-mdc-select-trigger') || arguments[0]; t.click();", control)
+        else:
+            driver.execute_script("arguments[0].focus();", control)
+            ActionChains(driver).send_keys(Keys.ARROW_DOWN).perform()
+    except Exception:
+        pass
+
+
+def _elegir(driver, etiqueta, opcion, segundos=90):
+    """
+    Abre la lista desplegable de esa etiqueta y elige la opción. Las opciones se
+    cargan desde el servidor y pueden tardar: se reintenta hasta que aparezcan.
+    """
+    quiero = _norm(opcion)
+    fin = time.time() + segundos
+    vistas, abrio, vuelta = [], False, 0
+    while time.time() < fin:
+        control = _control(driver, etiqueta, "lista")
+        _abrir_lista(driver, control, vuelta % 3)
+        vuelta += 1
+        opciones = []
+        tope = time.time() + 6
+        while time.time() < tope:
+            try:
+                opciones = driver.execute_script(JS_OPCIONES) or []
+            except Exception:
+                opciones = []
+            if any(_norm(t) == quiero for _, t in opciones):
+                break
+            time.sleep(0.5)
+        if opciones:
+            abrio, vistas = True, [t for _, t in opciones]
+        elegida = next((el for el, t in opciones if _norm(t) == quiero), None)
+        if elegida is None:
+            _cerrar_lista(driver)
+            time.sleep(2)
+            continue
+        _clic(driver, elegida)
+        time.sleep(1.0)
+        _cerrar_lista(driver)
+        try:   # se comprueba que la lista quedó con la opción puesta
+            caja = driver.execute_script("var c = arguments[0].closest('mat-form-field') || arguments[0].parentElement; return c ? c.innerText : '';", _control(driver, etiqueta, "lista"))
+        except Exception:
+            caja = ""
+        if quiero in _norm(caja):
+            log(f"   {etiqueta}: {opcion}")
+            return
+        time.sleep(1)
+    if not abrio:
+        raise SinOpciones(f"La lista «{etiqueta}» no llegó a mostrar opciones.")
+    raise Detener(f"La lista «{etiqueta}» no tiene la opción «{opcion}». Opciones vistas: {vistas[:20]}")
 
 
 def _escribir_fecha(driver, etiqueta, fecha, invertido):
@@ -385,12 +513,17 @@ def _escribir_fecha(driver, etiqueta, fecha, invertido):
     corresponden, el programa repite la descarga tecleando en el otro orden.
     """
     from selenium.webdriver.common.keys import Keys
-    campo = _esperar_visible(driver, [
-        f"//mat-form-field[.//mat-label[contains(normalize-space(.),'{etiqueta}')] or .//label[contains(normalize-space(.),'{etiqueta}')]]//input",
-        f"//input[contains(@aria-label,'{etiqueta}') or contains(@placeholder,'{etiqueta}') or contains(@data-placeholder,'{etiqueta}')]",
-    ], 25, f"el campo «{etiqueta}»")
+    try:
+        campo = _control(driver, etiqueta, "casilla", 20)
+    except Detener:
+        campo = _esperar_visible(driver, [
+            f"//input[contains(@aria-label,'{etiqueta}') or contains(@placeholder,'{etiqueta}') or contains(@data-placeholder,'{etiqueta}')]",
+        ], 10, f"el campo «{etiqueta}»")
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", campo)
-    campo.click()
+    try:
+        campo.click()
+    except Exception:
+        driver.execute_script("arguments[0].focus();", campo)
     time.sleep(0.2)
     campo.send_keys(Keys.CONTROL, "a")
     campo.send_keys(Keys.DELETE)
@@ -406,7 +539,12 @@ def _escribir_fecha(driver, etiqueta, fecha, invertido):
 
 def _filas_tabla(driver):
     try:
-        return len([f for f in _visibles(driver, "//table//tbody//tr | //mat-row") if f.text.strip()])
+        n = len([f for f in _visibles(driver, "//table//tbody//tr | //mat-row") if f.text.strip()])
+        if n:
+            return n
+        # segunda señal: el contador del pie de tabla deja de decir "0 of 0"
+        pie = driver.execute_script("var p = document.querySelector('.mat-paginator-range-label, .mat-mdc-paginator-range-label'); return p ? p.innerText : '';") or ""
+        return 1 if re.search(r"(?:of|de)\s+[1-9]", pie) else 0
     except Exception:   # la tabla se está redibujando
         return 0
 
@@ -432,10 +570,12 @@ def _diagnostico(driver):
     """Pistas para corregir un fallo, sin datos del reporte (el registro de GitHub es público)."""
     try:
         log(f"   Pantalla al fallar: {driver.current_url.split('#')[-1]} | título «{driver.title}»")
-        botones = sorted({b.text.strip() for b in _visibles(driver, "//button") if b.text.strip()})[:12]
-        etiquetas = sorted({e.text.strip() for e in _visibles(driver, "//mat-label") if e.text.strip()})[:12]
-        log(f"   Botones visibles: {botones}")
-        log(f"   Etiquetas visibles: {etiquetas}")
+        p = driver.execute_script(JS_PISTAS) or {}
+        log(f"   Listas visibles: {p.get('listas')}")
+        log(f"   Casillas visibles: {p.get('casillas')}")
+        log(f"   Opciones desplegadas: {p.get('opciones')} | capas abiertas: {p.get('capas')} | paginador: «{p.get('paginador')}»")
+        botones = sorted({b.text.strip() for b in _visibles(driver, "//button") if b.text.strip()})
+        log(f"   Botones de acción: {[b for b in botones if any(x in b for x in ('Buscar', 'Exportar', 'Acceder'))]} (de {len(botones)} botones)")
         carpeta = os.environ.get("DIAGNOSTICO_DIR")   # solo para pruebas en tu PC; en GitHub no se define
         if carpeta:
             Path(carpeta).mkdir(parents=True, exist_ok=True)
@@ -446,85 +586,117 @@ def _diagnostico(driver):
         pass
 
 
+def _abrir_reporte(driver, por_menu):
+    boton = ["//button[contains(.,'Exportar a Excel')]"]
+    if not por_menu:
+        driver.get(URL_REPORTE)
+        try:
+            _esperar_visible(driver, boton, 30, "el reporte")
+            return
+        except Detener:
+            log("   La dirección directa no abrió el reporte; se entra por el menú.")
+
+    def texto(t):
+        return [f"//*[normalize-space(text())='{t}']", f"//a[normalize-space(.)='{t}'] | //span[normalize-space(.)='{t}']"]
+
+    for i, paso in enumerate(MENU):
+        ultimo = i == len(MENU) - 1
+        if not ultimo:   # un nivel ya desplegado no se vuelve a pulsar (se cerraría)
+            siguiente = [e for xp in texto(MENU[i + 1]) for e in _visibles(driver, xp)]
+            if siguiente:
+                continue
+        _clic(driver, _esperar_visible(driver, texto(paso), 25, f"el menú «{paso}»"))
+        time.sleep(1.5)
+    _esperar_visible(driver, boton, 40, "el reporte Recepción de Materia Prima")
+
+
+def _sesion(driver, usuario, clave, inicio, fin, carpeta, invertido, intentos, por_menu):
+    log("Abriendo la intranet e iniciando sesión...")
+    try:
+        driver.get(URL_LOGIN)
+        campo_u = _esperar_visible(driver, ["//input[contains(@placeholder,'Usuario')]", "//input[@type='text' or @type='email' or not(@type)]"], 40, "el campo Usuario")
+    except Exception:
+        raise Detener("La intranet no abrió desde aquí (no apareció la pantalla de ingreso). "
+                      "Si esto pasa en GitHub y en tu PC sí abre, el portal está bloqueando las conexiones de fuera.")
+    campo_u.click()
+    campo_u.send_keys(usuario)
+    campo_c = _esperar_visible(driver, ["//input[@type='password']", "//input[contains(@placeholder,'Contraseña')]"], 15, "el campo Contraseña")
+    campo_c.click()
+    campo_c.send_keys(clave)
+    _clic(driver, _esperar_visible(driver, ["//button[contains(.,'Acceder')]"], 15, "el botón Acceder"))
+    _esperar_visible(driver, ["//*[contains(text(),'Aplicaciones Danper')]"], 60, "el panel principal (¿usuario o contraseña incorrectos?)")
+    log("Sesión iniciada.")
+    time.sleep(2)
+
+    log("Abriendo el reporte Recepción de Materia Prima" + (" por el menú..." if por_menu else "..."))
+    _abrir_reporte(driver, por_menu)
+    time.sleep(3)
+
+    log("Poniendo los filtros...")
+    _elegir(driver, "Tipo Cultivo", TIPO_CULTIVO)
+    time.sleep(1.5)   # Materia Prima se llena según el cultivo elegido
+    _elegir(driver, "Materia Prima", MATERIA_PRIMA)
+    _escribir_fecha(driver, "Fecha Inicio", inicio, invertido)
+    _escribir_fecha(driver, "Fecha Fin", fin, invertido)
+
+    hay = False
+    for intento in range(1, intentos + 1):
+        _clic(driver, _esperar_visible(driver, ["//button[contains(.,'Buscar')]"], 15, "el botón Buscar"))
+        log(f"Buscar pulsado (intento {intento} de {intentos}); esperando la data, puede tardar...")
+        if _esperar_resultados(driver, 150):
+            hay = True
+            break
+    if not hay:
+        log("La búsqueda no devolvió filas para esas fechas.")
+        _diagnostico(driver)
+        return None
+
+    antes = set(os.listdir(carpeta))
+    _clic(driver, _esperar_visible(driver, ["//button[contains(.,'Exportar a Excel')]"], 15, "el botón Exportar a Excel"))
+    log("Exportando a Excel...")
+    fin_espera = time.time() + 180
+    while time.time() < fin_espera:
+        nuevos = [f for f in set(os.listdir(carpeta)) - antes if not f.endswith((".crdownload", ".tmp"))]
+        if nuevos:
+            time.sleep(2)
+            ruta = carpeta / sorted(nuevos, key=lambda f: (carpeta / f).stat().st_mtime)[-1]
+            log(f"Excel descargado ({ruta.stat().st_size // 1024} KB).")
+            return ruta
+        time.sleep(0.5)
+    raise Detener("Se pulsó Exportar a Excel pero el archivo no llegó a descargarse.")
+
+
 def descargar(inicio, fin, carpeta, visible, invertido=True, intentos=3):
     usuario = os.environ.get("INTRANET_USUARIO", "").strip()
     clave = os.environ.get("INTRANET_CLAVE", "").strip() or usuario
     if not usuario:
         raise Detener("Falta el secreto INTRANET_USUARIO.")
     carpeta.mkdir(parents=True, exist_ok=True)
-    for viejo in carpeta.glob("*.xls*"):
-        viejo.unlink()
 
-    try:
-        driver = _navegador(carpeta, visible)
-    except Exception as e:
-        raise Detener(f"No se pudo abrir el navegador ({type(e).__name__}).")
-    try:
-        log("Abriendo la intranet e iniciando sesión...")
+    # Primero se abre el reporte por su dirección directa. Si así las listas no cargan
+    # sus opciones, se repite entrando por el menú, como se hace a mano.
+    for por_menu in (False, True):
+        for viejo in carpeta.glob("*.xls*"):
+            viejo.unlink()
         try:
-            driver.get(URL_LOGIN)
-            campo_u = _esperar_visible(driver, ["//input[contains(@placeholder,'Usuario')]", "//input[@type='text' or @type='email' or not(@type)]"], 40, "el campo Usuario")
-        except Exception:
-            raise Detener("La intranet no abrió desde aquí (no apareció la pantalla de ingreso). "
-                          "Si esto pasa en GitHub y en tu PC sí abre, el portal está bloqueando las conexiones de fuera.")
-        campo_u.click()
-        campo_u.send_keys(usuario)
-        campo_c = _esperar_visible(driver, ["//input[@type='password']", "//input[contains(@placeholder,'Contraseña')]"], 15, "el campo Contraseña")
-        campo_c.click()
-        campo_c.send_keys(clave)
-        _clic(driver, _esperar_visible(driver, ["//button[contains(.,'Acceder')]"], 15, "el botón Acceder"))
-        _esperar_visible(driver, ["//*[contains(text(),'Aplicaciones Danper')]"], 60, "el panel principal (¿usuario o contraseña incorrectos?)")
-        log("Sesión iniciada.")
-        time.sleep(1.5)
-
-        log("Abriendo el reporte Recepción de Materia Prima...")
-        driver.get(URL_REPORTE)
+            driver = _navegador(carpeta, visible)
+        except Exception as e:
+            raise Detener(f"No se pudo abrir el navegador ({type(e).__name__}).")
         try:
-            _esperar_visible(driver, ["//button[contains(.,'Exportar a Excel')]"], 25, "el reporte")
-        except Detener:   # si la dirección directa no abre, se llega por el menú
-            for texto in ("Gestión Agrícola", "Reportes", "Recepción Materia Prima"):
-                _clic(driver, _esperar_visible(driver, [f"//*[normalize-space(text())='{texto}']"], 25, f"el menú «{texto}»"))
-                time.sleep(1.5)
-            _esperar_visible(driver, ["//button[contains(.,'Exportar a Excel')]"], 40, "el reporte Recepción de Materia Prima")
-        time.sleep(1.5)
-
-        log("Poniendo los filtros...")
-        _elegir(driver, "Tipo Cultivo", TIPO_CULTIVO)
-        _elegir(driver, "Materia Prima", MATERIA_PRIMA)
-        _escribir_fecha(driver, "Fecha Inicio", inicio, invertido)
-        _escribir_fecha(driver, "Fecha Fin", fin, invertido)
-
-        hay = False
-        for intento in range(1, intentos + 1):
-            _clic(driver, _esperar_visible(driver, ["//button[contains(.,'Buscar')]"], 15, "el botón Buscar"))
-            log(f"Buscar pulsado (intento {intento} de {intentos}); esperando la data, puede tardar...")
-            if _esperar_resultados(driver, 150):
-                hay = True
-                break
-        if not hay:
-            log("La búsqueda no devolvió filas para esas fechas.")
-            return None
-
-        antes = set(os.listdir(carpeta))
-        _clic(driver, _esperar_visible(driver, ["//button[contains(.,'Exportar a Excel')]"], 15, "el botón Exportar a Excel"))
-        log("Exportando a Excel...")
-        fin_espera = time.time() + 180
-        while time.time() < fin_espera:
-            nuevos = [f for f in set(os.listdir(carpeta)) - antes if not f.endswith((".crdownload", ".tmp"))]
-            if nuevos:
-                time.sleep(2)
-                ruta = carpeta / sorted(nuevos, key=lambda f: (carpeta / f).stat().st_mtime)[-1]
-                log(f"Excel descargado ({ruta.stat().st_size // 1024} KB).")
-                return ruta
-            time.sleep(0.5)
-        raise Detener("Se pulsó Exportar a Excel pero el archivo no llegó a descargarse.")
-    except Exception as e:
-        _diagnostico(driver)
-        if isinstance(e, Detener):
+            return _sesion(driver, usuario, clave, inicio, fin, carpeta, invertido, intentos, por_menu)
+        except SinOpciones as e:
+            _diagnostico(driver)
+            if por_menu:
+                raise
+            log(f"   {e} Se repite entrando por el menú.")
+        except Detener:
+            _diagnostico(driver)
             raise
-        raise Detener(f"Fallo del navegador ({type(e).__name__}). Revisa las pistas de arriba.")
-    finally:
-        driver.quit()
+        except Exception as e:
+            _diagnostico(driver)
+            raise Detener(f"Fallo del navegador ({type(e).__name__}). Revisa las pistas de arriba.")
+        finally:
+            driver.quit()
 
 
 # ============================================================
