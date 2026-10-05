@@ -1,11 +1,17 @@
 name: Actualizar datos de cosecha
 
+# GitHub NO arranca las tareas programadas a la hora exacta: las puede soltar con varias horas
+# de retraso. Por eso aquí no se programa "a las 8" y "a las 12", sino un aviso cada media hora
+# durante el día. Cada aviso mira la hora de Lima y solo actualiza si ya toca y todavía no se hizo:
+#   - desde las 8:00 a. m.  -> trae el día de AYER completo
+#   - desde las 12:00 m.    -> refresca ayer y agrega lo que va de HOY
+# Los demás avisos terminan en unos segundos sin hacer nada. Si una actualización falla
+# (por ejemplo, la intranet no responde), el siguiente aviso la vuelve a intentar.
+
 on:
   schedule:
-    # La hora va en UTC (Lima + 5). Se programa 5 minutos antes porque GitHub suele arrancar con unos minutos de retraso.
-    - cron: "55 12 * * *"       # 7:55 a. m. de Lima -> listo hacia las 8:00: trae el día de AYER completo
-    - cron: "55 16 * * *"       # 11:55 a. m. de Lima -> listo hacia las 12:00: refresca ayer y agrega lo que va de HOY
-  workflow_dispatch:            # botón "Run workflow" para correrlo a mano
+    - cron: "5,35 8-22 * * *"    # avisos cada media hora, de 3:05 a. m. a 5:35 p. m. de Lima (la hora va en UTC)
+  workflow_dispatch:             # botón "Run workflow" para correrlo a mano, de inmediato
     inputs:
       dias:
         description: "Días hacia atrás a traer (1 = solo ayer)"
@@ -30,37 +36,72 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ver si toca actualizar ahora
+        id: turno
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Corrida manual: se actualiza ahora."
+            echo "correr=si" >> "$GITHUB_OUTPUT"
+            echo "hoy=${{ github.event.inputs.incluir_hoy }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          hora=$(TZ=America/Lima date +%-H)
+          dia=$(TZ=America/Lima date +%F)
+          echo "En Lima son las $(TZ=America/Lima date +%H:%M) del $dia."
+          if [ "$hora" -ge 12 ]; then turno=12; hoy=true
+          elif [ "$hora" -ge 8 ]; then turno=08; hoy=false
+          else echo "Todavía no son las 8:00 a. m.: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          marca="$dia-$turno"
+          if [ "$(cat ultima_corrida.txt 2>/dev/null)" = "$marca" ]; then
+            echo "La actualización de las $turno:00 de hoy ya se hizo: no toca."
+            echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "Toca la actualización de las $turno:00."
+          echo "correr=si" >> "$GITHUB_OUTPUT"
+          echo "hoy=$hoy" >> "$GITHUB_OUTPUT"
+          echo "marca=$marca" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-python@v5
+        if: steps.turno.outputs.correr == 'si'
         with:
           python-version: "3.12"
 
       - name: Instalar lo necesario
+        if: steps.turno.outputs.correr == 'si'
         run: pip install --quiet selenium openpyxl cryptography
 
       - name: Descargar de la intranet y actualizar datos.json
+        if: steps.turno.outputs.correr == 'si'
         env:
           INTRANET_USUARIO: ${{ secrets.INTRANET_USUARIO }}
           INTRANET_CLAVE: ${{ secrets.INTRANET_CLAVE }}
           ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
           DIAS_ATRAS: ${{ github.event.inputs.dias }}
-          # la corrida del mediodía (y la manual, si se marca la casilla) incluye el día en curso
-          INCLUIR_HOY: ${{ github.event.schedule == '55 16 * * *' || github.event.inputs.incluir_hoy == 'true' }}
+          INCLUIR_HOY: ${{ steps.turno.outputs.hoy }}
           DESCARGAS_DIR: ${{ runner.temp }}/descargas
         run: python actualizar.py
 
       - name: Publicar el cambio
+        if: steps.turno.outputs.correr == 'si'
         run: |
-          if git diff --quiet -- datos.json; then
-            echo "Sin cambios en datos.json."
+          # se anota qué actualización quedó hecha, para que los avisos siguientes no la repitan
+          marca="${{ steps.turno.outputs.marca }}"
+          if [ -n "$marca" ]; then echo "$marca" > ultima_corrida.txt; git add ultima_corrida.txt; fi
+          cambio=no
+          if ! git diff --quiet -- datos.json; then cambio=si; git add datos.json; fi
+          if git diff --cached --quiet; then
+            echo "Sin cambios que guardar."
             exit 0
           fi
           git config user.name "actualizacion-automatica"
           git config user.email "actions@users.noreply.github.com"
-          git add datos.json
-          git commit -m "Actualiza datos (automático $(TZ=America/Lima date +%d/%m/%Y))"
-          git push || { echo "No se pudo guardar: alguien publicó desde la página al mismo tiempo. Vuelve a ejecutar (Run workflow)."; exit 1; }
-          # pide a GitHub Pages que vuelva a publicar el sitio con el datos.json nuevo
-          curl -sS -o /dev/null -w "Publicación del sitio: respuesta %{http_code}\n" -X POST \
-            -H "Authorization: Bearer ${{ github.token }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pages/builds" || true
+          git commit -m "Actualiza datos (automático $(TZ=America/Lima date '+%d/%m/%Y %H:%M'))"
+          git push || { echo "No se pudo guardar: alguien publicó desde la página al mismo tiempo. Se reintenta en el siguiente aviso."; exit 1; }
+          if [ "$cambio" = "si" ]; then
+            # pide a GitHub Pages que vuelva a publicar el sitio con el datos.json nuevo
+            curl -sS -o /dev/null -w "Publicación del sitio: respuesta %{http_code}\n" -X POST \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pages/builds" || true
+          fi
