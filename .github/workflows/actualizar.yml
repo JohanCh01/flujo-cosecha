@@ -2,12 +2,18 @@ name: Actualizar datos de cosecha
 
 on:
   schedule:
-    - cron: "7 12 * * *"        # todos los días a las 7:07 a. m. de Lima (la hora va en UTC: Lima + 5)
+    # La hora va en UTC (Lima + 5). Se programa 5 minutos antes porque GitHub suele arrancar con unos minutos de retraso.
+    - cron: "55 12 * * *"       # 7:55 a. m. de Lima -> listo hacia las 8:00: trae el día de AYER completo
+    - cron: "55 16 * * *"       # 11:55 a. m. de Lima -> listo hacia las 12:00: refresca ayer y agrega lo que va de HOY
   workflow_dispatch:            # botón "Run workflow" para correrlo a mano
     inputs:
       dias:
         description: "Días hacia atrás a traer (1 = solo ayer)"
         default: "1"
+      incluir_hoy:
+        description: "Incluir también lo que va de hoy (día incompleto)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -37,6 +43,8 @@ jobs:
           INTRANET_CLAVE: ${{ secrets.INTRANET_CLAVE }}
           ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
           DIAS_ATRAS: ${{ github.event.inputs.dias }}
+          # la corrida del mediodía (y la manual, si se marca la casilla) incluye el día en curso
+          INCLUIR_HOY: ${{ github.event.schedule == '55 16 * * *' || github.event.inputs.incluir_hoy == 'true' }}
           DESCARGAS_DIR: ${{ runner.temp }}/descargas
         run: python actualizar.py
 
