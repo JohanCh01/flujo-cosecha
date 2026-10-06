@@ -1320,9 +1320,14 @@ var FOS = (function () {
     options: function () { return uniq(daysIn(true, true).map(function (x) { return x.ymd; })).sort(function (a, b) { return b - a; }).map(function (d) { return { v: d, t: fmtDate(d) }; }); },
     onChange: function () { render(); top(); } });
 
-  // Categoría con que se recibió la cosecha (columna Categoria de recepción)
+  // Categoría con que se recibió la cosecha (columna Categoria de recepción).
+  // Solo ofrece las categorías que existen con los demás filtros puestos (clase, unidad, proveedor, periodo, muestreo, días, búsqueda).
   makeMS('cat', { width: 150, popw: 200, all: 'Todas',
-    options: function () { return uniq([].concat.apply([], state.units.map(function (u) { return u.cats; }))).sort(coll.compare).map(function (c) { return { v: c, t: catLabel(c) }; }); },
+    options: function () {
+      var rows = byMues(baseFiltered(true));
+      if (F.bucket.size) rows = rows.filter(function (u) { return F.bucket.has(bucketOf(u)); });
+      return uniq([].concat.apply([], rows.map(function (u) { return u.catsAll; }))).sort(coll.compare).map(function (c) { return { v: c, t: catLabel(c) }; });
+    },
     onChange: function () { render(); top(); } });
 
   // ---------- botones de opción (también admiten varias)
@@ -1360,17 +1365,19 @@ var FOS = (function () {
   }
 
   // Días del periodo elegido → una fila por campo, con su cosecha más reciente dentro de ese periodo
-  function baseFiltered() {
+  // noCat = true deja fuera el filtro de Categoría (sirve para saber qué categorías ofrecer)
+  function baseFiltered(noCat) {
     var q = plain(state.q.trim()), best = Object.create(null), out = [];
     state.units.forEach(function (u) {
       if (!(inSet(F.ua, u.ua) && inSet(F.prov, u.prov) && (!state.clase || u.clase === state.clase) &&
-        inSet(F.anio, u.y) && inSet(F.mes, u.m) && inSet(F.sem, u.w) && inSet(F.fecha, u.ymd) && (!F.cat.size || u.cats.some(function (c) { return F.cat.has(c); })) && (!q || u.hay.indexOf(q) >= 0))) return;
+        inSet(F.anio, u.y) && inSet(F.mes, u.m) && inSet(F.sem, u.w) && inSet(F.fecha, u.ymd) && (noCat || !F.cat.size || u.cats.some(function (c) { return F.cat.has(c); })) && (!q || u.hay.indexOf(q) >= 0))) return;
       var b = best[u.key];
-      if (!b) { b = best[u.key] = { u: u, n: 0, subs: [] }; out.push(b); }
+      if (!b) { b = best[u.key] = { u: u, n: 0, subs: [], cats: [] }; out.push(b); }
       b.n++; if (u.ymd > b.u.ymd) b.u = u;
       u.subs.forEach(function (s) { if (b.subs.indexOf(s) < 0) b.subs.push(s); });
+      u.cats.forEach(function (c) { if (b.cats.indexOf(c) < 0) b.cats.push(c); });
     });
-    return out.map(function (b) { b.u.nCos = b.n; b.u.subsAll = b.subs.sort(coll.compare); return b.u; });
+    return out.map(function (b) { b.u.nCos = b.n; b.u.subsAll = b.subs.sort(coll.compare); b.u.catsAll = b.cats; return b.u; });
   }
 
   var SORTS = {
@@ -1427,6 +1434,7 @@ var FOS = (function () {
   function anyFilter() { return !!state.q.trim() || !!state.clase || !!state.mues || state.status !== defaultStatus() || Object.keys(F).some(function (k) { return F[k].size > 0; }); }
 
   function render() {
+    MS.cat.refresh();                                    // las categorías disponibles dependen de los demás filtros
     var all = baseFiltered(), nSi = all.filter(isMues).length, cnt = { recent: 0, mid: 0, old: 0, none: 0 };
     $('fMues').innerHTML = [['', 'Todos', all.length], ['si', 'Muestreados', nSi], ['no', 'No muestreados', all.length - nSi]].map(function (o) {
       return '<button type="button" data-v="' + o[0] + '" aria-pressed="' + (state.mues === o[0]) + '">' + o[1] + '<small>' + nf.format(o[2]) + '</small></button>';
