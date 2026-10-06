@@ -1,10 +1,11 @@
 name: Actualizar datos de cosecha
 
 # GitHub NO arranca las tareas programadas a la hora exacta: las puede soltar con varias horas
-# de retraso. Por eso aquí no se programa "a las 8" y "a las 12", sino un aviso cada media hora
+# de retraso. Por eso aquí no se programa "a las 8:32" y "a la 1:05", sino un aviso cada media hora
 # durante el día. Cada aviso mira la hora de Lima y solo actualiza si ya toca y todavía no se hizo:
-#   - desde las 8:00 a. m.  -> trae el día de AYER completo
-#   - desde las 12:00 m.    -> refresca ayer y agrega lo que va de HOY
+#   - desde las 8:32 a. m.  -> trae el día de AYER completo
+#   - desde la 1:05 p. m.   -> refresca ayer y agrega lo que va de HOY
+# Para cambiar las horas, edita HORA_MANANA y HORA_TARDE en el paso "Ver si toca actualizar ahora".
 # Los demás avisos terminan en unos segundos sin hacer nada. Si una actualización falla
 # (por ejemplo, la intranet no responde), el siguiente aviso la vuelve a intentar.
 
@@ -45,19 +46,23 @@ jobs:
             echo "hoy=${{ github.event.inputs.incluir_hoy }}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          hora=$(TZ=America/Lima date +%-H)
+          # Horas de Lima (formato 24 horas, HH:MM) desde las que toca cada actualización
+          HORA_MANANA="08:32"
+          HORA_TARDE="13:05"
+          ahora=$(TZ=America/Lima date +%H:%M)
           dia=$(TZ=America/Lima date +%F)
-          echo "En Lima son las $(TZ=America/Lima date +%H:%M) del $dia."
-          if [ "$hora" -ge 12 ]; then turno=12; hoy=true
-          elif [ "$hora" -ge 8 ]; then turno=08; hoy=false
-          else echo "Todavía no son las 8:00 a. m.: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
+          echo "En Lima son las $ahora del $dia."
+          # "HH:MM" con ceros a la izquierda se puede comparar como texto
+          if [ ! "$ahora" \< "$HORA_TARDE" ]; then turno=$HORA_TARDE; hoy=true
+          elif [ ! "$ahora" \< "$HORA_MANANA" ]; then turno=$HORA_MANANA; hoy=false
+          else echo "Todavía no son las $HORA_MANANA: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
           fi
           marca="$dia-$turno"
           if [ "$(cat ultima_corrida.txt 2>/dev/null)" = "$marca" ]; then
-            echo "La actualización de las $turno:00 de hoy ya se hizo: no toca."
+            echo "La actualización de las $turno de hoy ya se hizo: no toca."
             echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          echo "Toca la actualización de las $turno:00."
+          echo "Toca la actualización de las $turno."
           echo "correr=si" >> "$GITHUB_OUTPUT"
           echo "hoy=$hoy" >> "$GITHUB_OUTPUT"
           echo "marca=$marca" >> "$GITHUB_OUTPUT"
