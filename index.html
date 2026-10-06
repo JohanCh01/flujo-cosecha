@@ -56,6 +56,11 @@ button,select,input{font:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap:10px}
 .brand svg{width:46px;height:38px;flex:none;color:var(--d-a);stroke-width:1.3}
 h1{font-family:var(--display);font-weight:700;font-size:23px;line-height:1;text-transform:uppercase;letter-spacing:.01em;flex:1;min-width:0}
+.nav{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);flex:none}
+.nav a{flex:1 1 auto;min-width:0;padding:6px 8px;text-align:center;text-decoration:none;color:var(--ink);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav a + a{border-left:1px solid var(--line)}
+.nav a:hover{background:var(--surface-2)}
+.nav a[aria-current="page"]{background:var(--ink);color:var(--bg);font-weight:600}
 .act{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .rango{color:var(--ink-3);font-size:12.5px;font-variant-numeric:tabular-nums;line-height:1.25;flex:1 1 120px;min-width:0}
 .btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -356,6 +361,10 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
       <h1>Flujo comparativo de la cosecha</h1>
       <svg class="ic" aria-hidden="true"><use href="#i-camion"/></svg>
     </header>
+    <nav class="nav" id="nav" aria-label="Páginas" hidden>
+      <a href="./" aria-current="page">Flujo de cosecha</a>
+      <a href="fitosanitario.html">Evaluación fitosanitaria</a>
+    </nav>
     <div class="act">
       <button class="btn" id="btnCarga" type="button">Cargar Excel</button>
       <button class="btn ghost" id="btnComp" type="button" hidden>Compartir</button>
@@ -464,6 +473,7 @@ var SITE=(function(){
   var seg=location.pathname.split('/').filter(Boolean)[0], repo=(seg && !/\.html?$/i.test(seg)) ? seg : location.hostname;
   return {url:new URL('datos.json',location.href).href.split(/[?#]/)[0], api:'https://api.github.com/repos/'+m[1]+'/'+repo};
 })();
+if(SITE) $('#nav').hidden=false;   // la otra página solo existe en el sitio publicado
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 var DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 var MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -1331,23 +1341,25 @@ async function openWith(bits){
   S.db=memDb(await openData(raw),false); S.viewer=true; S.canWrite=false;
   return true;
 }
-function forget(){ try{ localStorage.removeItem('fc.ses'); }catch(e){} }
+function forget(){ try{ localStorage.removeItem('fc.ses'); }catch(e){} try{ sessionStorage.removeItem('fc.ses'); }catch(e){} }
 async function unlock(u,p,keep){
   u=keyDni(u); p=keyDni(p);
   if(!PKG || !u || u!==p) return false;
   var bits=await dniBits(u,unb64(PKG.salt),PKG.it);
   if(!(await openWith(bits))) return false;
   S.who='DNI •••'+u.slice(-3);
-  if(keep){ try{ localStorage.setItem('fc.ses',JSON.stringify({k:b64(bits),s:PKG.salt,w:S.who})); }catch(e){} } else forget();
+  forget();   // con la casilla queda en el equipo; sin ella, solo mientras siga abierta la pestaña (sirve para pasar a las otras páginas del sitio)
+  try{ (keep?localStorage:sessionStorage).setItem('fc.ses',JSON.stringify({k:b64(bits),s:PKG.salt,w:S.who})); }catch(e){}
   return true;
 }
 async function resume(){
   var o=null; try{ o=JSON.parse(localStorage.getItem('fc.ses')||'null'); }catch(e){}
+  if(!o){ try{ o=JSON.parse(sessionStorage.getItem('fc.ses')||'null'); }catch(e){} }
   if(!o || !o.k || !PKG || !window.crypto || !crypto.subtle) return false;
   try{ if(await openWith(unb64(o.k))){ S.who=o.w||'DNI'; return true; } }catch(e){}
   forget(); return false;
 }
-function logout(){ try{ localStorage.removeItem('fc.ses'); localStorage.removeItem('fc.adm'); localStorage.removeItem('fc.tok'); }catch(e){} location.reload(); }
+function logout(){ forget(); try{ localStorage.removeItem('fc.adm'); localStorage.removeItem('fc.tok'); }catch(e){} location.reload(); }
 $('#userB').addEventListener('click',function(e){ e.stopPropagation(); var m=$('#userM'); m.hidden=!m.hidden; $('#userB').setAttribute('aria-expanded',String(!m.hidden)); });
 $('#userOut').addEventListener('click',logout);
 document.addEventListener('click',function(e){ var m=$('#userM'); if(!m.hidden && !e.target.closest('#user')){ m.hidden=true; $('#userB').setAttribute('aria-expanded','false'); } });
