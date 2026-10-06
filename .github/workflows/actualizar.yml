@@ -82,6 +82,22 @@ jobs:
           DESCARGAS_DIR: ${{ runner.temp }}/descargas
         run: python actualizar.py
 
+      # Página fitosanitaria: usa el mismo Excel de recepción que se acaba de bajar y la base de fosfina de Drive.
+      # Si este paso falla, el Flujo de cosecha se publica igual.
+      - name: Actualizar los datos de la página fitosanitaria (fito.json)
+        if: steps.turno.outputs.correr == 'si'
+        continue-on-error: true
+        env:
+          ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
+          GOOGLE_CREDENCIALES: ${{ secrets.GOOGLE_CREDENCIALES }}
+          DRIVE_CARPETA_ID: ${{ secrets.DRIVE_CARPETA_ID }}
+          DIAS_ATRAS: ${{ github.event.inputs.dias }}
+          INCLUIR_HOY: ${{ steps.turno.outputs.hoy }}
+          DESCARGAS_DIR: ${{ runner.temp }}/descargas
+        run: |
+          pip install --quiet google-auth google-api-python-client
+          python actualizar_fito.py
+
       - name: Publicar el cambio
         if: steps.turno.outputs.correr == 'si'
         run: |
@@ -90,6 +106,11 @@ jobs:
           if [ -n "$marca" ]; then echo "$marca" > ultima_corrida.txt; git add ultima_corrida.txt; fi
           cambio=no
           if ! git diff --quiet -- datos.json; then cambio=si; git add datos.json; fi
+          # datos de la página fitosanitaria (la primera vez el archivo todavía no existe en el repositorio)
+          if [ -f fito.json ]; then
+            git add fito.json
+            if ! git diff --cached --quiet -- fito.json; then cambio=si; fi
+          fi
           if git diff --cached --quiet; then
             echo "Sin cambios que guardar."
             exit 0
@@ -99,7 +120,7 @@ jobs:
           git commit -m "Actualiza datos (automático $(TZ=America/Lima date '+%d/%m/%Y %H:%M'))"
           git push || { echo "No se pudo guardar: alguien publicó desde la página al mismo tiempo. Se reintenta en el siguiente aviso."; exit 1; }
           if [ "$cambio" = "si" ]; then
-            # pide a GitHub Pages que vuelva a publicar el sitio con el datos.json nuevo
+            # pide a GitHub Pages que vuelva a publicar el sitio con los datos nuevos
             curl -sS -o /dev/null -w "Publicación del sitio: respuesta %{http_code}\n" -X POST \
               -H "Authorization: Bearer ${{ github.token }}" \
               -H "Accept: application/vnd.github+json" \
