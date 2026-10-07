@@ -1356,12 +1356,11 @@ var FOS = (function () {
 
   function renderMeta(err) {
     var parts = [];
-    if (state.srcFito) parts.push('Fitosanitario: <strong>' + esc(state.srcFito.name) + '</strong>, hasta ' + fmtDate(state.fito.maxYmd));
+    if (state.srcFito) parts.push('<strong>Base fitosanitaria</strong>, hasta ' + fmtDate(state.fito.maxYmd));
     else parts.push('<span class="err">Falta la base fitosanitaria</span>');
-    if (state.srcRec) parts.push('Recepción (FR): <strong>' + esc(state.srcRec.name) + '</strong>, hasta ' + fmtDate(state.rec.maxYmd));
+    if (state.srcRec) parts.push('<strong>Recepción de materia prima</strong>, hasta ' + fmtDate(state.rec.maxYmd));
     else parts.push('<span class="err">Falta la base de recepción</span>');
-    if (state.gen) parts.push('actualizado el ' + state.gen.slice(8, 10) + '/' + state.gen.slice(5, 7) + ' a las ' + state.gen.slice(11, 16));
-    parts.push('hoy ' + fmtDate(state.today || todayYmd()));
+    if (state.gen) parts.push('actualizado el ' + state.gen.slice(8, 10) + '/' + state.gen.slice(5, 7) + '/' + state.gen.slice(0, 4) + ' a las ' + state.gen.slice(11, 16));
     $('meta').innerHTML = (err ? '<span class="err">' + esc(err) + '</span> · ' : '') + parts.join(' · ');
   }
 
