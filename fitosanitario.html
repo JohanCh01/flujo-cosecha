@@ -35,6 +35,8 @@
   --pop: 0 10px 28px rgba(23, 32, 26, .18);
   --warn-bg: #fbe2da;
   --warn-ink: #9a2d18;
+  --two-bg: #fbeeb0;
+  --two-ink: #6b5200;
   --ink-soft: #47554c;
   --xls: #1d7044;
   --pdf: #c63d2c;
@@ -49,7 +51,7 @@
     --recent-bg: #1f3a26; --recent-ink: #9bd9a7; --mid-bg: #3a2f14; --mid-ink: #e3c377;
     --old-bg: #262e28; --old-ink: #98a69b;
     --bar-post: #d9a441; --bar-larva: #5fb3b0; --track: #2a342d; --danger: #f08a78;
-    --shadow: none; --pop: 0 10px 28px rgba(0, 0, 0, .55); --warn-bg: #45211a; --warn-ink: #f3a391; --ink-soft: #b9c4bb; --xls: #2f9460; --pdf: #dd5a47; color-scheme: dark;
+    --shadow: none; --pop: 0 10px 28px rgba(0, 0, 0, .55); --warn-bg: #45211a; --warn-ink: #f3a391; --two-bg: #453a12; --two-ink: #ecd27a; --ink-soft: #b9c4bb; --xls: #2f9460; --pdf: #dd5a47; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
@@ -59,7 +61,7 @@
   --recent-bg: #1f3a26; --recent-ink: #9bd9a7; --mid-bg: #3a2f14; --mid-ink: #e3c377;
   --old-bg: #262e28; --old-ink: #98a69b;
   --bar-post: #d9a441; --bar-larva: #5fb3b0; --track: #2a342d; --danger: #f08a78;
-  --shadow: none; --pop: 0 10px 28px rgba(0, 0, 0, .55); --warn-bg: #45211a; --warn-ink: #f3a391; --ink-soft: #b9c4bb; --xls: #2f9460; --pdf: #dd5a47; color-scheme: dark;
+  --shadow: none; --pop: 0 10px 28px rgba(0, 0, 0, .55); --warn-bg: #45211a; --warn-ink: #f3a391; --two-bg: #453a12; --two-ink: #ecd27a; --ink-soft: #b9c4bb; --xls: #2f9460; --pdf: #dd5a47; color-scheme: dark;
 }
 
 html, body { height: 100%; }
@@ -215,6 +217,7 @@ tbody tr.subrow .bar { opacity: .4; }
 .subname { padding-left: 14px; white-space: nowrap; }
 /* Días transcurridos: más de 2 días en rojo suave */
 .pill.late { background: var(--warn-bg); color: var(--warn-ink); }
+.pill.two { background: var(--two-bg); color: var(--two-ink); }
 /* Encabezados en negrita; valores con el negro más suave */
 .tablewrap thead th button { font-weight: 700; color: var(--ink); }
 .tablewrap tbody td { color: var(--ink-soft); }
@@ -350,7 +353,7 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
           <th data-k="ultimo"><button type="button" title="Última evaluación (con el Status elegido) hasta la fecha de cosecha">Última evaluación<span class="arrow"></span></button></th>
           <th data-k="post" class="num"><button type="button" title="P.Heliothis + P.Spodoptera + P.Otros de la última evaluación"><span class="arrow"></span>% Posturas</button></th>
           <th data-k="larva" class="num"><button type="button" title="Columna Larva de la última evaluación"><span class="arrow"></span>% Larvas</button></th>
-          <th data-k="dias" class="num"><button type="button" title="Días entre la última evaluación y hoy. Hasta 2 días: muestreado (verde). Más de 2: no muestreado (rojo)."><span class="arrow"></span>Días transc.</button></th>
+          <th data-k="dias" class="num"><button type="button" title="Días entre la última evaluación y hoy. Hasta 1 día: verde. 2 días: amarillo. Más de 2 días: rojo."><span class="arrow"></span>Días transc.</button></th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -1408,7 +1411,7 @@ var FOS = (function () {
     var dTxt = !u.lastYmd ? '—' : u.dias === 0 ? 'Hoy' : u.dias === 1 ? '1 día' : nf.format(u.dias) + ' días';
     return '<td class="cell fecha">' + (u.lastYmd ? fmtDate(u.lastYmd) : '<span class="muted" title="' + (u.known ? 'No tiene filas con ese Status hasta la fecha de cosecha' : 'Este campo no aparece en la base fitosanitaria') + '">Sin evaluación</span>') + '</td>' +
       pctCell(u.post, 'post', u) + pctCell(u.larva, 'larva', u) +
-      '<td class="cell num">' + (u.lastYmd ? '<span class="pill ' + (u.dias > 2 ? 'late' : 'recent') + '">' + dTxt + '</span>' : '<span class="pill late">Nunca</span>') + '</td>';
+      '<td class="cell num">' + (u.lastYmd ? '<span class="pill ' + (u.dias > 2 ? 'late' : u.dias === 2 ? 'two' : 'recent') + '">' + dTxt + '</span>' : '<span class="pill late">Nunca</span>') + '</td>';
   }
   function restCells(u, i) {
     var tip = 'Cosechado el ' + fmtDate(u.ymd) + (u.nCos > 1 ? ' (última de ' + u.nCos + ' cosechas en el periodo)' : '') + ' · ' + nf.format(Math.round(u.kg)) + ' kg' + (u.cats.length ? ' · ' + u.cats.map(catLabel).join(', ') : '');
@@ -1628,12 +1631,12 @@ var FOS = (function () {
     if (!J || !J.API || !J.API.autoTable) { toast('No se pudo cargar el generador de PDF. Revisa la conexión y recarga.'); return; }
     var GREY = [120, 132, 124], INK = [40, 50, 44];
     function tail(u, sub) {
-      var late = !u.lastYmd || u.dias > 2;
+      var late = !u.lastYmd || u.dias > 2, two = !late && u.dias === 2;
       var st = sub ? { textColor: GREY } : {};
       return [{ content: u.lastYmd ? fmtDate(u.lastYmd) : 'Sin evaluación', styles: st },
         { content: u.lastYmd ? fmtPct(u.post) : '—', styles: Object.assign({ halign: 'right' }, st) },
         { content: u.lastYmd ? fmtPct(u.larva) : '—', styles: Object.assign({ halign: 'right' }, st) },
-        { content: diasTxt(u), styles: sub ? { halign: 'center', textColor: GREY } : { halign: 'center', fontStyle: 'bold', fillColor: late ? [251, 226, 218] : [220, 239, 221], textColor: late ? [154, 45, 24] : [29, 90, 44] } }];
+        { content: diasTxt(u), styles: sub ? { halign: 'center', textColor: GREY } : { halign: 'center', fontStyle: 'bold', fillColor: late ? [251, 226, 218] : two ? [251, 238, 176] : [220, 239, 221], textColor: late ? [154, 45, 24] : two ? [107, 82, 0] : [29, 90, 44] } }];
     }
     function extra(x) { return state.open.has(x.key) && hasSubs(x) ? x.subsAll.length : 0; }
     function subLines(u, lead) { return u.subsAll.map(function (s) { return lead.concat([{ content: '   ' + s, styles: { textColor: GREY } }], tail(u, true)); }); }
