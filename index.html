@@ -1188,7 +1188,7 @@ async function reporte(){
     if(parte.length) partes.push(parte);
     return partes;
   }
-  function armar(rc){   // hasta 7 columnas por hoja; un día partido no se corta entre dos hojas si cabe entero en una
+  function armar(L,rc){   // hasta 7 columnas por hoja; un día partido no se corta entre dos hojas si cabe entero en una
     var pg=[], cur=[];
     L.forEach(function(l){
       var ps=partir(l,MINR); if(ps.length>1 && rc>MINR) ps=partir(l,rc);
@@ -1198,21 +1198,24 @@ async function reporte(){
     if(cur.length) pg.push(cur);
     return pg;
   }
-  var hojas=armar(MINR);
-  [7.5,6.5,5.5].some(function(rc){ var h=armar(rc); if(h.length<=hojas.length){ hojas=h; return true; } return false; });   // letra más grande si no cuesta hojas
-  var info=repInfo(L), KP=hallazgos(L), ahora=new Date();
+  function hojasDe(L){
+    var hojas=armar(L,MINR);
+    [7.5,6.5,5.5].some(function(rc){ var h=armar(L,rc); if(h.length<=hojas.length){ hojas=h; return true; } return false; });   // letra más grande si no cuesta hojas
+    return hojas;
+  }
+  var ahora=new Date();
   var gen=('0'+ahora.getDate()).slice(-2)+'/'+('0'+(ahora.getMonth()+1)).slice(-2)+'/'+ahora.getFullYear()+' '+hm(ahora.getHours()*60+ahora.getMinutes());
 
-  function cabecera(n){
+  function cabecera(info,n,total,nota){
     var wi=icon('granja','a',M,7,13.5); icon('camion','a',W-M-(wi||17),7,13.5);
     font(true,19,C.ink); txt('FLUJO COMPARATIVO DE LA COSECHA',W/2,11.2,'center');
     var partes=[info.meses,info.sem,info.rango,info.zona]; if(info.proceso) partes.push(info.proceso);
     var sz=9.6; font(true,sz,C.a); while(tw(partes.join('   ·   '))>W-2*M-44 && sz>6.5){ sz-=0.3; font(true,sz,C.a); }
     txt(partes.join('   ·   '),W/2,18.6,'center');
     font(false,5.8,C.ink3); txt('Detalle por campo · Cant. en jabas · Kilos = Peso Planta',M,205);
-    txt('Generado el '+gen+' · Hoja '+n+' de '+hojas.length,W-M,205,'right');
+    txt('Generado el '+gen+(nota?' · '+nota:'')+' · Hoja '+n+' de '+total,W-M,205,'right');
   }
-  function pie(){
+  function pie(KP){
     fill(C.soft); stroke(C.line,0.25); doc.roundedRect(M,HY,W-2*M,HH,1.8,1.8,'FD');
     font(true,10.5,C.a); txt('HALLAZGOS',M+4,HY+9); txt('CLAVE',M+4,HY+14);
     var x0=M+31, tw0=(W-2*M-31)/KP.length;
@@ -1254,11 +1257,11 @@ async function reporte(){
       if(tres){
         var fa=Math.min(9,5.9+(R-7.4)*0.55), fb=F, ih=fb*0.36, av=xr-cx-2.6-ih;
         font(true,fb,C.ink); var pl=doc.splitTextToSize(lat(g.prov),av); if(!cuatro || pl.length<2) pl=[cut(g.prov,av)]; else if(pl.length>2) pl=[pl[0],cut(pl.slice(1).join(' '),av)];
-        var dos=pl.length===2, y1=cy+ch*(dos?0.17:0.21), y2=cy+ch*(dos?0.41:0.53), y3=cy+ch*(dos?0.85:0.82);
+        var dos=pl.length===2, salto=Math.max(ch*0.2,fb*0.37), y1=cy+ch*(dos?0.15:0.21), y2=cy+ch*(dos?0.37:0.53), y3=dos?Math.max(cy+ch*0.86,y2+salto*2):cy+ch*0.82;
         font(true,fa,col); txt(hm(g.first),cx+1,y1); var tx=cx+1+tw(hm(g.first));
         font(true,fa,C.ink); var cw=tw(cant); txt(cant,xr-1,y1,'right'); var iw=icon('jaba',cn,xr-1-cw-0.7-fa*0.36,y1-fa*0.18,fa*0.36);
         font(false,fb*0.88,C.ink3); ex=exs.filter(function(t){ return tw(t)<=xr-1-cw-iw-2-tx-1.5; })[0]||''; if(ex) txt(ex,tx+1.5,y1+0.1);
-        var wi=icon('prov',cn,cx+1,y2-ih/2,ih); font(true,fb,C.ink); pl.forEach(function(t,j){ txt(t,cx+1.6+wi,y2+j*ch*0.2); });
+        var wi=icon('prov',cn,cx+1,y2-ih/2,ih); font(true,fb,C.ink); pl.forEach(function(t,j){ txt(t,cx+1.6+wi,y2+j*salto); });
         wi=icon('campo',cn,cx+1,y3-ih/2,ih); font(false,fb,C.ink2); txt(cut(campo,av),cx+1.6+wi,y3);
       } else {
         var ya=cy+ch*0.29, yb=cy+ch*0.74, f1=f2+0.5;
@@ -1287,26 +1290,43 @@ async function reporte(){
     font(false,5.5,C.ink3); txt(cut(nf(l.n)+' '+(l.n===1?'recojo':'recojos')+' en '+l.campos.length+' '+(l.campos.length===1?'campo':'campos'),bw-3.2-kw-(kw?1:0)),bx+1.6,by+7.8);
     if(l.recs.length){ font(false,5.1,C.ink3); var rl=doc.splitTextToSize(lat(recTxt(l)),bw-3.2); if(rl.length>2) rl=[rl[0],cut(rl.slice(1).join(' '),bw-3.2)]; rl.forEach(function(t,j){ txt(t,bx+1.6,by+10.7+j*2.2); }); }
   }
-  hojas.forEach(function(hs,pi){
-    if(pi) doc.addPage();
-    cabecera(pi+1);
-    var n=hs.length, gap=n>=6?2.2:3, w=Math.min(68,(W-13-gap*(n-1))/n), x0=(W-(n*w+gap*(n-1)))/2;
-    var R=MAXR;
-    hs.forEach(function(sl){ var ns=sl.u.filter(function(q){ return q.g; }).length, nt=sl.u.length-ns; if(!ns) return; var r=(A-nt*TLb)/ns; if(r<5.6) r=(A-nt*TLs)/ns; R=Math.min(R,r); });
-    R=Math.max(MINR,Math.min(MAXR,R));
-    /* una sola medida de letra por hoja: se achica lo justo para que proveedor y campo entren sin cortarse */
-    var tres=R>=7.4, cuatro=R>=10.8, F=tres ? Math.min(7.4,5.3+(R-7.4)*0.45) : Math.min(7,Math.max(5,((R-0.6)/2)*2.6));
-    var ancho=(w-1.4-6.7)-(tres?2.6+F*0.36:1.6)-0.3, falta=0;
-    hs.forEach(function(sl){ sl.u.forEach(function(q){ if(!q.g) return;
-      font(true,F,C.ink); var a=tw(q.g.prov); font(false,F,C.ink2); var b=tw(tres?campoTxt(q.g):' · '+campoTxt(q.g));
-      falta=Math.max(falta, tres ? (cuatro?Math.max(a*0.58,b):Math.max(a,b)) : a+b); }); });
-    if(falta>ancho) F=Math.max(Math.min(F,tres?5.2:5),F*ancho/falta);
-    hs.forEach(function(sl,i){ columna(sl,x0+i*(w+gap),w,R,F); });
-    pie();
-  });
-  var nombre=('Flujo cosecha '+info.sem+' '+info.zona.replace(/^ZONA:\s*/,'')).replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
+  /* Con "Todas" las unidades agrícolas el reporte sale separado por zona: cada zona en sus propias hojas,
+     con su encabezado, sus fechas y sus hallazgos. Con una sola unidad elegida sale como siempre. */
+  var uaSel=S.ua, porZona=uaSel==='*', bloques=[], total=0, nHoja=0;
+  try{
+    (porZona ? uasForProc() : [uaSel]).forEach(function(z){
+      S.ua=z;                                    // los cálculos de abajo miran la unidad agrícola elegida
+      var Lz=repLanes(); if(!Lz.length) return;  // zona sin recojos en estas fechas y filtros: no lleva hoja
+      var hz=hojasDe(Lz);
+      bloques.push({z:z, hojas:hz, info:repInfo(Lz), KP:hallazgos(Lz)}); total+=hz.length;
+    });
+    bloques.forEach(function(b,bi){
+      S.ua=b.z;
+      b.hojas.forEach(function(hs){
+        if(nHoja) doc.addPage();
+        nHoja++;
+        cabecera(b.info,nHoja,total,bloques.length>1?'Zona '+(bi+1)+' de '+bloques.length:'');
+        var n=hs.length, gap=n>=6?2.2:3, w=Math.min(68,(W-13-gap*(n-1))/n), x0=(W-(n*w+gap*(n-1)))/2;
+        var R=MAXR;
+        hs.forEach(function(sl){ var ns=sl.u.filter(function(q){ return q.g; }).length, nt=sl.u.length-ns; if(!ns) return; var r=(A-nt*TLb)/ns; if(r<5.6) r=(A-nt*TLs)/ns; R=Math.min(R,r); });
+        R=Math.max(MINR,Math.min(MAXR,R));
+        /* una sola medida de letra por hoja: se achica lo justo para que proveedor y campo entren sin cortarse */
+        var tres=R>=7.4, cuatro=R>=10.8, F=tres ? Math.min(7.4,5.3+(R-7.4)*0.45) : Math.min(7,Math.max(5,((R-0.6)/2)*2.6));
+        var ancho=(w-1.4-6.7)-(tres?2.6+F*0.36:1.6)-0.3, falta=0;
+        hs.forEach(function(sl){ sl.u.forEach(function(q){ if(!q.g) return;
+          font(true,F,C.ink); var a=tw(q.g.prov); font(false,F,C.ink2); var b=tw(tres?campoTxt(q.g):' · '+campoTxt(q.g));
+          falta=Math.max(falta, tres ? (cuatro?Math.max(a*0.58,b):Math.max(a,b)) : a+b); }); });
+        if(falta>ancho) F=Math.max(Math.min(F,tres?5.2:5),F*ancho/falta);
+        hs.forEach(function(sl,i){ columna(sl,x0+i*(w+gap),w,R,F); });
+        pie(b.KP);
+      });
+    });
+  } finally { S.ua=uaSel; }
+  if(!total) throw {msg:'No hay recojos en la selección actual.'};
+  var info=repInfo(L), prc=PROCS.filter(function(x){ return x[0]===S.proc; })[0];
+  var nombre=('Flujo cosecha '+info.sem+' '+(porZona ? (prc?prc[1]:'')+' por zona' : info.zona.replace(/^ZONA:\s*/,''))).replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
   await saveFile(nombre,doc.output('blob'));
-  return hojas.length;
+  return total;
 }
 $('#btnRep').addEventListener('click',async function(){
   var b=$('#btnRep'); if(b.disabled) return;
