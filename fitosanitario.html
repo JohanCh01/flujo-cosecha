@@ -258,6 +258,98 @@ a.btn { text-decoration: none; color: inherit; }
 .minitable th.num, .minitable td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .minitable select { height: 32px; width: 250px; max-width: 100%; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .minitable > .note { margin: 10px; }
+
+/* ================================================================
+   Capa visual (solo estilos). No cambia lógica, datos ni colores
+   con significado: verde/amarillo/rojo de días, barras, Excel/PDF.
+   ================================================================ */
+:root {
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --surface-2: #f9f9f6;
+  --ink: #1c2420;
+  --ink-soft: #3d4842;
+  --muted: #6a736d;
+  --line: #e2e0d9;
+  --line-soft: #efeee9;
+  --line-strong: #cdcac1;
+  --accent: #285c39;
+  --accent-soft: #e8f0e9;
+  --track: #ebeae4;
+  --shadow: 0 1px 2px rgba(28, 36, 32, .04);
+  --ring: 0 0 0 3px rgba(40, 92, 57, .14);
+}
+body { -webkit-font-smoothing: antialiased; }
+.app { gap: 14px; padding-block: 18px 16px; }
+
+/* Encabezado: título, fechas y botones, separados del resto por una línea fina */
+.head { align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.head h1 { font-family: var(--font-body); font-size: 23px; font-weight: 600; letter-spacing: -.01em; }
+.head h1 b { font-weight: 600; letter-spacing: .01em; }
+.meta { margin-top: 6px; font-size: 12.5px; }
+.meta strong { font-weight: 600; }
+.btn { height: 34px; padding: 0 13px; gap: 7px; border-radius: 7px; border-color: var(--line); font-size: 13px; transition: background-color .15s, border-color .15s; }
+.btn:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.btn.primary { box-shadow: 0 1px 2px rgba(40, 92, 57, .22); }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); filter: brightness(.94); }
+.btn svg { width: 15px; height: 15px; }
+
+/* Filtros: etiquetas pequeñas, controles blancos con borde fino */
+.filters { gap: 12px 14px; }
+.filters .field > span, .filters .field > legend { font-size: 10px; font-weight: 600; letter-spacing: .08em; color: var(--muted); }
+.field select, .field input[type="date"], .combo-btn { border-color: var(--line); border-radius: 7px; transition: border-color .15s, box-shadow .15s; }
+.combo-btn:hover { border-color: var(--line-strong); }
+.combo-btn.on { border-color: var(--accent); }
+.combo-btn[aria-expanded="true"], .combo-btn:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.search input { border: 1px solid var(--line); border-radius: 7px; transition: border-color .15s, box-shadow .15s; }
+.search input:hover { border-color: var(--line-strong); }
+.search input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.combo-pop { border-color: var(--line); border-radius: 9px; box-shadow: 0 12px 32px rgba(28, 36, 32, .14), 0 2px 6px rgba(28, 36, 32, .06); }
+.combo-search input { border-color: var(--line); background: var(--surface-2); }
+.filters .search input { background: var(--surface); }
+.combo-search input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.seg { border-color: var(--line); border-radius: 7px; }
+.seg button { border-radius: 5px; transition: background-color .15s, color .15s; }
+.seg button:hover { background: var(--surface-2); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.seg button small { opacity: .7; }
+
+/* Resumen sobre la tabla: una sola línea discreta */
+.countrow { margin-top: 2px; }
+.count { font-size: 12.5px; letter-spacing: .005em; }
+.count strong { font-weight: 600; }
+.tools { gap: 6px; }
+.iconbtn { width: 36px; height: 34px; border-color: var(--line); border-radius: 7px; transition: background-color .15s, border-color .15s; }
+.iconbtn:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.iconbtn svg { width: 24px; height: 24px; }
+
+/* Tabla: protagonista, con líneas suaves */
+.tablewrap { border-color: var(--line); border-radius: 9px; box-shadow: var(--shadow); }
+thead th { background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.tablewrap thead th button { font-family: var(--font-body); font-size: 10.5px; letter-spacing: .07em; }
+.tablewrap tbody td { padding: 6.5px 12px; }
+tbody td { border-top-color: var(--line-soft); }
+tbody tr.prov-start > td { border-top-color: var(--line); }
+tbody tr.ua-start > td { border-top: 1px solid var(--line-strong); }
+tbody tr:hover > td.cell { background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
+td.ua { background: var(--surface-2); border-right: 1px solid var(--line); }
+td.prov { border-right: 1px solid var(--line-soft); }
+.tablewrap .ua-name { font-family: var(--font-body); font-size: 12.5px; font-weight: 600; letter-spacing: .04em; color: var(--ink); }
+.tablewrap .sub { margin-top: 3px; }
+.prov-name { font-weight: 500; color: var(--ink); }
+.campo { font-weight: 600; color: var(--ink); }
+.pct { gap: 10px; }
+.pct .v { font-weight: 500; }
+.bar { width: 48px; height: 4px; border-radius: 2px; }
+.bar i { border-radius: 2px; }
+.empty { padding: 56px 16px; }
+
+/* Ventanas (copiar y revisar cruce) */
+.copybox { background: color-mix(in srgb, var(--ink) 32%, transparent); }
+.copybox > div { border-color: var(--line); border-radius: 11px; box-shadow: 0 20px 48px rgba(28, 36, 32, .18); }
+.review-head h2 { font-family: var(--font-body); font-size: 17px; }
+.minitable { border-color: var(--line); }
+.minitable thead th { font-family: var(--font-body); font-size: 10.5px; letter-spacing: .07em; }
 </style>
 </head>
 <body>
@@ -1485,7 +1577,7 @@ var FOS = (function () {
     var fechas = uniq(rows.map(function (u) { return u.ymd; }));
     $('count').innerHTML = !rows.length ? '' :
       '<strong>' + plural(rows.length, 'campo cosechado', 'campos cosechados') + '</strong>' + (fechas.length === 1 ? ' el ' + fmtDate(fechas[0]) : ' en el periodo') +
-      ' · <strong>' + plural(nProv, 'proveedor', 'proveedores') + '</strong> en <strong>' + plural(nUa, 'unidad agrícola', 'unidades agrícolas') + '</strong>';
+      ' · <strong>' + plural(nProv, 'proveedor', 'proveedores') + '</strong> · <strong>' + plural(nUa, 'unidad agrícola', 'unidades agrícolas') + '</strong>';
     $('btnReset').hidden = !anyFilter();
   }
 
