@@ -1937,7 +1937,9 @@ var FOS = (function () {
       fr.readAsArrayBuffer(file);
     });
   }
+  var soloVer = false;                                   // en el sitio, solo el administrador puede cargar bases
   function loadFiles(files) {
+    if (soloVer) return;
     files = Array.prototype.slice.call(files || []);
     if (!files.length) return;
     if (typeof XLSX === 'undefined') { renderMeta('No se pudo cargar el lector de Excel. Revisa la conexión a internet y recarga la página.'); return; }
@@ -1960,7 +1962,7 @@ var FOS = (function () {
   $('file').addEventListener('change', function (e) { loadFiles(e.target.files); });
   var dragN = 0;
   function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0; }
-  window.addEventListener('dragenter', function (e) { if (hasFiles(e)) { dragN++; $('drop').hidden = false; e.preventDefault(); } });
+  window.addEventListener('dragenter', function (e) { if (!soloVer && hasFiles(e)) { dragN++; $('drop').hidden = false; e.preventDefault(); } });
   window.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
   window.addEventListener('dragleave', function (e) { if (hasFiles(e)) { dragN = Math.max(0, dragN - 1); if (!dragN) $('drop').hidden = true; } });
   window.addEventListener('drop', function (e) { if (hasFiles(e)) { e.preventDefault(); dragN = 0; $('drop').hidden = true; loadFiles(e.dataTransfer.files); } });
@@ -2030,10 +2032,14 @@ var FOS = (function () {
       // 1) la sesión tiene que abrir el paquete vigente del flujo (si se quitó el acceso, ya no abre)
       var pk = await getJson('datos.json');
       if (!pk || !(await unlock(pk, dk, adm))) return toLogin();
+      // «Cargar bases» queda solo para el administrador; los accesos por DNI solo ven
+      var esAdm = !!(adm && pk.adm && (await unlock(pk, null, adm)));
+      if (!esAdm) { soloVer = true; $('btnLoad').hidden = true; $('file').disabled = true; }
+      var usaCarga = esAdm ? ' Usa «Cargar bases» mientras tanto.' : '';
       // 2) con esa misma llave se abren los datos fitosanitarios
       var aviso = '';
       var fk = await getJson('fito.json');
-      if (!fk) aviso = EMBED ? '' : 'Todavía no hay datos automáticos (fito.json). Usa «Cargar bases» mientras tanto.';
+      if (!fk) aviso = EMBED ? '' : 'Todavía no hay datos automáticos (fito.json).' + usaCarga;
       else {
         try {
           var raw = await unlock(fk, dk, adm);
@@ -2044,7 +2050,7 @@ var FOS = (function () {
             usePacked(JSON.parse(new TextDecoder().decode(plain)));
             refreshAll(true);
           }
-        } catch (e) { aviso = 'No se pudieron abrir los datos fitosanitarios. Recarga la página; si sigue igual, usa «Cargar bases».'; }
+        } catch (e) { aviso = 'No se pudieron abrir los datos fitosanitarios. Recarga la página' + (esAdm ? '; si sigue igual, usa «Cargar bases».' : ' o avisa al administrador.'); }
       }
       if (aviso) renderMeta(aviso);
       pass();
