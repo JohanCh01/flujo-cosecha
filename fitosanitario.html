@@ -312,10 +312,6 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
       <div class="seg" id="fStatus"></div>
     </fieldset>
     <fieldset class="field">
-      <legend>Muestreo</legend>
-      <div class="seg" id="fMues"></div>
-    </fieldset>
-    <fieldset class="field">
       <legend>Días desde la última evaluación</legend>
       <div class="seg" id="fDias"></div>
     </fieldset>
@@ -1183,7 +1179,7 @@ var FOS = (function () {
   function daysSince(ymd, today) { return Math.max(0, Math.round((utc(today) - utc(ymd)) / 86400000)); }
   // Muestreado = su última evaluación tiene hasta 2 días; con más de 2 días (o sin evaluación) es no muestreado
   function isMues(u) { return !!u.lastYmd && u.dias <= 2; }
-  function bucketOf(u) { return !u.lastYmd ? 'none' : u.dias <= 7 ? 'recent' : u.dias <= 30 ? 'mid' : 'old'; }
+  function bucketOf(u) { return !u.lastYmd ? 'none' : u.dias <= 1 ? 'recent' : u.dias === 2 ? 'mid' : 'old'; }
   function quantile(vals, q) { var a = vals.filter(function (v) { return v > 0; }).sort(function (x, y) { return x - y; }); return a.length ? a[Math.min(a.length - 1, Math.floor(q * a.length))] : 0; }
   function plain(s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
   function cap(s) { return s ? s.charAt(0) + s.slice(1).toLowerCase() : ''; }
@@ -1352,7 +1348,6 @@ var FOS = (function () {
     return '<button type="button" data-v="" aria-pressed="' + !cur + '">Todos</button>' +
       items.map(function (it) { return '<button type="button" data-v="' + esc(it.v) + '" aria-pressed="' + (cur === it.v) + '">' + esc(it.t) + '</button>'; }).join('');
   }
-  $('fMues').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.mues = b.dataset.v; render(); top(); } });
   $('fClase').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.clase = b.dataset.v; MS.ua.refresh(); MS.prov.refresh(); render(); top(); } });
   $('fStatus').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.status = b.dataset.v || null; refreshAll(false); top(); } });
   function defaultStatus() { return state.sts && state.sts.indexOf('EVALUADO') >= 0 ? 'EVALUADO' : null; }
@@ -1439,12 +1434,9 @@ var FOS = (function () {
   function render() {
     MS.cat.refresh();                                    // las categorías disponibles dependen de los demás filtros
     var all = baseFiltered(), nSi = all.filter(isMues).length, cnt = { recent: 0, mid: 0, old: 0, none: 0 };
-    $('fMues').innerHTML = [['', 'Todos', all.length], ['si', 'Muestreados', nSi], ['no', 'No muestreados', all.length - nSi]].map(function (o) {
-      return '<button type="button" data-v="' + o[0] + '" aria-pressed="' + (state.mues === o[0]) + '">' + o[1] + '<small>' + nf.format(o[2]) + '</small></button>';
-    }).join('');
     var base = byMues(all);
     base.forEach(function (u) { cnt[bucketOf(u)]++; });
-    var dias = [{ v: 'recent', t: '0–7', n: cnt.recent }, { v: 'mid', t: '8–30', n: cnt.mid }, { v: 'old', t: '+30', n: cnt.old }, { v: 'none', t: 'Nunca', n: cnt.none }];
+    var dias = [{ v: 'recent', t: '1', n: cnt.recent }, { v: 'mid', t: '2', n: cnt.mid }, { v: 'old', t: '>2', n: cnt.old }, { v: 'none', t: 'Nunca', n: cnt.none }];
     dias.total = base.length;
     $('fDias').innerHTML = segHtml(dias, F.bucket);
     $('fClase').innerHTML = oneHtml((state.clases || []).map(function (c) { return { v: c, t: cap(c) }; }), state.clase);
@@ -1598,7 +1590,7 @@ var FOS = (function () {
     if (state.clase) out.push('Clase: ' + cap(state.clase));
     out.push('Status: ' + (state.status ? cap(state.status) : 'Todos'));
     if (state.mues) out.push('Muestreo: ' + (state.mues === 'si' ? 'Muestreados' : 'No muestreados'));
-    short('Días', pick(F.bucket, function (b) { return { recent: '0–7', mid: '8–30', old: '+30', none: 'Nunca' }[b]; }));
+    short('Días', pick(F.bucket, function (b) { return { recent: '1', mid: '2', old: '>2', none: 'Nunca' }[b]; }));
     if (state.q.trim()) out.push('Búsqueda: "' + state.q.trim() + '"');
     return out.join('  ·  ');
   }
