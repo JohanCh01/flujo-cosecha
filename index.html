@@ -56,11 +56,21 @@ button,select,input{font:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap:10px}
 .brand svg{width:46px;height:38px;flex:none;color:var(--d-a);stroke-width:1.3}
 h1{font-family:var(--display);font-weight:700;font-size:23px;line-height:1;text-transform:uppercase;letter-spacing:.01em;flex:1;min-width:0}
-.nav{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);flex:none}
-.nav a{flex:1 1 auto;min-width:0;padding:6px 8px;text-align:center;text-decoration:none;color:var(--ink);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav a + a{border-left:1px solid var(--line)}
-.nav a:hover{background:var(--surface-2)}
-.nav a[aria-current="page"]{background:var(--ink);color:var(--bg);font-weight:600}
+/* Selector de páginas: un botón que despliega hacia la derecha un ícono por página */
+.apps{position:relative;display:flex;align-items:center;height:32px;flex:none}
+.apps-b{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--d-a);display:grid;place-items:center;cursor:pointer;padding:0;transition:background .15s,border-color .15s}
+.apps-b:hover,.apps.abierto .apps-b{background:var(--surface-2);border-color:var(--d-a)}
+.apps-b svg{width:18px;height:18px}
+.apps-m{position:absolute;left:38px;top:0;height:32px;display:flex;align-items:center;gap:4px;padding:0 4px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.12);
+  visibility:hidden;opacity:0;transform:translateX(-8px);transform-origin:left center;transition:opacity .16s,transform .16s,visibility 0s .16s;z-index:6}
+.apps.abierto .apps-m{visibility:visible;opacity:1;transform:none;transition:opacity .16s,transform .16s}
+.app{position:relative;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--ink-2);text-decoration:none}
+.app svg{width:20px;height:20px}
+.app:hover,.app:focus-visible{background:var(--surface-2);color:var(--d-a)}
+.app[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.app::after{content:attr(data-nombre);position:absolute;left:0;top:calc(100% + 7px);white-space:nowrap;background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;padding:3px 8px;border-radius:5px;pointer-events:none;opacity:0;transform:translateY(-3px);transition:opacity .12s,transform .12s}
+.app:hover::after,.app:focus-visible::after{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){.apps-m,.app::after{transition:none}}
 .act{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .rango{color:var(--ink-3);font-size:12.5px;font-variant-numeric:tabular-nums;line-height:1.25;flex:1 1 120px;min-width:0}
 .btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -350,21 +360,27 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
   <symbol id="i-primero" viewBox="0 0 24 24"><circle cx="12" cy="14.500" r="6"/><path d="M8.500 3.500l3.500 5.200 3.500-5.200M10.800 13.600l1.500-1.200v4.800"/></symbol>
   <symbol id="i-pin-clock" viewBox="0 0 24 24"><path fill="currentColor" stroke="var(--surface)" stroke-width="1.2" d="M12 23s8-8.300 8-14a8 8 0 1 0-16 0c0 5.700 8 14 8 14z"/><circle cx="12" cy="9" r="4.700" fill="var(--surface)" stroke="none"/><path d="M12 6.400V9l1.900 1.300" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-pin-flag" viewBox="0 0 24 24"><path fill="currentColor" stroke="var(--surface)" stroke-width="1.2" d="M12 23s8-8.300 8-14a8 8 0 1 0-16 0c0 5.700 8 14 8 14z"/><circle cx="12" cy="9" r="4.700" fill="var(--surface)" stroke="none"/><path d="M10.200 12V6.200" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10.200 6.300h4.300l-1.100 1.500 1.100 1.500h-4.300z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
+  <symbol id="i-camioncito" viewBox="0 0 24 24"><path d="M2.500 6.500h11v9h-11zM13.500 9.500h4.200l3.300 3.400v2.600h-7.500z"/><circle cx="7" cy="17.300" r="1.800"/><circle cx="17" cy="17.300" r="1.800"/></symbol>
+  <symbol id="i-hoja" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10.500-10M9.300 14.800l-.4-3.400M12.300 12l2.900.4"/></symbol>
   <symbol id="i-granja" viewBox="0 0 56 44"><path d="M22 20l9-8 9 8v11H22zM27.500 31v-6.500h7V31M27.500 24.500l7 6.500M34.500 24.500l-7 6.500M28.500 18.500h5"/><path d="M3 33c7-3.200 17-3.200 25 0s18 3.200 25 0M3 38c7-3.200 17-3.200 25 0s18 3.200 25 0M6 43c7-2.400 15-2.400 22 0s17 2.400 22 0"/><path d="M11 28v-10M11 22c0-2.400 1.800-4.200 4.300-4.200 0 2.400-1.800 4.200-4.300 4.200zM11 24.500c0-2.400-1.800-4.200-4.300-4.200 0 2.400 1.800 4.200 4.300 4.200z"/></symbol>
   <symbol id="i-camion" viewBox="0 0 56 44"><path d="M4 9h28v22H4zM4 16.300h28M4 23.700h28M13.300 9v22M22.700 9v22"/><path d="M32 17h10l7 7.500V31H32zM37 17v7.500h12"/><circle cx="13" cy="35" r="4"/><circle cx="41" cy="35" r="4"/><path d="M4 31h4.500M17.500 31h19M45.500 31H49"/></symbol>
 </svg>
 
 <div class="page">
   <aside class="side">
+    <div class="apps" id="apps" hidden>
+      <button class="apps-b" id="appsB" type="button" aria-expanded="false" aria-controls="appsM" aria-label="Ir a otra página" title="Páginas"><svg class="ic" aria-hidden="true"><use href="#i-apps"/></svg></button>
+      <nav class="apps-m" id="appsM" aria-label="Páginas">
+        <a class="app" href="./" aria-current="page" aria-label="Flujo de cosecha" data-nombre="Flujo de cosecha"><svg class="ic" aria-hidden="true"><use href="#i-camioncito"/></svg></a>
+        <a class="app" href="fitosanitario.html" aria-label="Evaluación fitosanitaria" data-nombre="Evaluación fitosanitaria"><svg class="ic" aria-hidden="true"><use href="#i-hoja"/></svg></a>
+      </nav>
+    </div>
     <header class="brand">
       <svg class="ic" aria-hidden="true"><use href="#i-granja"/></svg>
       <h1>Flujo comparativo de la cosecha</h1>
       <svg class="ic" aria-hidden="true"><use href="#i-camion"/></svg>
     </header>
-    <nav class="nav" id="nav" aria-label="Páginas" hidden>
-      <a href="./" aria-current="page">Flujo de cosecha</a>
-      <a href="fitosanitario.html">Evaluación fitosanitaria</a>
-    </nav>
     <div class="act">
       <button class="btn" id="btnCarga" type="button">Cargar Excel</button>
       <button class="btn ghost" id="btnComp" type="button" hidden>Compartir</button>
@@ -473,7 +489,13 @@ var SITE=(function(){
   var seg=location.pathname.split('/').filter(Boolean)[0], repo=(seg && !/\.html?$/i.test(seg)) ? seg : location.hostname;
   return {url:new URL('datos.json',location.href).href.split(/[?#]/)[0], api:'https://api.github.com/repos/'+m[1]+'/'+repo};
 })();
-if(SITE) $('#nav').hidden=false;   // la otra página solo existe en el sitio publicado
+/* Selector de páginas: solo en el sitio publicado, que es donde existen las otras páginas */
+if(SITE) $('#apps').hidden=false;
+function appsAbrir(on){ $('#apps').classList.toggle('abierto',on); $('#appsB').setAttribute('aria-expanded',String(on)); }
+$('#appsB').addEventListener('click',function(e){ e.stopPropagation(); appsAbrir(!$('#apps').classList.contains('abierto')); });
+$('#appsM').addEventListener('click',function(e){ var a=e.target.closest('a'); if(a && a.getAttribute('aria-current')==='page'){ e.preventDefault(); appsAbrir(false); } });   // la página actual solo cierra el menú
+document.addEventListener('click',function(e){ if(!e.target.closest('#apps')) appsAbrir(false); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') appsAbrir(false); });
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 var DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 var MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
