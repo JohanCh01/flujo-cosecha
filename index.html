@@ -93,6 +93,18 @@ h1{font-family:var(--display);font-weight:700;font-size:23px;line-height:1;text-
 .f2 select,.f2b select{padding:5px 3px;font-size:13.5px}
 .f2b{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:6px}
 select[disabled]{opacity:.55}
+.msel{position:relative;min-width:0}
+.msel-b{width:100%;display:flex;align-items:center;justify-content:space-between;gap:4px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:5px 5px 5px 6px;font-size:13.5px;font-weight:500;cursor:pointer;min-width:0;text-align:left;line-height:1.35}
+.msel-b span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msel-b svg{width:12px;height:12px;flex:none;color:var(--ink-2);stroke-width:2.2}
+.msel-b[aria-expanded="true"]{border-color:var(--accent)}
+.msel-m{position:absolute;right:0;top:calc(100% + 4px);z-index:15;min-width:100%;width:max-content;max-height:270px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.16);padding:4px}
+.msel-o{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:13.5px;white-space:nowrap}
+.msel-o:hover{background:var(--surface-2)}
+.msel-o input{margin:0;width:15px;height:15px;accent-color:var(--accent)}
+.msel-o small{color:var(--ink-3);font-size:11.5px;margin-left:auto;padding-left:8px}
+.msel-o.todo{border-bottom:1px solid var(--line);border-radius:5px 5px 0 0;margin-bottom:2px}
+.msel-n{font-size:11.5px;color:var(--ink-3);padding:5px 8px 3px;max-width:230px;white-space:normal;line-height:1.3}
 .chips.dias.cal{gap:3px}
 .chips.dias.cal .chip.dc{padding:2px 0}
 .chips.dias.cal .chip.dc b{font-size:13.5px}
@@ -360,6 +372,7 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
   <symbol id="i-primero" viewBox="0 0 24 24"><circle cx="12" cy="14.500" r="6"/><path d="M8.500 3.500l3.500 5.200 3.500-5.200M10.800 13.600l1.500-1.200v4.800"/></symbol>
   <symbol id="i-pin-clock" viewBox="0 0 24 24"><path fill="currentColor" stroke="var(--surface)" stroke-width="1.2" d="M12 23s8-8.300 8-14a8 8 0 1 0-16 0c0 5.700 8 14 8 14z"/><circle cx="12" cy="9" r="4.700" fill="var(--surface)" stroke="none"/><path d="M12 6.400V9l1.900 1.300" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-pin-flag" viewBox="0 0 24 24"><path fill="currentColor" stroke="var(--surface)" stroke-width="1.2" d="M12 23s8-8.300 8-14a8 8 0 1 0-16 0c0 5.700 8 14 8 14z"/><circle cx="12" cy="9" r="4.700" fill="var(--surface)" stroke="none"/><path d="M10.200 12V6.200" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M10.200 6.300h4.300l-1.100 1.500 1.100 1.500h-4.300z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-apps" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
   <symbol id="i-camioncito" viewBox="0 0 24 24"><path d="M2.500 6.500h11v9h-11zM13.500 9.500h4.200l3.300 3.400v2.600h-7.500z"/><circle cx="7" cy="17.300" r="1.800"/><circle cx="17" cy="17.300" r="1.800"/></symbol>
   <symbol id="i-hoja" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10.500-10M9.300 14.800l-.4-3.400M12.300 12l2.900.4"/></symbol>
@@ -393,7 +406,7 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
       <div class="f2">
         <div class="f"><label class="f-l" for="anio">Año</label><select id="anio"></select></div>
         <div class="f"><label class="f-l" for="mes">Mes</label><select id="mes"></select></div>
-        <div class="f"><label class="f-l" for="sem">Semana</label><select id="sem"></select></div>
+        <div class="f"><span class="f-l" id="l-sem">Semana</span><div class="msel" id="semBox"><button type="button" class="msel-b" id="semB" aria-haspopup="true" aria-expanded="false" aria-labelledby="l-sem semTxt"><span id="semTxt"></span><svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg></button><div class="msel-m" id="semM" role="group" aria-label="Semanas" hidden></div></div></div>
       </div>
       <div class="f"><span class="f-l" id="l-proc">Procedencia</span><div class="seg full" id="proc" role="group" aria-labelledby="l-proc"></div></div>
       <div class="f2b">
@@ -568,11 +581,14 @@ function weeks(){
   S.index.dias.forEach(function(k){ if(!inYear(k) || (S.month && k.slice(0,7)!==S.month)) return; var w=isoWeek(k); if(!m.has(w.id)) m.set(w.id,{id:w.id,week:w.week,year:w.year,days:[]}); m.get(w.id).days.push(k); });
   return Array.from(m.values()).sort(function(a,b){ return a.id<b.id?-1:1; });
 }
-function curWeek(){ return weeks().find(function(w){ return w.id===S.week; }) || null; }
+function wsel(){ return S.week==='*' ? [] : String(S.week||'').split(',').filter(Boolean); }   // semanas elegidas
+function curWeek(){ var id=wsel()[0]; return weeks().find(function(w){ return w.id===id; }) || null; }
 /* Días del período elegido: una semana, o el mes completo cuando la semana es "*" */
 function periodDays(){
   if(S.week==='*') return S.month ? S.index.dias.filter(function(k){ return k.slice(0,7)===S.month; }) : [];
-  var w=curWeek(); return w ? w.days : [];
+  var ids=wsel(), out=[];
+  weeks().forEach(function(w){ if(ids.indexOf(w.id)>=0) out=out.concat(w.days); });
+  return out.sort();
 }
 function uasInWeek(){   // con un Proceso elegido, solo las unidades agrícolas que tienen recojos de ese proceso
   var set=new Set();
@@ -692,7 +708,13 @@ function renderFiltros(){
   var f=$('#filtros'); f.hidden=!S.index.dias.length; if(f.hidden) return;
   $('#anio').innerHTML=years().map(function(y){ return '<option value="'+y+'"'+(y===S.year?' selected':'')+'>'+y+'</option>'; }).join('');
   $('#mes').innerHTML='<option value=""'+(S.month?'':' selected')+'>Todos</option>'+months().map(function(m){ return '<option value="'+m+'"'+(m===S.month?' selected':'')+'>'+MESL[+m.slice(5,7)-1]+'</option>'; }).join('');
-  $('#sem').innerHTML=(S.month?'<option value="*"'+(S.week==='*'?' selected':'')+'>Todas</option>':'')+weeks().map(function(w){ return '<option value="'+w.id+'"'+(w.id===S.week?' selected':'')+'>Semana '+w.week+'</option>'; }).join('');
+  var ws=weeks(), ids=wsel(), num=function(id){ var w=ws.find(function(x){ return x.id===id; }); return w?w.week:+id.slice(-2); };
+  var ns=ids.map(num), seguidas=ns.every(function(n,i){ return !i || n===ns[i-1]+1; });
+  $('#semTxt').textContent = S.week==='*' ? 'Todas' : ids.length===1 ? 'Semana '+ns[0] : seguidas ? 'Sem '+ns[0]+'-'+ns[ns.length-1] : ids.length+' semanas';
+  $('#semB').title = S.week==='*' ? 'Mes completo' : 'Semana'+(ids.length>1?'s ':' ')+ns.join(', ');
+  $('#semM').innerHTML=(S.month?'<label class="msel-o todo"><input type="checkbox" data-w="*"'+(S.week==='*'?' checked':'')+'>Todas<small>mes completo</small></label>':'')
+    +ws.map(function(w){ return '<label class="msel-o"><input type="checkbox" data-w="'+w.id+'"'+(ids.indexOf(w.id)>=0?' checked':'')+'>Semana '+w.week+'<small>'+wkRange(w)+'</small></label>'; }).join('')
+    +(ws.length>1?'<div class="msel-n">Marca varias semanas para compararlas; el reporte en PDF sale por zona y semana.</div>':'');
   var procs=new Set(uasInWeek().map(procOf));
   $('#proc').innerHTML=PROCS.map(function(p){ return '<button type="button" data-p="'+p[0]+'" aria-pressed="'+(p[0]===S.proc)+'"'+(procs.has(p[0])?'':' disabled title="Sin recojos en esta semana"')+'>'+p[1]+'</button>'; }).join('');
   var list=uasForProc(), sel=$('#ua');
@@ -862,10 +884,25 @@ $('#anio').addEventListener('change',function(e){
 });
 $('#mes').addEventListener('change',function(e){
   S.month=e.target.value||null;
-  var id=(S.week==='*' && S.month) ? '*' : (weeks().some(function(w){ return w.id===S.week; }) ? S.week : lastWeekId());
+  var quedan=wsel().filter(function(x){ return weeks().some(function(w){ return w.id===x; }); });
+  var id=(S.week==='*' && S.month) ? '*' : (quedan.length ? quedan.join(',') : lastWeekId());
   if(id) pickWeek(id); else render();
 });
-$('#sem').addEventListener('change',function(e){ pickWeek(e.target.value); });
+function semAbrir(on){ $('#semM').hidden=!on; $('#semB').setAttribute('aria-expanded',String(on)); }
+$('#semB').addEventListener('click',function(e){ e.stopPropagation(); semAbrir($('#semM').hidden); });
+$('#semM').addEventListener('change',function(e){
+  var c=e.target, id=c.dataset && c.dataset.w; if(!id) return;
+  var next;
+  if(id==='*') next=c.checked ? '*' : lastWeekId();
+  else {
+    var s=wsel(); s=c.checked ? s.concat(id) : s.filter(function(x){ return x!==id; });
+    if(!s.length){ c.checked=true; return; }   // siempre queda al menos una semana
+    next=weeks().map(function(w){ return w.id; }).filter(function(x){ return s.indexOf(x)>=0; }).join(',');
+  }
+  if(next && next!==S.week) pickWeek(next);
+});
+document.addEventListener('click',function(e){ if(!$('#semM').hidden && !e.target.closest('#semBox')) semAbrir(false); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') semAbrir(false); });
 $('#proc').addEventListener('click',function(e){
   var b=e.target.closest('[data-p]'); if(!b || b.disabled) return;
   S.proc=b.dataset.p; pref('fc.proc',S.proc); S.ua=uasForProc()[0]||null; if(S.ua) pref('fc.ua',S.ua);
@@ -1232,7 +1269,7 @@ async function reporte(){
   function cabecera(info,n,total,nota){
     var wi=icon('granja','a',M,7,13.5); icon('camion','a',W-M-(wi||17),7,13.5);
     font(true,19,C.ink); txt('FLUJO COMPARATIVO DE LA COSECHA',W/2,11.2,'center');
-    var partes=[info.meses,info.sem,info.rango,info.zona]; if(info.proceso) partes.push(info.proceso);
+    var partes=[info.meses,info.sem,info.rango,info.zona].filter(Boolean); if(info.proceso) partes.push(info.proceso);
     var sz=9.6; font(true,sz,C.a); while(tw(partes.join('   ·   '))>W-2*M-44 && sz>6.5){ sz-=0.3; font(true,sz,C.a); }
     txt(partes.join('   ·   '),W/2,18.6,'center');
     font(false,5.8,C.ink3); txt('Detalle por campo · Cant. en jabas · Kilos = Peso Planta',M,205);
@@ -1313,41 +1350,87 @@ async function reporte(){
     font(false,5.5,C.ink3); txt(cut(nf(l.n)+' '+(l.n===1?'recojo':'recojos')+' en '+l.campos.length+' '+(l.campos.length===1?'campo':'campos'),bw-3.2-kw-(kw?1:0)),bx+1.6,by+7.8);
     if(l.recs.length){ font(false,5.1,C.ink3); var rl=doc.splitTextToSize(lat(recTxt(l)),bw-3.2); if(rl.length>2) rl=[rl[0],cut(rl.slice(1).join(' '),bw-3.2)]; rl.forEach(function(t,j){ txt(t,bx+1.6,by+10.7+j*2.2); }); }
   }
-  /* Con "Todas" las unidades agrícolas el reporte sale separado por zona: cada zona en sus propias hojas,
-     con su encabezado, sus fechas y sus hallazgos. Con una sola unidad elegida sale como siempre. */
-  var uaSel=S.ua, porZona=uaSel==='*', bloques=[], total=0, nHoja=0;
+  var nHoja=0, total=0;
+  function nueva(){ if(nHoja) doc.addPage(); nHoja++; }
+  function hojaDias(hs,info,KP,nota){   // una hoja con hasta 7 columnas de días
+    nueva(); cabecera(info,nHoja,total,nota);
+    var n=hs.length, gap=n>=6?2.2:3, w=Math.min(68,(W-13-gap*(n-1))/n), x0=(W-(n*w+gap*(n-1)))/2;
+    var R=MAXR;
+    hs.forEach(function(sl){ var ns=sl.u.filter(function(q){ return q.g; }).length, nt=sl.u.length-ns; if(!ns) return; var r=(A-nt*TLb)/ns; if(r<5.6) r=(A-nt*TLs)/ns; R=Math.min(R,r); });
+    R=Math.max(MINR,Math.min(MAXR,R));
+    /* una sola medida de letra por hoja: se achica lo justo para que proveedor y campo entren sin cortarse */
+    var tres=R>=7.4, cuatro=R>=10.8, F=tres ? Math.min(7.4,5.3+(R-7.4)*0.45) : Math.min(7,Math.max(5,((R-0.6)/2)*2.6));
+    var ancho=(w-1.4-6.7)-(tres?2.6+F*0.36:1.6)-0.3, falta=0;
+    hs.forEach(function(sl){ sl.u.forEach(function(q){ if(!q.g) return;
+      font(true,F,C.ink); var a=tw(q.g.prov); font(false,F,C.ink2); var b=tw(tres?campoTxt(q.g):' · '+campoTxt(q.g));
+      falta=Math.max(falta, tres ? (cuatro?Math.max(a*0.58,b):Math.max(a,b)) : a+b); }); });
+    if(falta>ancho) F=Math.max(Math.min(F,tres?5.2:5),F*ancho/falta);
+    hs.forEach(function(sl,i){ columna(sl,x0+i*(w+gap),w,R,F); });
+    pie(KP);
+  }
+  function hojaVacia(info,nota,msg){
+    nueva(); cabecera(info,nHoja,total,nota);
+    fill(C.soft); stroke(C.line,0.25); doc.roundedRect(M+40,70,W-2*M-80,50,3,3,'FD');
+    font(true,14,C.ink2); txt('Sin recojos',W/2,88,'center');
+    font(false,10,C.ink3); txt(msg,W/2,99,'center');
+  }
+  function zonaTxt(z){ return 'ZONA - '+String(z||'').toUpperCase().replace(/^ZONA[\s-]*/,''); }
+  function portada(z,sems,datos){   // hoja que abre cada zona en el comparativo
+    nueva();
+    fill(C.soft); doc.rect(0,0,W,H,'F');
+    fill(C.a); doc.roundedRect(22,22,W-44,H-44,4,4,'F');          // franja azul a la izquierda, con las esquinas redondeadas de la tarjeta
+    fill(C.w); doc.roundedRect(26,22,W-48,H-44,4,4,'F'); doc.rect(W-30,22,8,H-44,'F');
+    stroke(C.line,0.3); doc.roundedRect(22,22,W-44,H-44,4,4,'S');
+    var wi=icon('granja','a',38,32,15); icon('camion','a',W-38-(wi||19),32,15);
+    font(true,13,C.ink3); txt('COMPARATIVO',W/2,72,'center');
+    var t=zonaTxt(z), sz=36; font(true,sz,C.ink); while(tw(t)>W-90 && sz>18){ sz-=1; font(true,sz,C.ink); }
+    txt(t,W/2,90,'center');
+    font(true,24,C.a); txt(sems,W/2,108,'center');
+    stroke(C.line,0.4); doc.line(W/2-40,119,W/2+40,119);
+    var x=W/2-(datos.chips.length*62-6)/2;
+    datos.chips.forEach(function(c,i){ var col=i%2?C.b:C.a; fill(mix(col,0.88)); stroke(col,0.35); doc.roundedRect(x+i*62,126,56,14,2,2,'FD');
+      font(true,10,col); txt(c.sem,x+i*62+28,131,'center'); font(false,7.6,C.ink2); txt(c.rango,x+i*62+28,136.2,'center'); });
+    font(false,9.5,C.ink2); txt(datos.linea,W/2,154,'center');
+    doc.setFont('helvetica','italic'); doc.setFontSize(8.5); doc.setTextColor(C.ink3[0],C.ink3[1],C.ink3[2]);
+    txt('Planta Espárrago a cargo de Paola Laiza',W-30,H-29,'right');
+    font(false,6,C.ink3); txt('Hoja '+nHoja+' de '+total,30,H-29);
+  }
+
+  /* Con "Todas" las unidades agrícolas el reporte sale separado por zona; con varias semanas elegidas,
+     sale como comparativo: por cada zona una portada y luego sus semanas intercaladas (40, 41, 40, 41...). */
+  var uaSel=S.ua, porZona=uaSel==='*', semIds=wsel(), comparar=semIds.length>1, bloques=[];
+  var prc=PROCS.filter(function(x){ return x[0]===S.proc; })[0];
+  var semNum=function(id){ return +String(id).split('-W')[1]; }, nums=semIds.map(semNum);
+  var semTxt='SEM. '+(nums.every(function(n,i){ return !i || n===nums[i-1]+1; }) ? nums[0]+'-'+nums[nums.length-1] : nums.join(', '));
   try{
     (porZona ? uasForProc() : [uaSel]).forEach(function(z){
       S.ua=z;                                    // los cálculos de abajo miran la unidad agrícola elegida
-      var Lz=repLanes(); if(!Lz.length) return;  // zona sin recojos en estas fechas y filtros: no lleva hoja
-      var hz=hojasDe(Lz);
-      bloques.push({z:z, hojas:hz, info:repInfo(Lz), KP:hallazgos(Lz)}); total+=hz.length;
+      var Lz=repLanes(); if(!Lz.length) return;  // zona sin recojos en estas fechas y filtros: no lleva hojas
+      if(!comparar){ var hz=hojasDe(Lz); bloques.push({z:z, partes:[{hojas:hz, info:repInfo(Lz), KP:hallazgos(Lz)}]}); total+=hz.length; return; }
+      var partes=[{portada:true}], chips=[]; total++;
+      semIds.forEach(function(id){
+        var Lw=Lz.filter(function(l){ return isoWeek(l.key).id===id; });
+        var wk=weeks().find(function(w){ return w.id===id; });
+        chips.push({sem:'SEM. '+semNum(id), rango:wk ? wk.days[0].slice(8,10)+'/'+wk.days[0].slice(5,7)+' al '+wk.days[wk.days.length-1].slice(8,10)+'/'+wk.days[wk.days.length-1].slice(5,7) : ''});
+        if(Lw.length){ var hw=hojasDe(Lw); partes.push({hojas:hw, info:repInfo(Lw), KP:hallazgos(Lw)}); total+=hw.length; }
+        else { partes.push({vacia:true, sem:'SEM. '+semNum(id)}); total++; }
+      });
+      var d0=Lz[0].key, d1=Lz[Lz.length-1].key;
+      bloques.push({z:z, partes:partes, chips:chips, linea:['DEL '+fLargo(d0)+' AL '+fLargo(d1), (prc?prc[1]:'').toUpperCase()].concat(S.proceso?['PROCESO: '+String(S.proceso).toUpperCase()]:[]).join('   ·   ')});
     });
     bloques.forEach(function(b,bi){
       S.ua=b.z;
-      b.hojas.forEach(function(hs){
-        if(nHoja) doc.addPage();
-        nHoja++;
-        cabecera(b.info,nHoja,total,bloques.length>1?'Zona '+(bi+1)+' de '+bloques.length:'');
-        var n=hs.length, gap=n>=6?2.2:3, w=Math.min(68,(W-13-gap*(n-1))/n), x0=(W-(n*w+gap*(n-1)))/2;
-        var R=MAXR;
-        hs.forEach(function(sl){ var ns=sl.u.filter(function(q){ return q.g; }).length, nt=sl.u.length-ns; if(!ns) return; var r=(A-nt*TLb)/ns; if(r<5.6) r=(A-nt*TLs)/ns; R=Math.min(R,r); });
-        R=Math.max(MINR,Math.min(MAXR,R));
-        /* una sola medida de letra por hoja: se achica lo justo para que proveedor y campo entren sin cortarse */
-        var tres=R>=7.4, cuatro=R>=10.8, F=tres ? Math.min(7.4,5.3+(R-7.4)*0.45) : Math.min(7,Math.max(5,((R-0.6)/2)*2.6));
-        var ancho=(w-1.4-6.7)-(tres?2.6+F*0.36:1.6)-0.3, falta=0;
-        hs.forEach(function(sl){ sl.u.forEach(function(q){ if(!q.g) return;
-          font(true,F,C.ink); var a=tw(q.g.prov); font(false,F,C.ink2); var b=tw(tres?campoTxt(q.g):' · '+campoTxt(q.g));
-          falta=Math.max(falta, tres ? (cuatro?Math.max(a*0.58,b):Math.max(a,b)) : a+b); }); });
-        if(falta>ancho) F=Math.max(Math.min(F,tres?5.2:5),F*ancho/falta);
-        hs.forEach(function(sl,i){ columna(sl,x0+i*(w+gap),w,R,F); });
-        pie(b.KP);
+      var nota=bloques.length>1?'Zona '+(bi+1)+' de '+bloques.length:'';
+      b.partes.forEach(function(pt){
+        if(pt.portada) portada(b.z,semTxt,b);
+        else if(pt.vacia) hojaVacia({meses:'',sem:pt.sem,rango:'',zona:'ZONA: '+String(b.z).toUpperCase().replace(/^ZONA[\s-]*/,''),proceso:S.proceso?'PROCESO: '+String(S.proceso).toUpperCase():''},nota,'Esta zona no tiene recojos en la '+pt.sem+' con los filtros elegidos.');
+        else pt.hojas.forEach(function(hs){ hojaDias(hs,pt.info,pt.KP,nota); });
       });
     });
   } finally { S.ua=uaSel; }
   if(!total) throw {msg:'No hay recojos en la selección actual.'};
-  var info=repInfo(L), prc=PROCS.filter(function(x){ return x[0]===S.proc; })[0];
-  var nombre=('Flujo cosecha '+info.sem+' '+(porZona ? (prc?prc[1]:'')+' por zona' : info.zona.replace(/^ZONA:\s*/,''))).replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
+  var info=repInfo(L);
+  var nombre=('Flujo cosecha '+(comparar ? 'comparativo '+semTxt : info.sem)+' '+(porZona ? (prc?prc[1]:'')+(comparar?'':' por zona') : info.zona.replace(/^ZONA:\s*/,''))).replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
   await saveFile(nombre,doc.output('blob'));
   return total;
 }
