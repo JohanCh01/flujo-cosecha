@@ -557,7 +557,19 @@ function localDb(){
 function wait(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
 async function retry(fn){ try{ return await fn(); }catch(e){ if(e && e.code==='unavailable'){ await wait(400+Math.random()*600); return await fn(); } throw e; } }
 var COLS=['ua','prov','campo','cant','c','r','s','p','placa','guia','ticket','alm','pr','kp','kc','kb'];
-function unpack(d){ var out=[], n=(d && d.r && d.r.length)||0; for(var i=0;i<n;i++){ var o={}; for(var j=0;j<COLS.length;j++){ var a=d[COLS[j]]; o[COLS[j]]=a?a[i]:null; } if(typeof o.r==='number') out.push(o); } return out; }
+/* Algunos proveedores vienen con los apellidos repetidos al final ("VASQUEZ GIRALDO ALEJANDRINA VASQUEZ GIRALDO").
+   Si las últimas 2 o 3 palabras repiten las primeras, se quitan: queda "VASQUEZ GIRALDO ALEJANDRINA". */
+var PROVS=new Map();
+function provLimpio(v){
+  if(v==null) return v;
+  var s0=String(v); if(PROVS.has(s0)) return PROVS.get(s0);
+  var t=s0.trim().split(/\s+/), out=s0.trim().replace(/\s+/g,' ');
+  for(var k=Math.min(3,t.length-2); k>=2; k--){
+    if(t.slice(0,k).join(' ').toUpperCase()===t.slice(t.length-k).join(' ').toUpperCase()){ out=t.slice(0,t.length-k).join(' '); break; }
+  }
+  PROVS.set(s0,out); return out;
+}
+function unpack(d){ var out=[], n=(d && d.r && d.r.length)||0; for(var i=0;i<n;i++){ var o={}; for(var j=0;j<COLS.length;j++){ var a=d[COLS[j]]; o[COLS[j]]=a?a[i]:null; } o.prov=provLimpio(o.prov); if(typeof o.r==='number') out.push(o); } return out; }
 function pack(key,rows){ var d={fecha:key,n:rows.length}; COLS.forEach(function(c){ d[c]=rows.map(function(r){ return r[c]==null?null:r[c]; }); }); return d; }
 function normIndex(d){ d=d||{}; return { dias:(Array.isArray(d.dias)?d.dias:[]).filter(function(k){ return /^\d{4}-\d\d-\d\d$/.test(k); }).sort(), uas:(Array.isArray(d.uas)?d.uas:[]).map(String).sort(), cargas:Array.isArray(d.cargas)?d.cargas:[] }; }
 async function fetchDay(key){
@@ -1003,7 +1015,7 @@ function parseBook(buf){
         var w=rows[i]||[], r=parseDT(w[idx.r]), ua=txt(w[idx.ua]);
         if(r==null||!ua){ if(w.some(function(v){ return v!=null&&v!==''; })) skip++; continue; }
         var g=function(k){ return idx[k]==null?null:w[idx[k]]; };
-        out.push({ua:ua, prov:txt(g('prov'))||'Sin proveedor', campo:txt(g('campo'))||'Sin campo', cant:Number(g('cant'))||0,
+        out.push({ua:ua, prov:provLimpio(txt(g('prov')))||'Sin proveedor', campo:txt(g('campo'))||'Sin campo', cant:Number(g('cant'))||0,
           c:parseDT(g('c')), r:r, s:parseDT(g('s')), p:parseDT(g('p')), placa:txt(g('placa')), guia:txt(g('guia')), ticket:txt(g('ticket')), alm:txt(g('alm')), pr:idx.pr==null?null:(txt(g('pr'))||'(sin proceso)'), kp:num(g('kp')), kc:num(g('kc')), kb:num(g('kb'))});
       }
       return {rows:out, skip:skip};
@@ -1271,8 +1283,8 @@ async function reporte(){
     var partes=[info.meses,info.sem,info.rango,info.zona].filter(Boolean); if(info.proceso) partes.push(info.proceso);
     var sz=9.6; font(true,sz,C.a); while(tw(partes.join('   ·   '))>W-2*M-44 && sz>6.5){ sz-=0.3; font(true,sz,C.a); }
     txt(partes.join('   ·   '),W/2,18.6,'center');
-    font(false,5.8,C.ink3); txt('Detalle por campo · Cant. en jabas · Kilos = Peso Planta',M,205);
-    txt('Generado el '+gen+(nota?' · '+nota:'')+' · Hoja '+n+' de '+total,W-M,205,'right');
+    font(false,5.8,C.ink3); txt('Aseg.Calidad Nv05 A cargo de Paola Laiza',M,205);
+    txt('Generado el '+gen+' · Hoja '+n+' de '+total,W-M,205,'right');
   }
   function pie(KP){
     fill(C.soft); stroke(C.line,0.25); doc.roundedRect(M,HY,W-2*M,HH,1.8,1.8,'FD');
