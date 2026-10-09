@@ -377,7 +377,7 @@ td.prov { border-right: 1px solid var(--line-soft); }
 }
 :root[data-theme="dark"] { --accent-strong: #8fd09c; --accent-line: #3a5a43; --card-shadow: none; }
 
-.app { gap: 14px; padding-block: 20px 18px; padding-inline: clamp(16px, 2.2vw, 30px); }
+.app { gap: 14px; padding-block: 14px 18px; padding-inline: clamp(16px, 2.2vw, 30px); }
 
 /* ---------- Encabezado */
 .head { align-items: center; padding-bottom: 0; border-bottom: 0; }
@@ -396,6 +396,22 @@ td.prov { border-right: 1px solid var(--line-soft); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 1px 2px rgba(29, 77, 49, .25), 0 4px 12px rgba(29, 77, 49, .12); }
 .btn.primary svg { color: currentColor; }
 .btn.primary:hover { background: var(--accent); filter: brightness(.92); }
+
+/* ---------- Selector de páginas: igual que en el Flujo de cosecha (arriba a la izquierda, abre a la derecha) */
+.apps { position: relative; display: flex; align-items: center; align-self: flex-start; height: 32px; flex: none; margin-bottom: -4px; }
+.apps-b { width: 32px; height: 32px; padding: 0; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--accent); cursor: pointer; transition: background-color .15s, border-color .15s; }
+.apps-b svg { width: 18px; height: 18px; }
+.apps-b:hover, .apps.abierto .apps-b { background: var(--surface-2); border-color: var(--accent); }
+.apps-m { position: absolute; left: 38px; top: 0; height: 32px; display: flex; align-items: center; gap: 4px; padding: 0 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, .12); z-index: 12;
+  visibility: hidden; opacity: 0; transform: translateX(-8px); transform-origin: left center; transition: opacity .16s, transform .16s, visibility 0s .16s; }
+.apps.abierto .apps-m { visibility: visible; opacity: 1; transform: none; transition: opacity .16s, transform .16s; }
+.apps-i { position: relative; width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--ink-soft); text-decoration: none; }
+.apps-i svg { width: 20px; height: 20px; }
+.apps-i:hover, .apps-i:focus-visible { background: var(--surface-2); color: var(--accent); }
+.apps-i[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.apps-i::after { content: attr(data-nombre); position: absolute; left: 0; top: calc(100% + 7px); white-space: nowrap; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 5px; pointer-events: none; opacity: 0; transform: translateY(-3px); transition: opacity .12s, transform .12s; }
+.apps-i:hover::after, .apps-i:focus-visible::after { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .apps-m, .apps-i::after { transition: none; } }
 
 /* ---------- Panel de filtros */
 .filters { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px 18px; gap: 14px 16px; box-shadow: var(--card-shadow); }
@@ -502,6 +518,15 @@ td.fecha { color: var(--ink-soft); }
 if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList.add('locked');</script>
 <div class="gate" id="gate">Comprobando acceso…</div>
 <div class="app">
+    <div class="apps" id="apps">
+      <button class="apps-b" id="appsB" type="button" aria-expanded="false" aria-controls="appsM" aria-label="Ir a otra página" title="Páginas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
+      </button>
+      <nav class="apps-m" id="appsM" aria-label="Páginas">
+        <a class="apps-i" id="navFlujo" href="https://johanch01.github.io/flujo-cosecha/" aria-label="Flujo de cosecha" data-nombre="Flujo de cosecha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4.2l3.3 3.4v2.6h-7.5z"/><circle cx="7" cy="17.3" r="1.8"/><circle cx="17" cy="17.3" r="1.8"/></svg></a>
+        <a class="apps-i" href="fitosanitario.html" aria-current="page" aria-label="Evaluación fitosanitaria" data-nombre="Evaluación fitosanitaria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10.5-10M9.3 14.8l-.4-3.4M12.3 12l2.9.4"/></svg></a>
+      </nav>
+    </div>
   <header class="head">
     <div>
       <span class="brand" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13.5 14-14 .4 9-5 14-12.5 14H5z"/><path d="M5 19c3-4.5 6.5-7.5 10-9.5"/></svg></span>
@@ -509,10 +534,6 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
       <p class="meta" id="meta" aria-live="polite"></p>
     </div>
     <div class="head-actions">
-      <a class="btn" id="navFlujo" href="https://johanch01.github.io/flujo-cosecha/" title="Ir al Flujo Comparativo de la Cosecha">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.500 3.500 5 8l4.500 4.500"/></svg>
-        Flujo de cosecha
-      </a>
       <button class="btn" id="btnReview" type="button" title="Filas de recepción sin proveedor y nombres que se unificaron">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h7M2.5 8h5M2.5 12h4"/><circle cx="11.5" cy="10.5" r="2.5"/><path d="m13.4 12.4 1.6 1.6"/></svg>
         Revisar cruce<span class="badge" id="reviewBadge" hidden></span>
@@ -1937,6 +1958,13 @@ var FOS = (function () {
       fr.readAsArrayBuffer(file);
     });
   }
+  // ---------- selector de páginas (igual que en el Flujo de cosecha)
+  function appsAbrir(on) { $('apps').classList.toggle('abierto', on); $('appsB').setAttribute('aria-expanded', String(on)); }
+  $('appsB').addEventListener('click', function (e) { e.stopPropagation(); appsAbrir(!$('apps').classList.contains('abierto')); });
+  $('appsM').addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && a.getAttribute('aria-current') === 'page') { e.preventDefault(); appsAbrir(false); } });   // la página actual solo cierra el menú
+  document.addEventListener('click', function (e) { if (!e.target.closest('#apps')) appsAbrir(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') appsAbrir(false); });
+
   var soloVer = false;                                   // en el sitio, solo el administrador puede cargar bases
   function loadFiles(files) {
     if (soloVer) return;
