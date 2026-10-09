@@ -500,6 +500,44 @@ td.fecha { color: var(--ink-soft); }
 /* ---------- Ventanas */
 .copybox > div { border-radius: 14px; }
 
+/* ---------- Ajuste de espacios y tamaños (pedido 09/10) */
+.app { gap: 10px; }
+.head h1 { font-size: 24px; letter-spacing: .01em; }
+.meta { margin-top: 4px; font-size: 11.5px; color: #6b7570; }
+.meta strong { color: #4d5852; font-weight: 600; }
+/* Filtros: letra 1.5 px más chica, controles más ajustados y menos aire entre las dos filas */
+.filters { padding: 12px 18px 14px; gap: 8px 14px; font-size: 11.5px; }
+.filters .field { gap: 3px; }
+.filters .field > span, .filters .field > legend { font-size: 9.5px; margin-bottom: 1px; }
+.filters .combo-btn, .filters .search input { height: 32px; font-size: 11.5px; }
+.filters .combo-btn { padding: 0 10px; gap: 7px; }
+.filters .combo-btn::before { width: 13px; height: 13px; }
+.filters .combo-btn > svg { width: 14px; height: 14px; }
+.filters .search input { padding-left: 32px; }
+.filters .search svg { left: 11px; width: 14px; height: 14px; }
+.filters .seg { gap: 5px; }
+.filters .seg button { height: 28px; padding: 0 11px; font-size: 11.5px; border-radius: 7px; }
+.filters .seg button small { font-size: 10px; margin-left: 5px; }
+#statusWrap, #statusWrap ~ fieldset.field { padding-left: 14px; }
+.filters .combo-pop { font-size: 12px; }
+/* Resumen: 1 px más chico y más cerca de filtros y tabla */
+.countrow { min-height: 44px; padding: 4px 8px 4px 12px; }
+.count { font-size: 11.5px; }
+.count .ci strong { font-size: 12px; }
+.count .ci::before { width: 24px; height: 24px; border-radius: 7px; }
+.count .ci-campos::after, .count .ci-prov::after { left: 5px; width: 14px; height: 14px; margin-top: -7px; }
+.count .sep { height: 18px; margin: 0 14px; }
+.count .link { font-size: 11.5px; }
+.iconbtn { width: 34px; height: 34px; }
+.iconbtn svg { width: 22px; height: 22px; }
+#fVista button { height: 28px; font-size: 12px; }
+/* Tabla: valores 1.5 px más chicos (los encabezados quedan igual) */
+.tablewrap table { font-size: 11px; }
+.tablewrap .ua-name { font-size: 12px; }
+.tablewrap .sub { font-size: 10px; }
+.tablewrap .pill { font-size: 10.5px; min-width: 64px; }
+.campo-btn .nsub { font-size: 9.5px; }
+
 /* ---------- Celular */
 @media (max-width: 760px), (max-height: 520px) {
   .filters { padding: 14px; }
@@ -530,7 +568,7 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
   <header class="head">
     <div>
       <span class="brand" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13.5 14-14 .4 9-5 14-12.5 14H5z"/><path d="M5 19c3-4.5 6.5-7.5 10-9.5"/></svg></span>
-      <h1>Última evaluación <b>FITOSANITARIO</b></h1>
+      <h1>EVALUACIÓN <b>FITOSANITARIO</b></h1>
       <p class="meta" id="meta" aria-live="polite"></p>
     </div>
     <div class="head-actions">
