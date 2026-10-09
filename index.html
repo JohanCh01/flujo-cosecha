@@ -710,11 +710,10 @@ function renderFiltros(){
   $('#mes').innerHTML='<option value=""'+(S.month?'':' selected')+'>Todos</option>'+months().map(function(m){ return '<option value="'+m+'"'+(m===S.month?' selected':'')+'>'+MESL[+m.slice(5,7)-1]+'</option>'; }).join('');
   var ws=weeks(), ids=wsel(), num=function(id){ var w=ws.find(function(x){ return x.id===id; }); return w?w.week:+id.slice(-2); };
   var ns=ids.map(num), seguidas=ns.every(function(n,i){ return !i || n===ns[i-1]+1; });
-  $('#semTxt').textContent = S.week==='*' ? 'Todas' : ids.length===1 ? 'Semana '+ns[0] : seguidas ? 'Sem '+ns[0]+'-'+ns[ns.length-1] : ids.length+' semanas';
+  $('#semTxt').textContent = S.week==='*' ? 'Todas' : ids.length===1 ? 'Semana '+ns[0] : seguidas ? 'Sem. '+ns[0]+'-'+ns[ns.length-1] : ids.length+' semanas';
   $('#semB').title = S.week==='*' ? 'Mes completo' : 'Semana'+(ids.length>1?'s ':' ')+ns.join(', ');
-  $('#semM').innerHTML=(S.month?'<label class="msel-o todo"><input type="checkbox" data-w="*"'+(S.week==='*'?' checked':'')+'>Todas<small>mes completo</small></label>':'')
-    +ws.map(function(w){ return '<label class="msel-o"><input type="checkbox" data-w="'+w.id+'"'+(ids.indexOf(w.id)>=0?' checked':'')+'>Semana '+w.week+'<small>'+wkRange(w)+'</small></label>'; }).join('')
-    +(ws.length>1?'<div class="msel-n">Marca varias semanas para compararlas; el reporte en PDF sale por zona y semana.</div>':'');
+  $('#semM').innerHTML=(S.month?'<label class="msel-o todo"><input type="checkbox" data-w="*"'+(S.week==='*'?' checked':'')+'>Todas</label>':'')
+    +ws.map(function(w){ return '<label class="msel-o"><input type="checkbox" data-w="'+w.id+'"'+(ids.indexOf(w.id)>=0?' checked':'')+'>Sem. '+w.week+'</label>'; }).join('');
   var procs=new Set(uasInWeek().map(procOf));
   $('#proc').innerHTML=PROCS.map(function(p){ return '<button type="button" data-p="'+p[0]+'" aria-pressed="'+(p[0]===S.proc)+'"'+(procs.has(p[0])?'':' disabled title="Sin recojos en esta semana"')+'>'+p[1]+'</button>'; }).join('');
   var list=uasForProc(), sel=$('#ua');
