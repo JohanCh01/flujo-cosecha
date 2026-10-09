@@ -1754,10 +1754,10 @@ var FOS = (function () {
     $('reviewBadge').hidden = !pend; $('reviewBadge').textContent = pend;
     $('spNote').textContent = !sp.length ? 'Todas las filas FR de recepción tienen proveedor.' :
       'Filas sin nombre de proveedor.';
-    $('spTable').innerHTML = !sp.length ? '' : '<table><thead><tr><th>Unidad agrícola</th><th>Campo</th><th>CLP</th><th class="num">Días cosechados</th><th>Última cosecha</th><th class="num">Kilos</th><th>Proveedor</th></tr></thead><tbody>' +
+    $('spTable').innerHTML = !sp.length ? '' : '<table><thead><tr><th>Unidad agrícola</th><th>Campo</th><th>CLP</th><th>Última cosecha</th><th class="num">Kilos</th><th>Proveedor</th></tr></thead><tbody>' +
       sp.map(function (s, i) {
         var provs = (X.provsByUa[s.ua] || []);
-        return '<tr><td>' + esc(s.ua) + '</td><td>' + esc(s.campo) + '</td><td>' + esc(s.clp || '—') + '</td><td class="num">' + s.nDias + '</td><td>' + fmtDate(s.lastYmd) + '</td><td class="num">' + nf.format(Math.round(s.kg)) + '</td>' +
+        return '<tr><td>' + esc(s.ua) + '</td><td>' + esc(s.campo) + '</td><td>' + esc(s.clp || '—') + '</td><td>' + fmtDate(s.lastYmd) + '</td><td class="num">' + nf.format(Math.round(s.kg)) + '</td>' +
           '<td><select id="clp_' + i + '" data-clp="' + esc(s.clp) + '" aria-label="Proveedor para el CLP ' + esc(s.clp) + '"' + (s.clp ? '' : ' disabled') + '><option value="">Sin asignar</option>' +
           provs.map(function (p) { return '<option value="' + esc(p) + '"' + (FOS.normName(p) === FOS.normName(s.assigned || '') ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') + '</select></td></tr>';
       }).join('') + '</tbody></table>';
