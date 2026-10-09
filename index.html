@@ -574,20 +574,21 @@ function periodDays(){
   if(S.week==='*') return S.month ? S.index.dias.filter(function(k){ return k.slice(0,7)===S.month; }) : [];
   var w=curWeek(); return w ? w.days : [];
 }
-function uasInWeek(){
+function uasInWeek(){   // con un Proceso elegido, solo las unidades agrícolas que tienen recojos de ese proceso
   var set=new Set();
-  periodDays().forEach(function(k){ (S.days.get(k)||[]).forEach(function(r){ set.add(r.ua); }); });
+  periodDays().forEach(function(k){ (S.days.get(k)||[]).forEach(function(r){ if(!S.proceso || r.pr===S.proceso) set.add(r.ua); }); });
   return Array.from(set).sort();
 }
 function uasForProc(){ return uasInWeek().filter(function(u){ return procOf(u)===S.proc; }); }
 function baseMatch(r){ return S.ua==='*' ? procOf(r.ua)===S.proc : r.ua===S.ua; }
 function match(r){ return baseMatch(r) && (!S.proceso || r.pr===S.proceso); }
-function procesosAvail(){
+function procesosAvail(){   // la lista no cambia al moverse entre procedencias o unidades agrícolas
   var set=new Set();
-  periodDays().forEach(function(k){ (S.days.get(k)||[]).forEach(function(r){ if(r.pr && baseMatch(r)) set.add(r.pr); }); });
+  periodDays().forEach(function(k){ (S.days.get(k)||[]).forEach(function(r){ if(r.pr) set.add(r.pr); }); });
+  if(S.proceso) set.add(S.proceso);
   return Array.from(set).sort();
 }
-function fixProceso(){ if(S.proceso && procesosAvail().indexOf(S.proceso)<0) S.proceso=null; }
+function fixProceso(){}   // el Proceso elegido se mantiene fijo: solo cambia cuando la persona lo cambia
 function diasAntiguos(){ return periodDays().filter(function(k){ return (S.days.get(k)||[]).some(function(r){ return !r.pr && baseMatch(r); }); }); }
 function daysForUa(){ return periodDays().filter(function(k){ return (S.days.get(k)||[]).some(match); }); }
 function fixSel(){
@@ -872,7 +873,7 @@ $('#proc').addEventListener('click',function(e){
   S.sel=new Set(daysForUa()); render();
 });
 $('#ua').addEventListener('change',function(e){ S.ua=e.target.value; pref('fc.ua',S.ua); fixProceso(); S.sel=new Set(daysForUa()); render(); });
-$('#proceso').addEventListener('change',function(e){ S.proceso=e.target.value||null; S.sel=new Set(daysForUa()); render(); });
+$('#proceso').addEventListener('change',function(e){ S.proceso=e.target.value||null; fixSel(); S.sel=new Set(daysForUa()); render(); });
 $('#todos').addEventListener('click',function(){ S.sel=new Set(daysForUa()); render(); });
 $('#dias').addEventListener('click',function(e){
   var b=e.target.closest('[data-d]'); if(!b) return; var k=b.dataset.d;
