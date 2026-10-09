@@ -1559,11 +1559,20 @@ var FOS = (function () {
   }
   function periodChanged() { MS.mes.refresh(); MS.sem.refresh(); MS.fecha.refresh(); render(); top(); }
 
+  // Unidad agrícola y Proveedor: solo ofrecen lo que existe con los demás filtros puestos (como Categoría).
+  // Lo que ya está elegido se mantiene en la lista aunque con los otros filtros no tenga filas.
+  function dynOpts(key) {
+    var rows = byMues(baseFiltered(key));
+    if (F.bucket.size) rows = rows.filter(function (u) { return F.bucket.has(bucketOf(u)); });
+    var vals = uniq(rows.map(function (u) { return u[key]; }));
+    F[key].forEach(function (v) { if (vals.indexOf(v) < 0) vals.push(v); });
+    return vals.sort(coll.compare).map(function (v) { return { v: v, t: v }; });
+  }
   makeMS('ua', { width: 160, popw: 240, all: 'Todas', search: 'Buscar unidad',
-    options: function () { return uniq(state.units.filter(function (u) { return !state.clase || u.clase === state.clase; }).map(function (u) { return u.ua; })).sort(coll.compare).map(function (u) { return { v: u, t: u }; }); },
+    options: function () { return dynOpts('ua'); },
     onChange: function () { MS.prov.refresh(); render(); top(); } });
   makeMS('prov', { width: 240, popw: 340, all: 'Todos', search: 'Buscar proveedor', lupa: true,
-    options: function () { return uniq(state.units.filter(function (u) { return inSet(F.ua, u.ua) && (!state.clase || u.clase === state.clase); }).map(function (u) { return u.prov; })).sort(coll.compare).map(function (p) { return { v: p, t: p }; }); },
+    options: function () { return dynOpts('prov'); },
     onChange: function () { render(); top(); } });
   makeMS('anio', { width: 118, popw: 160, all: 'Todos',
     options: function () { return uniq(state.days.map(function (x) { return x.y; })).sort(num).map(function (y) { return { v: y, t: String(y) }; }); },
@@ -1623,10 +1632,12 @@ var FOS = (function () {
 
   // Días del periodo elegido → una fila por campo, con su cosecha más reciente dentro de ese periodo
   // noCat = true deja fuera el filtro de Categoría (sirve para saber qué categorías ofrecer)
-  function baseFiltered(noCat) {
+  // skip: filtro que no se aplica (para armar las opciones de ese mismo desplegable): 'ua', 'prov' o 'cat' (true = 'cat')
+  function baseFiltered(skip) {
+    var noCat = skip === true || skip === 'cat';
     var q = plain(state.q.trim()), best = Object.create(null), out = [];
     state.units.forEach(function (u) {
-      if (!(inSet(F.ua, u.ua) && inSet(F.prov, u.prov) && (!state.clase || u.clase === state.clase) &&
+      if (!((skip === 'ua' || inSet(F.ua, u.ua)) && (skip === 'prov' || inSet(F.prov, u.prov)) && (!state.clase || u.clase === state.clase) &&
         inSet(F.anio, u.y) && inSet(F.mes, u.m) && inSet(F.sem, u.w) && inSet(F.fecha, u.ymd) && (noCat || !F.cat.size || u.cats.some(function (c) { return F.cat.has(c); })) && (!q || u.hay.indexOf(q) >= 0))) return;
       var b = best[u.key];
       if (!b) { b = best[u.key] = { u: u, n: 0, subs: [], cats: [] }; out.push(b); }
@@ -1691,7 +1702,7 @@ var FOS = (function () {
   function anyFilter() { return !!state.q.trim() || !!state.clase || !!state.mues || state.status !== defaultStatus() || Object.keys(F).some(function (k) { return F[k].size > 0; }); }
 
   function render() {
-    MS.cat.refresh();                                    // las categorías disponibles dependen de los demás filtros
+    MS.ua.refresh(); MS.prov.refresh(); MS.cat.refresh();   // las opciones dependen de los demás filtros
     var all = baseFiltered(), nSi = all.filter(isMues).length, cnt = { recent: 0, mid: 0, old: 0, none: 0 };
     var base = byMues(all);
     base.forEach(function (u) { cnt[bucketOf(u)]++; });
