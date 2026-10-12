@@ -538,12 +538,23 @@ td.fecha { color: var(--ink-soft); }
 .tablewrap .pill { font-size: 10.5px; min-width: 64px; }
 .campo-btn .nsub { font-size: 9.5px; }
 
+/* ---------- Switch: días al día siguiente de la cosecha (debajo de Categoría) */
+.swdia { margin-left: auto; align-self: flex-end; display: inline-flex; align-items: center; gap: 8px; height: 28px; cursor: pointer; font-size: 11.5px; color: var(--ink-soft); user-select: none; }
+.swdia input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sw-track { position: relative; flex: none; width: 30px; height: 17px; border-radius: 999px; background: var(--line-strong); transition: background-color .15s; }
+.sw-track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.swdia input:checked + .sw-track { background: var(--accent); }
+.swdia input:checked + .sw-track::after { transform: translateX(13px); }
+.swdia input:focus-visible + .sw-track { box-shadow: var(--ring); }
+.swdia input:checked ~ .sw-txt { color: var(--accent); font-weight: 600; }
+
 /* ---------- Celular */
 @media (max-width: 760px), (max-height: 520px) {
   .filters { padding: 14px; }
   .filters > .field { flex: 1 1 140px !important; }
   .filters > fieldset.field, .filters > .field-prov, .filters > .field-search { flex-basis: 100% !important; }
   #statusWrap, #statusWrap ~ fieldset.field { padding-left: 0; border-left: 0; }
+  .swdia { margin-left: 0; }
   .head > div:first-child { grid-template-columns: 42px minmax(0, 1fr); column-gap: 12px; }
   .brand { width: 42px; height: 42px; }
   .count .sep { margin: 0 10px; }
@@ -612,6 +623,11 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
       <legend>Días desde la última evaluación</legend>
       <div class="seg" id="fDias"></div>
     </fieldset>
+    <label class="swdia" title="Encendido: los días se cuentan desde la última evaluación hasta el día siguiente de la cosecha, así una fecha pasada se ve igual que ese día. Apagado: hasta hoy.">
+      <input type="checkbox" id="swDia1" role="switch">
+      <span class="sw-track" aria-hidden="true"></span>
+      <span class="sw-txt">Días al día siguiente de la cosecha</span>
+    </label>
   </section>
 
   <div class="countrow">
@@ -1473,6 +1489,9 @@ var FOS = (function () {
   function fmtPct2(v) { return (v * 100).toFixed(2) + '%'; }
   function todayYmd() { var t = new Date(); return t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate(); }
   function utc(ymd) { return Date.UTC(Math.floor(ymd / 10000), Math.floor(ymd / 100) % 100 - 1, ymd % 100); }
+  function nextYmd(ymd) { var d = new Date(utc(ymd) + 86400000); return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(); }
+  // Días transcurridos: hasta hoy, o (con el switch) hasta el día siguiente de la cosecha, para ver un día pasado tal como se vio entonces
+  function diasDe(u) { return u.lastYmd ? daysSince(u.lastYmd, state.dia1 ? nextYmd(u.ymd) : state.today) : -1; }
   function daysSince(ymd, today) { return Math.max(0, Math.round((utc(today) - utc(ymd)) / 86400000)); }
   // Muestreado = su última evaluación tiene hasta 2 días; con más de 2 días (o sin evaluación) es no muestreado
   function isMues(u) { return !!u.lastYmd && u.dias <= 2; }
@@ -1507,7 +1526,7 @@ var FOS = (function () {
     X.units.forEach(function (u) {
       u.campo = (u.mod ? u.mod + ' · ' : '') + u.turno;
       u.hay = plain(u.prov + ' ' + u.ua + ' ' + u.campo);
-      u.dias = u.lastYmd ? daysSince(u.lastYmd, state.today) : -1;
+      u.dias = diasDe(u);
       u.y = Math.floor(u.ymd / 10000); u.m = Math.floor(u.ymd / 100) % 100; u.w = FOS.isoWeek(u.ymd);
     });
     state.units = X.units;
@@ -1984,7 +2003,7 @@ var FOS = (function () {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(23, 32, 26);
     doc.text('ÚLTIMA EVALUACIÓN FITOSANITARIO', 10, 13);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(92, 106, 96);
-    var sub1 = plural(rows.length, 'campo cosechado', 'campos cosechados') + (fechas.length === 1 ? ' el ' + fmtDate(fechas[0]) : ' en el periodo') + '  ·  Generado el ' + fmtDate(state.today || todayYmd());
+    var sub1 = plural(rows.length, 'campo cosechado', 'campos cosechados') + (fechas.length === 1 ? ' el ' + fmtDate(fechas[0]) : ' en el periodo') + (state.dia1 ? '  ·  Días contados hasta el día siguiente de la cosecha' : '') + '  ·  Generado el ' + fmtDate(state.today || todayYmd());
     doc.text(sub1, 10, 18.5);
     var fl = doc.splitTextToSize(filterSummary(), W - 20);
     doc.text(fl, 10, 22.8);
@@ -2025,6 +2044,14 @@ var FOS = (function () {
   $('appsM').addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && a.getAttribute('aria-current') === 'page') { e.preventDefault(); appsAbrir(false); } });   // la página actual solo cierra el menú
   document.addEventListener('click', function (e) { if (!e.target.closest('#apps')) appsAbrir(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') appsAbrir(false); });
+
+  // Switch: días hasta el día siguiente de la cosecha (apagado = hasta hoy)
+  $('swDia1').addEventListener('change', function () {
+    state.dia1 = this.checked;
+    HEAD[7] = state.dia1 ? 'Días transcurridos (al día siguiente de la cosecha)' : 'Días transcurridos';
+    state.units.forEach(function (u) { u.dias = diasDe(u); });
+    render(); top();
+  });
 
   var soloVer = false;                                   // en el sitio, solo el administrador puede cargar bases
   function loadFiles(files) {
