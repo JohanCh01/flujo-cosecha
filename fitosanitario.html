@@ -1382,11 +1382,11 @@ var FOS = (function () {
       fitoDates[ymd] = 1;
       if (status != null && fito.ev[i + 2] !== stIdx) continue;     // solo cuentan las filas del status elegido
       var kk = keyOfField[fito.ev[i]], byDate = evs[kk] || (evs[kk] = Object.create(null)), e = byDate[ymd];
-      if (!e) e = byDate[ymd] = { ymd: ymd, ph: 0, ps: 0, po: 0, post: -1, larva: -1, n: 0 };
+      if (!e) e = byDate[ymd] = { ymd: ymd, ph: 0, ps: 0, po: 0, post: -1, larva: -1, n: 0, st: 0 };
       var post = fito.ev[i + 3] + fito.ev[i + 4] + fito.ev[i + 5];
       if (post > e.post) { e.post = post; e.ph = fito.ev[i + 3]; e.ps = fito.ev[i + 4]; e.po = fito.ev[i + 5]; }
       if (fito.ev[i + 6] > e.larva) e.larva = fito.ev[i + 6];
-      e.n++;
+      e.n++; e.st |= 1 << fito.ev[i + 2];                         // qué status tuvo ese día (para el conteo de Status)
     }
     var evList = Object.create(null);
     for (k in evs) evList[k] = Object.keys(evs[k]).map(function (d) { return evs[k][d]; }).sort(function (a, b) { return a.ymd - b.ymd; });
@@ -1421,7 +1421,7 @@ var FOS = (function () {
       u.sampled = !!last && last.ymd === u.ymd;
       u.lastYmd = last ? last.ymd : 0;
       u.ph = last ? last.ph : 0; u.ps = last ? last.ps : 0; u.po = last ? last.po : 0;
-      u.post = last ? last.post : 0; u.larva = last ? last.larva : 0; u.nDay = last ? last.n : 0;
+      u.post = last ? last.post : 0; u.larva = last ? last.larva : 0; u.nDay = last ? last.n : 0; u.lastSt = last ? last.st : 0;
       u.subs.sort();
     });
     var provList = Object.create(null);
@@ -1495,6 +1495,15 @@ var FOS = (function () {
     if (state.status != null && state.sts.indexOf(state.status) < 0) state.status = state.sts.indexOf('EVALUADO') >= 0 ? 'EVALUADO' : null;
     $('statusWrap').hidden = !state.fito.hasStatus || state.sts.length < 2;
     var X = state.X = FOS.cross(state.fito, state.rec, state.clpMap, state.status);
+    // Conteo de Status: con todas las filas, qué status tiene el último registro de cada campo hasta su cosecha
+    // (si ese día hay Evaluado e Historial, cuenta como Evaluado)
+    var X0 = state.status == null ? X : FOS.cross(state.fito, state.rec, state.clpMap, null), evIdx = state.fito.statuses.indexOf('EVALUADO');
+    state.stOf = Object.create(null);
+    X0.units.forEach(function (u) {
+      if (!u.lastSt) return;
+      var i = evIdx >= 0 && (u.lastSt & (1 << evIdx)) ? evIdx : Math.round(Math.log2(u.lastSt & -u.lastSt));
+      state.stOf[u.ymd + '\u0001' + u.key] = state.fito.statuses[i];
+    });
     X.units.forEach(function (u) {
       u.campo = (u.mod ? u.mod + ' · ' : '') + u.turno;
       u.hay = plain(u.prov + ' ' + u.ua + ' ' + u.campo);
@@ -1650,9 +1659,10 @@ var FOS = (function () {
   }
   segClick('fDias', F.bucket);
   // Status y Clase de campo: una sola opción a la vez
-  function oneHtml(items, cur) {
-    return '<button type="button" data-v="" aria-pressed="' + !cur + '">Todos</button>' +
-      items.map(function (it) { return '<button type="button" data-v="' + esc(it.v) + '" aria-pressed="' + (cur === it.v) + '">' + esc(it.t) + '</button>'; }).join('');
+  function oneHtml(items, cur, total) {
+    var n = function (x) { return x != null ? '<small>' + nf.format(x) + '</small>' : ''; };
+    return '<button type="button" data-v="" aria-pressed="' + !cur + '">Todos' + n(total) + '</button>' +
+      items.map(function (it) { return '<button type="button" data-v="' + esc(it.v) + '" aria-pressed="' + (cur === it.v) + '">' + esc(it.t) + n(it.n) + '</button>'; }).join('');
   }
   $('fClase').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.clase = b.dataset.v; MS.ua.refresh(); MS.prov.refresh(); render(); top(); } });
   $('fStatus').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.status = b.dataset.v || null; refreshAll(false); top(); } });
@@ -1748,7 +1758,9 @@ var FOS = (function () {
     dias.total = base.length;
     $('fDias').innerHTML = segHtml(dias, F.bucket);
     $('fClase').innerHTML = oneHtml((state.clases || []).map(function (c) { return { v: c, t: cap(c) }; }), state.clase);
-    $('fStatus').innerHTML = oneHtml((state.sts || []).map(function (s) { return { v: s, t: cap(s) }; }), state.status || '');
+    var stCnt = Object.create(null);
+    base.forEach(function (u) { var st = state.stOf && state.stOf[u.ymd + '\u0001' + u.key]; if (st) stCnt[st] = (stCnt[st] || 0) + 1; });
+    $('fStatus').innerHTML = oneHtml((state.sts || []).map(function (s) { return { v: s, t: cap(s), n: stCnt[s] || 0 }; }), state.status || '', base.length);
     Array.prototype.forEach.call($('fVista').children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === state.view)); });
     Array.prototype.forEach.call($('hdr').children, function (th) {
       var on = state.view === 'list' && th.dataset.k === state.sort.k;
