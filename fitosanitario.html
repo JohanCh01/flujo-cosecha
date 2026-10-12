@@ -623,10 +623,9 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
       <legend>Días desde la última evaluación</legend>
       <div class="seg" id="fDias"></div>
     </fieldset>
-    <label class="swdia" title="Encendido: los días se cuentan desde la última evaluación hasta el día siguiente de la cosecha, así una fecha pasada se ve igual que ese día. Apagado: hasta hoy.">
-      <input type="checkbox" id="swDia1" role="switch">
+    <label class="swdia">
+      <input type="checkbox" id="swDia1" role="switch" aria-label="Contar los días hasta el día siguiente de la cosecha">
       <span class="sw-track" aria-hidden="true"></span>
-      <span class="sw-txt">Días al día siguiente de la cosecha</span>
     </label>
   </section>
 
