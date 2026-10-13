@@ -168,7 +168,27 @@ COLS_FOSFINA = {
     "po": (["P.OTROS", "POTROS"], "P.Otros", True), "larva": (["LARVA", "LARVAS"], "Larva", True),
     "mod": (["MODULO"], "MODULO", False), "clase": (["CLASEDECAMPO"], "CLASE DE CAMPO", False),
     "status": (["STATUS", "ESTADO"], "STATUS", False), "sem": (["SEMANA"], "SEMANA", False),
+    # para el Reporte diario (reporte.html); si alguna no está, esa tarjeta sale vacía y lo demás sigue igual
+    "kilos": (["KILOS", "KG", "KILOS(KG)"], "KILOS", False),
+    "color": (["COLOR", "SEMAFORO", "COLORELASMOPALPUS"], "COLOR", False),
+    "pic": (["PICADOS", "PICADOSELASMOPALPUS", "PICADOSELASMOSPALPUS", "PICADO", "%PICADOS"], "Picados (Elasmopalpus)", False),
+    "prodi": (["PICADOSPRODIPLOSIS", "PICADOPRODIPLOSIS", "PRODIPLOSIS", "%PICADOSPRODIPLOSIS"], "Picados Prodiplosis", False),
 }
+
+# Columnas que usa el Reporte diario; se avisa en el registro si falta alguna
+COLS_REPORTE = ("kilos", "color", "pic", "prodi")
+
+
+def _num_o_nada(v):
+    """Como _num, pero una celda vacía o que no es número devuelve None (Power BI la deja fuera del promedio)."""
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v) if math.isfinite(v) else None
+    s = str(v).strip().replace("%", "").replace(",", ".")
+    if not re.match(r"^[+-]?(\d+\.?\d*|\.\d+)$", s):
+        return None
+    return _num(v)
 
 
 def leer_fosfina(ruta):
@@ -187,6 +207,10 @@ def leer_fosfina(ruta):
             return fila[ix[k]] if 0 <= ix[k] < len(fila) else None
 
         mapa, campos, tops, evs, estados, n_filas = {}, [], [], [], [], 0
+        colores, ind = [], []        # datos extra del Reporte diario, uno por evaluación (mismo orden que evs)
+
+        def millon(x):
+            return -1 if x is None else _redondeo(x * 1e6)
         for fila in filas[r0 + 1:]:
             ua, prov, turno = _limpio(celda(fila, "ua")), _limpio(celda(fila, "prov")), _limpio(celda(fila, "turno"))
             if not ua and not prov and not turno:
@@ -215,6 +239,18 @@ def leer_fosfina(ruta):
             if not 1 <= sem <= 53:
                 sem = _semana_iso(ymd)
             evs.append((fi, ymd, estados.index(st), _num(celda(fila, "ph")), _num(celda(fila, "ps")), _num(celda(fila, "po")), _num(celda(fila, "larva")), sem))
+            # Reporte diario: kilos (×10), color (índice; -1 sin color) y valores ×1e6 (-1 = celda vacía)
+            col = _limpio(celda(fila, "color")) if ix["color"] >= 0 else ""
+            if col and col not in colores:
+                colores.append(col)
+            post = [_num_o_nada(celda(fila, k)) for k in ("ph", "ps", "po")]
+            post = None if all(p is None for p in post) else sum(p or 0 for p in post)   # = SUMA POSTURAS
+            ind += [_redondeo(_num(celda(fila, "kilos")) * 10) if ix["kilos"] >= 0 else 0,
+                    colores.index(col) if col else -1,
+                    millon(_num_o_nada(celda(fila, "pic"))) if ix["pic"] >= 0 else -1,
+                    millon(_num_o_nada(celda(fila, "prodi"))) if ix["prodi"] >= 0 else -1,
+                    millon(_num_o_nada(celda(fila, "larva"))),
+                    millon(post)]
         if not campos:
             error = "La base de fosfina no tiene filas con fecha y proveedor válidos."
             continue
@@ -222,7 +258,12 @@ def leer_fosfina(ruta):
         plano = []
         for fi, ymd, st, ph, ps, po, larva, sem in evs:
             plano += [fi, _dias_entre(base, ymd), st, _redondeo(ph * 1e6), _redondeo(ps * 1e6), _redondeo(po * 1e6), _redondeo(larva * 1e6), sem]
-        return {"nRows": n_filas, "maxYmd": tope, "base": base, "hasStatus": ix["status"] >= 0, "statuses": estados, "fields": campos, "ev": plano}
+        faltan_rep = [COLS_FOSFINA[k][1] for k in COLS_REPORTE if ix[k] < 0]
+        if faltan_rep:
+            log("Aviso (Reporte diario): la base de fosfina no trae " + ", ".join(faltan_rep) + "; esas tarjetas saldrán vacías.")
+        # 'ind' va aparte de 'ev' para que fitosanitario.html siga leyendo igual que antes
+        return {"nRows": n_filas, "maxYmd": tope, "base": base, "hasStatus": ix["status"] >= 0, "statuses": estados, "fields": campos, "ev": plano,
+                "colores": colores, "ind": ind, "indCols": [k for k in COLS_REPORTE if ix[k] >= 0]}
     raise Detener(error)
 
 
