@@ -15,8 +15,8 @@ on:
   workflow_dispatch:             # botón "Run workflow" para correrlo a mano, de inmediato
     inputs:
       dias:
-        description: "Días hacia atrás a traer (1 = solo ayer)"
-        default: "1"
+        description: "Días hacia atrás a traer (7 = la última semana; 1 = solo ayer)"
+        default: "7"
       incluir_hoy:
         description: "Incluir también lo que va de hoy (día incompleto)"
         type: boolean
@@ -82,7 +82,7 @@ jobs:
           INTRANET_USUARIO: ${{ secrets.INTRANET_USUARIO }}
           INTRANET_CLAVE: ${{ secrets.INTRANET_CLAVE }}
           ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
-          DIAS_ATRAS: ${{ github.event.inputs.dias }}
+          DIAS_ATRAS: ${{ github.event.inputs.dias || '7' }}   # automático: repasa los últimos 7 días (recoge recojos registrados tarde)
           INCLUIR_HOY: ${{ steps.turno.outputs.hoy }}
           DESCARGAS_DIR: ${{ runner.temp }}/descargas
         run: python actualizar.py
@@ -96,7 +96,7 @@ jobs:
           ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
           GOOGLE_CREDENCIALES: ${{ secrets.GOOGLE_CREDENCIALES }}
           DRIVE_CARPETA_ID: ${{ secrets.DRIVE_CARPETA_ID }}
-          DIAS_ATRAS: ${{ github.event.inputs.dias }}
+          DIAS_ATRAS: ${{ github.event.inputs.dias || '7' }}   # automático: repasa los últimos 7 días (recoge recojos registrados tarde)
           INCLUIR_HOY: ${{ steps.turno.outputs.hoy }}
           DESCARGAS_DIR: ${{ runner.temp }}/descargas
         run: |

@@ -602,6 +602,19 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     html += '<article class="card kpi zonas"><h3>Kilos recepcionados por zona · ' + (state.fecha ? ddmm(state.fecha) : 'Sem. ' + state.sem) + '</h3><table class="vals"><tr><th>Zona</th><th>Kg recepcionados</th><th>% Kg recep.</th><th>Acum. hasta ' + hastaTxt + '</th><th>% acum.</th></tr>' +
       tz.map(function (r) { return '<tr><td>' + r.z + '</td><td>' + n2(r.kg) + '</td><td>' + (T ? pct(r.kg / T, 2) : '—') + '</td><td>' + n2(r.acu) + '</td><td>' + (TA ? pct(r.acu / TA, 2) : '—') + '</td></tr>'; }).join('') +
       '<tr class="tot"><td>Total</td><td>' + n2(T) + '</td><td>100.00%</td><td>' + n2(TA) + '</td><td>100.00%</td></tr></table></article>';
+    // kilos por mes del año elegido (para comparar con el Power BI mes por mes)
+    var MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'], pm = {};
+    R.forEach(function (r) {
+      if (Math.floor(r.ymd / 10000) !== state.anio) return;
+      var m = Math.floor(r.ymd / 100) % 100, o = pm[m] || (pm[m] = { COMPOSITAN: 0, OLMOS: 0, TERCEROS: 0, dias: {} });
+      o[r.zona] += r.v[0]; o.dias[r.ymd] = 1;
+    });
+    var ms = Object.keys(pm).map(Number).sort(function (a, b) { return a - b; }), tg = { COMPOSITAN: 0, OLMOS: 0, TERCEROS: 0 };
+    html += '<article class="card kpi zonas"><h3>Kilos recepcionados por mes · ' + state.anio + '</h3><table class="vals"><tr><th>Mes</th><th>Días</th><th>Olmos</th><th>Terceros</th><th>Compositan</th><th>Total</th></tr>' +
+      ms.map(function (m) {
+        var o = pm[m], t = o.OLMOS + o.TERCEROS + o.COMPOSITAN; ZONAS.forEach(function (z) { tg[z] += o[z]; });
+        return '<tr><td>' + MESES[m - 1] + '</td><td>' + Object.keys(o.dias).length + '</td><td>' + n2(o.OLMOS) + '</td><td>' + n2(o.TERCEROS) + '</td><td>' + n2(o.COMPOSITAN) + '</td><td>' + n2(t) + '</td></tr>';
+      }).join('') + '<tr class="tot"><td>Total</td><td></td><td>' + n2(tg.OLMOS) + '</td><td>' + n2(tg.TERCEROS) + '</td><td>' + n2(tg.COMPOSITAN) + '</td><td>' + n2(tg.OLMOS + tg.TERCEROS + tg.COMPOSITAN) + '</td></tr></table></article>';
     $('gridRec').innerHTML = html;
   }
 
