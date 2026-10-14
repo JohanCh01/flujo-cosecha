@@ -191,6 +191,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
         <button class="step" id="semNext" type="button" aria-label="Semana siguiente"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
       </div>
     </div>
+    <label class="field"><span>Fecha</span><select class="sel" id="fFecha"></select></label>
     <fieldset class="field"><legend>Procedencia</legend><div class="seg" id="fZona"></div></fieldset>
     <fieldset class="field" id="statusWrap"><legend>Status</legend><div class="seg" id="fStatus"></div></fieldset>
   </section>
@@ -244,7 +245,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   ];
 
   var state = { rows: [], colores: [], statuses: [], hasStatus: false, sinKilos: false, cols: [], gen: '',
-    anio: 0, sem: 0, zona: 'TODAS', status: null };
+    anio: 0, sem: 0, fecha: 0, zona: 'TODAS', status: null };
 
   // ---------- utilidades
   function utc(ymd) { return Date.UTC(Math.floor(ymd / 10000), Math.floor(ymd / 100) % 100 - 1, ymd % 100); }
@@ -303,6 +304,18 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     $('fSem').innerHTML = sems.slice().reverse().map(function (s) { return '<option value="' + s + '"' + (s === state.sem ? ' selected' : '') + '>SEM ' + s + '</option>'; }).join('');
     var i = sems.indexOf(state.sem);
     $('semPrev').disabled = i <= 0; $('semNext').disabled = i < 0 || i >= sems.length - 1;
+    armarFechas(conservar);
+  }
+  // Fecha: solo los días de la semana elegida que tienen evaluaciones (0 = toda la semana)
+  var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  function armarFechas(conservar) {
+    var f = {};
+    state.rows.forEach(function (r) { if (r.anio === state.anio && r.sem === state.sem) f[r.ymd] = 1; });
+    f = Object.keys(f).map(Number).sort(function (a, b) { return a - b; });
+    if (!conservar || f.indexOf(state.fecha) < 0) state.fecha = 0;
+    $('fFecha').innerHTML = '<option value="0">Toda la semana</option>' + f.map(function (d) {
+      return '<option value="' + d + '"' + (d === state.fecha ? ' selected' : '') + '>' + DIAS[new Date(utc(d)).getUTCDay()] + ' ' + ddmm(d) + '</option>';
+    }).join('');
   }
   function seg(id, ops, actual, alCambiar) {
     var el = $(id);
@@ -315,8 +328,9 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     };
   }
   $('fAnio').onchange = function () { state.anio = Number(this.value); armarSemanas(false); render(); };
-  $('fSem').onchange = function () { state.sem = Number(this.value); armarSemanas(true); render(); };
-  function moverSem(d) { var s = semanasDe(state.anio), i = s.indexOf(state.sem) + d; if (i >= 0 && i < s.length) { state.sem = s[i]; armarSemanas(true); render(); } }
+  $('fSem').onchange = function () { state.sem = Number(this.value); state.fecha = 0; armarSemanas(true); render(); };
+  $('fFecha').onchange = function () { state.fecha = Number(this.value); render(); };
+  function moverSem(d) { var s = semanasDe(state.anio), i = s.indexOf(state.sem) + d; if (i >= 0 && i < s.length) { state.sem = s[i]; state.fecha = 0; armarSemanas(true); render(); } }
   $('semPrev').onclick = function () { moverSem(-1); };
   $('semNext').onclick = function () { moverSem(1); };
 
@@ -365,12 +379,12 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   function fmt(x) { return x == null ? '—' : pct(x); }
 
   function render() {
-    var filas = state.rows.filter(function (r) { return r.anio === state.anio && r.sem === state.sem && (state.status < 0 || r.st === state.status); });
+    var filas = state.rows.filter(function (r) { return r.anio === state.anio && r.sem === state.sem && (!state.fecha || r.ymd === state.fecha) && (state.status < 0 || r.st === state.status); });
     var zonas = state.zona === 'ZONA' ? ZONAS : [state.zona];
     var porZona = zonas.map(function (z) { return z === 'TODAS' ? filas : filas.filter(function (r) { return r.zona === z; }); });
     $('zonaTit').textContent = state.zona === 'ZONA' ? 'Compositan · Olmos · Terceros' : NOM_ZONA[state.zona];
     var fechas = filas.map(function (r) { return r.ymd; });
-    $('rango').textContent = state.sem ? 'SEM. ' + state.sem + (fechas.length ? ' · evaluaciones del ' + ddmm(Math.min.apply(null, fechas)) + ' al ' + ddmm(Math.max.apply(null, fechas)) : '') : '';
+    $('rango').textContent = state.fecha ? 'SEM. ' + state.sem + ' · ' + DIAS[new Date(utc(state.fecha)).getUTCDay()] + ' ' + ddmm(state.fecha) + '/' + String(state.fecha).slice(0, 4) : state.sem ? 'SEM. ' + state.sem + (fechas.length ? ' · evaluaciones del ' + ddmm(Math.min.apply(null, fechas)) + ' al ' + ddmm(Math.max.apply(null, fechas)) : '') : '';
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
@@ -390,7 +404,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
       if (faltaColumna(ind)) {
         cuerpo = '<p class="aviso">Falta la columna ' + (ind.id === 'elasmo' ? 'COLOR' : 'Picados Prodiplosis') + ' en los datos publicados.</p>';
       } else {
-        var bars = '<div class="bars">' + res.map(function (r, i) { return barra(r, cats, multi ? NOM_ZONA[zonas[i]] : 'SEM ' + state.sem, NOM_ZONA[zonas[i]]); }).join('') + '</div>';
+        var bars = '<div class="bars">' + res.map(function (r, i) { return barra(r, cats, multi ? NOM_ZONA[zonas[i]] : state.fecha ? ddmm(state.fecha) : 'SEM ' + state.sem, NOM_ZONA[zonas[i]]); }).join('') + '</div>';
         var head = '<tr><th></th>' + (multi ? zonas.map(function (z) { return '<th>' + NOM_ZONA[z].slice(0, 4) + '.</th>'; }).join('') : '<th>%</th><th>' + (state.sinKilos ? 'Eval.' : 'Kilos') + '</th>') + '</tr>';
         var body = cats.slice().reverse().map(function (c) {
           var celdas = res.map(function (r) { var w = r.peso[c.k] || 0; return '<td>' + (r.total ? pct(w / r.total) : '—') + '</td>' + (multi ? '' : '<td class="kg">' + (state.sinKilos ? w : kg(w)) + '</td>'); }).join('');
