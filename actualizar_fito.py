@@ -719,7 +719,9 @@ def main():
             del extra[clave]
 
     contenido = {"v": 1, "fito": fito, "rec": rec, **extra}
-    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon") if k in anterior or k in contenido} == contenido
+    if anterior.get("rsql"):          # kilos recepcionados del SQL: los sube recepcion_sql.py desde la laptop; aquí solo se conservan
+        contenido["rsql"] = anterior["rsql"]
+    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon", "rsql") if k in anterior or k in contenido} == contenido
     if igual and firma_anterior == _firma(dnis, sal, it):
         log("fito.json ya estaba al día: no se cambia nada.")
         return 0

@@ -315,7 +315,9 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     state.total = n; state.conProceso = W >= 7 && state.cols.indexOf('proceso') >= 0;
     state.sinKilos = rows.length > 0 && rows.every(function (r) { return !r.kilos; });
     state.cal = desempacarDia(P.cal, 3, 100); state.lon = desempacarDia(P.lon, 4, 1e4);
-    state.rec = desempacarRec(P.rec);
+    // Kilos recepcionados: si está el bloque del SQL (lo sube recepcion_sql.py desde la laptop), se usa ese; si no, el de la intranet
+    state.recFuente = P.rsql ? 'sql' : 'intranet'; state.recGen = P.rsql ? P.rsql.gen : '';
+    state.rec = P.rsql ? desempacarRsql(P.rsql) : desempacarRec(P.rec);
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -340,6 +342,14 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     d.setUTCDate(d.getUTCDate() - dia + 3);                     // el jueves de esa semana decide el año
     var y = d.getUTCFullYear(), ene4 = new Date(Date.UTC(y, 0, 4));
     return [y, 1 + Math.round(((d - ene4) / 86400000 - 3 + (ene4.getUTCDay() + 6) % 7) / 7)];
+  }
+  function desempacarRsql(B) {
+    var out = [], w = B.w || 3, i;
+    for (i = 0; i + w <= B.rows.length; i += w) {
+      var ymd = addDays(B.base, B.rows[i]), s = isoSem(ymd);
+      out.push({ ymd: ymd, anio: s[0], sem: s[1], zona: zonaDe(B.uas[B.rows[i + 1]]), v: [B.rows[i + 2] / 100] });
+    }
+    return out;
   }
   function desempacarRec(R) {
     if (!R || !R.rows) return [];
@@ -582,7 +592,8 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     if (!R.length) { $('gridRec').innerHTML = ''; $('recNota').textContent = ''; return; }
     var desde = Math.min.apply(null, R.map(function (r) { return r.ymd; }));
     var anioIni = Math.floor(desde / 10000) * 10000 + 108;     // si el primer dato es después del 8 de enero, falta historia
-    $('recNota').textContent = 'Proceso FR · Peso Planta · sin reproceso · datos desde el ' + ddmm(desde) + '/' + String(desde).slice(0, 4);
+    var g = state.recGen ? state.recGen.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
+    $('recNota').textContent = 'Proceso FR · Peso Planta · sin reproceso · ' + (state.recFuente === 'sql' ? 'fuente SQL' + (g ? ' (subido el ' + g + ')' : '') : 'fuente intranet') + ' · desde el ' + ddmm(desde) + '/' + String(desde).slice(0, 4);
     if (desde > anioIni && Math.floor(desde / 10000) === state.anio) {
       $('avisoRec').hidden = false;
       $('avisoRec').textContent = 'Ojo: la recepción guardada empieza el ' + ddmm(desde) + '. Hasta que se cargue la historia desde enero, «Ejecutados» y «Avance de campaña» salen incompletos.';
