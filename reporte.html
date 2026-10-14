@@ -166,6 +166,10 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .dia td { padding: 5px 8px; text-align: right; border-top: 1px solid var(--line-soft); }
 .dia tr.sel td { background: var(--accent-soft); font-weight: 600; }
 .dia tr.tot td { font-weight: 600; border-top: 1.5px solid var(--line); }
+.kpis.rec { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.kpi .big.azul { color: var(--band-ink); }
+.kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
+.kpi.zonas { grid-column: 1 / -1; }
 .tip { position: fixed; z-index: 30; pointer-events: none; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--pop); border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45; max-width: 240px; }
 .tip b { font-weight: 600; }
 </style>
@@ -232,10 +236,16 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     </div>
   </section>
 
+  <section class="sec" aria-labelledby="t-rec">
+    <div class="sec-h"><h2 id="t-rec">Kilos de Espárrago Recepcionado</h2><p id="recNota"></p></div>
+    <div class="band">KILOGRAMOS RECEPCIONADOS</div>
+    <p class="aviso" id="avisoRec" hidden></p>
+    <div class="kpis rec" id="gridRec"></div>
+  </section>
+
   <section class="sec" aria-labelledby="t-pend">
     <div class="sec-h"><h2 id="t-pend">Próximas secciones</h2><p>Se irán llenando a medida que se conecte cada base</p></div>
     <div class="pendiente">
-      <div><b>Recepción de espárrago</b>Kilos recepcionados por zona · Recepción de materia prima (ya disponible)</div>
       <div><b>Producto terminado observado</b>% observado · indicadores de proceso</div>
       <div><b>Producción, despachos y mano de obra</b>Bases del área de Producción</div>
     </div>
@@ -251,6 +261,9 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 
   /* Umbral de cada indicador (como fracción: 0.02 = 2 %). Déjalo en null para que no se muestre. */
   var UMBRAL = { elasmo: null, posturas: null, larva: null, prodi: null };
+
+  /* Kilos PROYECTADOS de la campaña (no están en ninguna base). Cambia el número y la revisión cuando salga una nueva. */
+  var PROYECTADO = { kg: 6900000, rev: 'Rev. 11' };
 
   var $ = function (id) { return document.getElementById(id); };
   var ZONAS = ['COMPOSITAN', 'OLMOS', 'TERCEROS'];
@@ -269,7 +282,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
       cats: [{ k: '0% - 5%', css: 'var(--c-verde)', hasta: 50000 }, { k: '5.1% - 10%', css: 'var(--c-amarillo)', hasta: 100000 }, { k: '> 10%', css: 'var(--c-rojo)', hasta: Infinity }] }
   ];
 
-  var state = { rows: [], cal: [], lon: [], colores: [], statuses: [], hasStatus: false, sinKilos: false, cols: [], gen: '',
+  var state = { rows: [], cal: [], lon: [], rec: [], colores: [], statuses: [], hasStatus: false, sinKilos: false, cols: [], gen: '',
     anio: 0, sem: 0, fecha: 0, zona: 'TODAS', status: null };
 
   // ---------- utilidades
@@ -302,6 +315,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     state.total = n; state.conProceso = W >= 7 && state.cols.indexOf('proceso') >= 0;
     state.sinKilos = rows.length > 0 && rows.every(function (r) { return !r.kilos; });
     state.cal = desempacarDia(P.cal, 3, 100); state.lon = desempacarDia(P.lon, 4, 1e4);
+    state.rec = desempacarRec(P.rec);
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -320,7 +334,26 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     }
     return out;
   }
-  function todas() { return state.rows.concat(state.cal || [], state.lon || []); }
+  // Recepción (ya viene en fito.json: solo Proceso = FR, fecha de Hora Cosecha, kilos de Peso Planta) → total por día y zona
+  function isoSem(ymd) {
+    var d = new Date(utc(ymd)), dia = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dia + 3);                     // el jueves de esa semana decide el año
+    var y = d.getUTCFullYear(), ene4 = new Date(Date.UTC(y, 0, 4));
+    return [y, 1 + Math.round(((d - ene4) / 86400000 - 3 + (ene4.getUTCDay() + 6) % 7) / 7)];
+  }
+  function desempacarRec(R) {
+    if (!R || !R.rows) return [];
+    var tot = {}, i, f = R.rows;
+    for (i = 0; i + 7 <= f.length; i += 7) {
+      var k = f[i] + '|' + zonaDe(R.ua[f[i + 1]]);
+      tot[k] = (tot[k] || 0) + f[i + 5] / 10;
+    }
+    return Object.keys(tot).map(function (k) {
+      var p = k.split('|'), ymd = addDays(R.base, Number(p[0])), w = isoSem(ymd);
+      return { ymd: ymd, anio: w[0], sem: w[1], zona: p[1], v: [tot[k]] };
+    });
+  }
+  function todas() { return state.rows.concat(state.cal || [], state.lon || [], state.rec || []); }
 
   // ---------- filtros
   function semanasDe(anio) {
@@ -428,7 +461,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas);
+    renderCal(zonas); renderRec(zonas);
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
     else if (state.sinKilos) avisos.push('La base no trae la columna KILOS: las barras se calculan por número de evaluaciones.');
@@ -535,6 +568,41 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     $('cardDia').innerHTML = '<h3>Por día · SEM ' + state.sem + (multi ? ' · todas las zonas' : zt === 'TODAS' ? '' : ' · ' + NOM_ZONA[zt]) + '</h3>' +
       (dias.length ? '<table class="dia"><tr><th>Fecha</th><th class="h-cr">% C- y Ram</th><th class="h-sm">% Small</th><th class="h-lo">% &gt; 30 cm</th></tr>' + filas +
         '<tr class="tot"><td>Total semana</td><td>' + fmt(t.cr) + '</td><td>' + fmt(t.sm) + '</td><td>' + fmt(t.lo) + '</td></tr></table>' : '<p class="aviso">Sin datos en esta semana.</p>');
+  }
+
+  // ---------- Kilos recepcionados (diapositivas 4 y 8)
+  function kgTxt(x) { return x >= 1e6 ? (x / 1e6).toFixed(1) + '<small>mill</small>' : x >= 1e3 ? (x / 1e3).toFixed(1) + '<small>mil</small>' : Math.round(x) + '<small>kg</small>'; }
+  function renderRec(zonas) {
+    var R = state.rec || [], multi = zonas.length > 1;
+    $('avisoRec').hidden = R.length > 0;
+    $('avisoRec').textContent = 'Todavía no hay datos de recepción en la página.';
+    if (!R.length) { $('gridRec').innerHTML = ''; $('recNota').textContent = ''; return; }
+    var desde = Math.min.apply(null, R.map(function (r) { return r.ymd; }));
+    var anioIni = Math.floor(desde / 10000) * 10000 + 108;     // si el primer dato es después del 8 de enero, falta historia
+    $('recNota').textContent = 'Proceso FR · Peso Planta · datos desde el ' + ddmm(desde) + '/' + String(desde).slice(0, 4);
+    if (desde > anioIni && Math.floor(desde / 10000) === state.anio) {
+      $('avisoRec').hidden = false;
+      $('avisoRec').textContent = 'Ojo: la recepción guardada empieza el ' + ddmm(desde) + '. Hasta que se cargue la historia desde enero, «Ejecutados» y «Avance de campaña» salen incompletos.';
+    }
+    function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
+    var hastaTxt = state.fecha ? ddmm(state.fecha) : 'S.' + state.sem;
+    var periodoTxt = state.fecha ? 'SOLO EL ' + ddmm(state.fecha) : 'SOLO SEMANA ' + state.sem;
+    var z0 = multi ? 'TODAS' : zonas[0];
+    var eje = suma(z0, acumulado), per = suma(z0, periodo), conProy = z0 === 'TODAS' && PROYECTADO.kg > 0;
+    var html = '';
+    html += '<article class="card kpi"><h3>Proyectados</h3><div class="big azul">' + (conProy ? kgTxt(PROYECTADO.kg) : '—') + '</div><div class="lbl">kilos · ' + esc(PROYECTADO.rev) + '</div>' +
+      (conProy ? '' : '<p class="foot">El proyectado es del total (sin zona)</p>') + '</article>';
+    html += '<article class="card kpi"><h3>Ejecutados hasta ' + hastaTxt + '</h3><div class="big">' + kgTxt(eje) + '</div><div class="lbl">kilos</div></article>';
+    html += '<article class="card kpi"><h3>Avance de campaña</h3><div class="big">' + (conProy ? pct(eje / PROYECTADO.kg) : '—') + '</div><div class="lbl">ejecutado ÷ proyectado</div></article>';
+    html += '<article class="card kpi"><h3>' + periodoTxt + '</h3><div class="big">' + kgTxt(per) + '</div><div class="lbl">kilos</div></article>';
+    // tabla por zona del periodo (como la diapositiva 8)
+    var tz = ZONAS.map(function (z) { return { z: z, kg: suma(z, periodo), acu: suma(z, acumulado) }; }).sort(function (a, b) { return b.kg - a.kg; });
+    var T = tz.reduce(function (a, r) { return a + r.kg; }, 0), TA = tz.reduce(function (a, r) { return a + r.acu; }, 0);
+    var n2 = function (x) { return x.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    html += '<article class="card kpi zonas"><h3>Kilos recepcionados por zona · ' + (state.fecha ? ddmm(state.fecha) : 'Sem. ' + state.sem) + '</h3><table class="vals"><tr><th>Zona</th><th>Kg recepcionados</th><th>% Kg recep.</th><th>Acum. hasta ' + hastaTxt + '</th><th>% acum.</th></tr>' +
+      tz.map(function (r) { return '<tr><td>' + r.z + '</td><td>' + n2(r.kg) + '</td><td>' + (T ? pct(r.kg / T, 2) : '—') + '</td><td>' + n2(r.acu) + '</td><td>' + (TA ? pct(r.acu / TA, 2) : '—') + '</td></tr>'; }).join('') +
+      '<tr class="tot"><td>Total</td><td>' + n2(T) + '</td><td>100.00%</td><td>' + n2(TA) + '</td><td>100.00%</td></tr></table></article>';
+    $('gridRec').innerHTML = html;
   }
 
   // ---------- tooltip de cada tramo de la barra
