@@ -315,9 +315,10 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     state.total = n; state.conProceso = W >= 7 && state.cols.indexOf('proceso') >= 0;
     state.sinKilos = rows.length > 0 && rows.every(function (r) { return !r.kilos; });
     state.cal = desempacarDia(P.cal, 3, 100); state.lon = desempacarDia(P.lon, 4, 1e4);
-    // Kilos recepcionados: si está el bloque del SQL (lo sube recepcion_sql.py desde la laptop), se usa ese; si no, el de la intranet
-    state.recFuente = P.rsql ? 'sql' : 'intranet'; state.recGen = P.rsql ? P.rsql.gen : '';
-    state.rec = P.rsql ? desempacarRsql(P.rsql) : desempacarRec(P.rec);
+    // Kilos recepcionados: SOLO del SQL (bloque «rsql» que sube recepcion_sql.py desde la laptop).
+    // La recepción de la intranet (P.rec) no se usa aquí: es solo para el Flujo de cosecha y la página fitosanitaria.
+    state.recGen = P.rsql ? P.rsql.gen : '';
+    state.rec = P.rsql ? desempacarRsql(P.rsql) : [];
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -350,21 +351,6 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
       out.push({ ymd: ymd, anio: s[0], sem: s[1], zona: zonaDe(B.uas[B.rows[i + 1]]), v: [B.rows[i + 2] / 100] });
     }
     return out;
-  }
-  function desempacarRec(R) {
-    if (!R || !R.rows) return [];
-    var tot = {}, i, f = R.rows;
-    for (i = 0; i + 7 <= f.length; i += 7) {
-      // como en tu Power BI: no se toma MODULO = REPROCESO (MODULO = parte del Campo antes de "/" para Danper; si no, el Proveedor)
-      var modulo = String(R.campo[f[i + 3]] || '').split('/')[0].trim().toUpperCase(), prov = String(R.prov[f[i + 2]] || '').trim().toUpperCase();
-      if (modulo === 'REPROCESO' || prov === 'REPROCESO') continue;
-      var k = f[i] + '|' + zonaDe(R.ua[f[i + 1]]);
-      tot[k] = (tot[k] || 0) + f[i + 5] / 10;
-    }
-    return Object.keys(tot).map(function (k) {
-      var p = k.split('|'), ymd = addDays(R.base, Number(p[0])), w = isoSem(ymd);
-      return { ymd: ymd, anio: w[0], sem: w[1], zona: p[1], v: [tot[k]] };
-    });
   }
   function todas() { return state.rows.concat(state.cal || [], state.lon || [], state.rec || []); }
 
@@ -588,16 +574,10 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   function renderRec(zonas) {
     var R = state.rec || [], multi = zonas.length > 1;
     $('avisoRec').hidden = R.length > 0;
-    $('avisoRec').textContent = 'Todavía no hay datos de recepción en la página.';
+    $('avisoRec').textContent = 'Todavía no hay kilos del SQL en la página. Corre «python recepcion_sql.py» en tu laptop para subirlos.';
     if (!R.length) { $('gridRec').innerHTML = ''; $('recNota').textContent = ''; return; }
-    var desde = Math.min.apply(null, R.map(function (r) { return r.ymd; }));
-    var anioIni = Math.floor(desde / 10000) * 10000 + 108;     // si el primer dato es después del 8 de enero, falta historia
     var g = state.recGen ? state.recGen.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
-    $('recNota').textContent = 'Proceso FR · Peso Planta · sin reproceso · ' + (state.recFuente === 'sql' ? 'fuente SQL' + (g ? ' (subido el ' + g + ')' : '') : 'fuente intranet') + ' · desde el ' + ddmm(desde) + '/' + String(desde).slice(0, 4);
-    if (desde > anioIni && Math.floor(desde / 10000) === state.anio) {
-      $('avisoRec').hidden = false;
-      $('avisoRec').textContent = 'Ojo: la recepción guardada empieza el ' + ddmm(desde) + '. Hasta que se cargue la historia desde enero, «Ejecutados» y «Avance de campaña» salen incompletos.';
-    }
+    $('recNota').textContent = 'SQL HECHO_INGRESOMMPP · Proceso FR · Peso Planta · sin reproceso' + (g ? ' · subido el ' + g : '');
     function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
     var hastaTxt = state.fecha ? ddmm(state.fecha) : 'S.' + state.sem;
     var periodoTxt = state.fecha ? 'SOLO EL ' + ddmm(state.fecha) : 'SOLO SEMANA ' + state.sem;
