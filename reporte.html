@@ -345,6 +345,9 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     if (!R || !R.rows) return [];
     var tot = {}, i, f = R.rows;
     for (i = 0; i + 7 <= f.length; i += 7) {
+      // como en tu Power BI: no se toma MODULO = REPROCESO (MODULO = parte del Campo antes de "/" para Danper; si no, el Proveedor)
+      var modulo = String(R.campo[f[i + 3]] || '').split('/')[0].trim().toUpperCase(), prov = String(R.prov[f[i + 2]] || '').trim().toUpperCase();
+      if (modulo === 'REPROCESO' || prov === 'REPROCESO') continue;
       var k = f[i] + '|' + zonaDe(R.ua[f[i + 1]]);
       tot[k] = (tot[k] || 0) + f[i + 5] / 10;
     }
@@ -579,7 +582,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     if (!R.length) { $('gridRec').innerHTML = ''; $('recNota').textContent = ''; return; }
     var desde = Math.min.apply(null, R.map(function (r) { return r.ymd; }));
     var anioIni = Math.floor(desde / 10000) * 10000 + 108;     // si el primer dato es después del 8 de enero, falta historia
-    $('recNota').textContent = 'Proceso FR · Peso Planta · datos desde el ' + ddmm(desde) + '/' + String(desde).slice(0, 4);
+    $('recNota').textContent = 'Proceso FR · Peso Planta · sin reproceso · datos desde el ' + ddmm(desde) + '/' + String(desde).slice(0, 4);
     if (desde > anioIni && Math.floor(desde / 10000) === state.anio) {
       $('avisoRec').hidden = false;
       $('avisoRec').textContent = 'Ojo: la recepción guardada empieza el ' + ddmm(desde) + '. Hasta que se cargue la historia desde enero, «Ejecutados» y «Avance de campaña» salen incompletos.';

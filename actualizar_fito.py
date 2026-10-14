@@ -10,7 +10,7 @@ Corre en GitHub Actions justo DESPUÉS de actualizar.py, dentro del mismo trabaj
 2. FOSFINA: baja de Google Drive la base "BD_FOSFINA" completa (todo el año) con la cuenta de
    servicio, igual que bd.py, y REEMPLAZA la anterior.
 2b. CALIDADES Y CALIBRES y LONGITUDES (para reporte.html): las baja de la misma carpeta de Drive y
-   guarda solo los totales por día y unidad agrícola (PROCESO = FRESCO, STATUS = EVALUADO, sin MODULO = REPROCESO;
+   guarda solo los totales por día y unidad agrícola (PROCESO = FRESCO, STATUS = EVALUADO;
    CARACTERISTICA = NORMAL en calidades y no vacía en longitudes).
 3. Guarda las dos bases juntas en fito.json, cifrado con la misma lista de DNIs y la misma clave
    de administrador que datos.json. La página fitosanitario.html lo abre con la sesión ya iniciada
@@ -339,14 +339,14 @@ COLS_CAL = {
     "ua": (["UNIDADAGRICOLA"], "UNIDAD AGRICOLA", True), "proceso": (["PROCESO"], "PROCESO", True),
     "status": (["STATUS"], "STATUS", True), "calidad": (["CALIDAD"], "CALIDAD", True),
     "calibre": (["CALIBRE"], "CALIBRE", True), "kg": (["VALORPLANTAKG"], "Valor Planta Kg", True),
-    "mod": (["MODULO"], "MODULO", False), "car": (["CARACTERISTICA"], "CARACTERISTICA", False),
+    "car": (["CARACTERISTICA"], "CARACTERISTICA", False),
 }
 COLS_LON = {
     "fecha": (["FECHACOSECHA", "FECHA"], "FECHA COSECHA", True), "sem": (["SEMANA"], "SEMANA", False),
     "ua": (["UNIDADAGRICOLA"], "UNIDAD AGRICOLA", True), "proceso": (["PROCESO"], "PROCESO", True),
     "status": (["STATUS"], "STATUS", True), "lon": (["LONGITUD"], "LONGITUD", True),
     "pct": (["PORCENTAJE"], "PORCENTAJE", True),
-    "mod": (["MODULO"], "MODULO", False), "car": (["CARACTERISTICA"], "CARACTERISTICA", False),
+    "car": (["CARACTERISTICA"], "CARACTERISTICA", False),
 }
 
 
@@ -398,13 +398,11 @@ def _semana_de(v, ymd):
 
 def _pasa_filtro(f, ix, caracteristica):
     """Filtros internos del Power BI (no se muestran en la página):
-    PROCESO = FRESCO, STATUS = EVALUADO, MODULO distinto de REPROCESO y, según la base,
-    CARACTERISTICA = NORMAL (calidades: C- y Ram / Small) o CARACTERISTICA no vacía (longitudes)."""
+    PROCESO = FRESCO, STATUS = EVALUADO y, según la base, CARACTERISTICA = NORMAL
+    (calidades: C- y Ram / Small) o CARACTERISTICA no vacía (longitudes)."""
     def c(k):
         return f[ix[k]] if 0 <= ix[k] < len(f) else None
     if _clave_col(c("proceso")) != PROCESO_REPORTE or _clave_col(c("status")) != STATUS_REPORTE:
-        return False
-    if _clave_col(c("mod")) == "REPROCESO":
         return False
     car = _clave_col(c("car"))
     if caracteristica == "NORMAL":
