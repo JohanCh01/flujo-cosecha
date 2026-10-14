@@ -15,7 +15,7 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
   --line: #d9dfd6; --line-soft: #e9ede6; --accent: #2c6a3b; --accent-ink: #ffffff; --accent-soft: #e0eee1;
   --band: #e3eef6; --band-ink: #23415a; --danger: #a3301f; --pop: 0 10px 28px rgba(23, 32, 26, .18);
   /* colores de la leyenda: los mismos nombres que trae la base / Power BI */
-  --c-azul: #6d7fd1; --c-verde: #9fd77c; --c-amarillo: #f3e675; --c-rojo: #f07b73; --c-rojo2: #d33a33; --c-otro: #b8c0b9;
+  --c-azul: #6d7fd1; --c-verde: #9fd77c; --c-amarillo: #f3e675; --c-rojo: #f07b73; --c-rojo2: #d33a33; --c-otro: #b8c0b9; --c-naranja: #eaa73c;
   --seg-ink: #17201a;
   --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
@@ -25,7 +25,7 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
     --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
     --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
     --band: #1d2a33; --band-ink: #b9d3e6; --danger: #f08a78; --pop: 0 10px 28px rgba(0, 0, 0, .55);
-    --c-azul: #7d8fe0; --c-verde: #8cc96a; --c-amarillo: #e3d462; --c-rojo: #e9736b; --c-rojo2: #c73a33; --c-otro: #7e8a81;
+    --c-azul: #7d8fe0; --c-verde: #8cc96a; --c-amarillo: #e3d462; --c-rojo: #e9736b; --c-rojo2: #c73a33; --c-otro: #7e8a81; --c-naranja: #d9973a;
     color-scheme: dark;
   }
 }
@@ -33,7 +33,7 @@ if (/\.github\.io$/i.test(location.hostname)) document.documentElement.classList
   --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
   --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
   --band: #1d2a33; --band-ink: #b9d3e6; --danger: #f08a78; --pop: 0 10px 28px rgba(0, 0, 0, .55);
-  --c-azul: #7d8fe0; --c-verde: #8cc96a; --c-amarillo: #e3d462; --c-rojo: #e9736b; --c-rojo2: #c73a33; --c-otro: #7e8a81;
+  --c-azul: #7d8fe0; --c-verde: #8cc96a; --c-amarillo: #e3d462; --c-rojo: #e9736b; --c-rojo2: #c73a33; --c-otro: #7e8a81; --c-naranja: #d9973a;
   color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -147,6 +147,25 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .pendiente div { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 12.5px; background: var(--surface); }
 .pendiente b { display: block; color: var(--ink-soft); font-weight: 600; font-size: 13px; }
 
+.c-naranja { color: var(--c-naranja); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.kpi { align-items: center; text-align: center; gap: 4px; }
+.kpi .big { font-size: 40px; line-height: 1.05; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); margin-top: 4px; }
+.kpi .lbl { font-size: 11.5px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.kpi .acum { margin-top: 6px; padding: 5px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-soft); }
+.kpi .acum b { color: var(--ink); font-size: 15px; font-variant-numeric: tabular-nums; }
+.kpi .vals { align-self: stretch; }
+.cal2 { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.2fr); gap: 12px; }
+@media (max-width: 760px) { .cal2 { grid-template-columns: 1fr; } }
+.dia { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.dia th { font-size: 11px; font-weight: 600; padding: 6px 8px; text-align: right; color: var(--ink); }
+.dia th:first-child, .dia td:first-child { text-align: left; }
+.dia th.h-cr { background: color-mix(in srgb, var(--c-verde) 35%, transparent); }
+.dia th.h-sm { background: color-mix(in srgb, var(--c-amarillo) 40%, transparent); }
+.dia th.h-lo { background: color-mix(in srgb, var(--c-rojo) 28%, transparent); }
+.dia td { padding: 5px 8px; text-align: right; border-top: 1px solid var(--line-soft); }
+.dia tr.sel td { background: var(--accent-soft); font-weight: 600; }
+.dia tr.tot td { font-weight: 600; border-top: 1.5px solid var(--line); }
 .tip { position: fixed; z-index: 30; pointer-events: none; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--pop); border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45; max-width: 240px; }
 .tip b { font-weight: 600; }
 </style>
@@ -204,12 +223,18 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     <div class="band">FITOSANITARIOS</div>
     <p class="aviso" id="avisoFito" hidden></p>
     <div class="grid" id="gridFito"></div>
+    <div class="band">CALIDADES Y CALIBRES</div>
+    <p class="aviso" id="avisoCal" hidden></p>
+    <div class="kpis" id="gridCal"></div>
+    <div class="cal2">
+      <article class="card" id="cardLon"></article>
+      <article class="card" id="cardDia"></article>
+    </div>
   </section>
 
   <section class="sec" aria-labelledby="t-pend">
     <div class="sec-h"><h2 id="t-pend">Próximas secciones</h2><p>Se irán llenando a medida que se conecte cada base</p></div>
     <div class="pendiente">
-      <div><b>Calidades y calibres</b>Small, Long &gt;30, C- y Ramas · base CALIDADES Y CALIBRES (Drive)</div>
       <div><b>Recepción de espárrago</b>Kilos recepcionados por zona · Recepción de materia prima (ya disponible)</div>
       <div><b>Producto terminado observado</b>% observado · indicadores de proceso</div>
       <div><b>Producción, despachos y mano de obra</b>Bases del área de Producción</div>
@@ -244,7 +269,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
       cats: [{ k: '0% - 5%', css: 'var(--c-verde)', hasta: 50000 }, { k: '5.1% - 10%', css: 'var(--c-amarillo)', hasta: 100000 }, { k: '> 10%', css: 'var(--c-rojo)', hasta: Infinity }] }
   ];
 
-  var state = { rows: [], colores: [], statuses: [], hasStatus: false, sinKilos: false, cols: [], gen: '',
+  var state = { rows: [], cal: [], lon: [], colores: [], statuses: [], hasStatus: false, sinKilos: false, cols: [], gen: '',
     anio: 0, sem: 0, fecha: 0, zona: 'TODAS', status: null };
 
   // ---------- utilidades
@@ -276,20 +301,35 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     state.cols = f.indCols || []; state.gen = P.gen || ''; state.sinInd = !ind.length; state.headers = f.headers || [];
     state.total = n; state.conProceso = W >= 7 && state.cols.indexOf('proceso') >= 0;
     state.sinKilos = rows.length > 0 && rows.every(function (r) { return !r.kilos; });
+    state.cal = desempacarDia(P.cal, 3, 100); state.lon = desempacarDia(P.lon, 4, 1e4);
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
     }
   }
 
+  // Calidades / longitudes: totales por día y unidad agrícola → [{ymd, anio, sem, zona, v: [...]}]
+  function desempacarDia(B, ancho, escala) {
+    if (!B || !B.rows) return [];
+    var out = [], w = B.w || 3 + ancho, i, k;
+    for (i = 0; i + w <= B.rows.length; i += w) {
+      var ymd = addDays(B.base, B.rows[i]), sem = B.rows[i + 1], y = Math.floor(ymd / 10000), v = [];
+      if (sem <= 2 && ymd % 10000 > 1220) y++; else if (sem >= 52 && ymd % 10000 < 110) y--;
+      for (k = 0; k < ancho; k++) v.push(B.rows[i + 3 + k] / escala);
+      out.push({ ymd: ymd, anio: y, sem: sem, zona: zonaDe(B.uas[B.rows[i + 2]]), v: v });
+    }
+    return out;
+  }
+  function todas() { return state.rows.concat(state.cal || [], state.lon || []); }
+
   // ---------- filtros
   function semanasDe(anio) {
     var s = {};
-    state.rows.forEach(function (r) { if (r.anio === anio) s[r.sem] = 1; });
+    todas().forEach(function (r) { if (r.anio === anio) s[r.sem] = 1; });
     return Object.keys(s).map(Number).sort(function (a, b) { return a - b; });
   }
   function armarFiltros(conservar) {
-    var anios = {}; state.rows.forEach(function (r) { anios[r.anio] = 1; });
+    var anios = {}; todas().forEach(function (r) { anios[r.anio] = 1; });
     anios = Object.keys(anios).map(Number).sort(function (a, b) { return b - a; });
     if (!conservar || anios.indexOf(state.anio) < 0) state.anio = anios[0] || 0;
     $('fAnio').innerHTML = anios.map(function (a) { return '<option value="' + a + '"' + (a === state.anio ? ' selected' : '') + '>' + a + '</option>'; }).join('');
@@ -310,7 +350,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   function armarFechas(conservar) {
     var f = {};
-    state.rows.forEach(function (r) { if (r.anio === state.anio && r.sem === state.sem) f[r.ymd] = 1; });
+    todas().forEach(function (r) { if (r.anio === state.anio && r.sem === state.sem) f[r.ymd] = 1; });
     f = Object.keys(f).map(Number).sort(function (a, b) { return a - b; });
     if (!conservar || f.indexOf(state.fecha) < 0) state.fecha = 0;
     $('fFecha').innerHTML = '<option value="0">Toda la semana</option>' + f.map(function (d) {
@@ -367,12 +407,12 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   }
 
   // ---------- dibujo
-  function barra(res, cats, etiqueta, zona) {
+  function barra(res, cats, etiqueta, zona, detalle) {
     if (!res.total) return '<div class="barcol"><div class="bar vacia">Sin datos</div>' + (etiqueta ? '<small>' + etiqueta + '</small>' : '') + '</div>';
     var h = cats.map(function (c) {
       var w = res.peso[c.k] || 0; if (!w) return '';
       var p = w / res.total;
-      return '<div class="segm" style="flex:' + p.toFixed(5) + ' 1 0;background:' + c.css + '" data-tip="' + esc(zona + '|' + c.k + '|' + pct(p) + '|' + (state.sinKilos ? w + ' evaluaciones' : kg(w) + ' kg')) + '">' + (p >= 0.09 ? pct(p) : '') + '</div>';
+      return '<div class="segm" style="flex:' + p.toFixed(5) + ' 1 0;background:' + c.css + '" data-tip="' + esc(zona + '|' + c.k + '|' + pct(p) + '|' + (detalle ? detalle(w) : state.sinKilos ? w + ' evaluaciones' : kg(w) + ' kg de los kilos')) + '">' + (p >= 0.09 ? pct(p) : '') + '</div>';
     }).join('');
     return '<div class="barcol"><div class="bar">' + h + '</div>' + (etiqueta ? '<small>' + etiqueta + '</small>' : '') + '</div>';
   }
@@ -388,6 +428,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
+    renderCal(zonas);
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
     else if (state.sinKilos) avisos.push('La base no trae la columna KILOS: las barras se calculan por número de evaluaciones.');
@@ -428,13 +469,81 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     }).join('');
   }
 
+  // ---------- Calidades y calibres + longitudes (PROCESO = FRESCO y STATUS = EVALUADO, como en tu Power BI)
+  var LON_CATS = [{ k: '< 26 cm', css: 'var(--c-verde)' }, { k: '26.1 - 28 cm', css: 'var(--c-amarillo)' },
+    { k: '28.1 - 30 cm', css: 'var(--c-naranja)' }, { k: '> 30 cm', css: 'var(--c-rojo)' }];
+  function sumar(lista, filtro, n) {
+    var t = []; for (var k = 0; k < n; k++) t.push(0);
+    lista.forEach(function (r) { if (filtro(r)) for (var k = 0; k < n; k++) t[k] += r.v[k]; });
+    return t;
+  }
+  function enZona(z) { return function (r) { return z === 'TODAS' || r.zona === z; }; }
+  function periodo(r) { return r.anio === state.anio && r.sem === state.sem && (!state.fecha || r.ymd === state.fecha); }
+  function acumulado(r) { return r.anio === state.anio && (state.fecha ? r.ymd <= state.fecha : r.sem <= state.sem); }
+  function ind3(z, f) {                        // [% Small, % > 30 cm, % C- y Ram, kilos] de un periodo y zona
+    var c = sumar(state.cal, function (r) { return f(r) && enZona(z)(r); }, 3);
+    var l = sumar(state.lon, function (r) { return f(r) && enZona(z)(r); }, 4), lt = l[0] + l[1] + l[2] + l[3];
+    return { sm: c[0] ? c[2] / c[0] : null, lo: lt ? l[3] / lt : null, cr: c[0] ? c[1] / c[0] : null, kg: c[0], lon: l, lt: lt };
+  }
+  function renderCal(zonas) {
+    var hay = state.cal.length || state.lon.length, multi = zonas.length > 1;
+    $('avisoCal').hidden = !!hay;
+    $('avisoCal').textContent = 'Todavía no llegan las bases de Calidades y calibres y de Longitudes: se cargan en la próxima actualización automática.';
+    var per = zonas.map(function (z) { return ind3(z, periodo); }), acu = zonas.map(function (z) { return ind3(z, acumulado); });
+    var semsAcu = todas().filter(function (r) { return r.anio === state.anio && r.sem <= state.sem; }).map(function (r) { return r.sem; });
+    var desde = semsAcu.length ? Math.min.apply(null, semsAcu) : state.sem;
+    var etq = state.fecha ? 'Ejec. ' + ddmm(state.fecha) : 'Ejec. Sem. ' + state.sem;
+    var etqA = 'Acumulado SEM ' + desde + ' – ' + (state.fecha ? ddmm(state.fecha) : state.sem);
+    var KP = [{ t: 'SMALL', k: 'sm', d: 'Calibre 4 - 5.9 mm y 6 - 7.9 · % de Valor Planta Kg' },
+      { t: 'LONG > 30', k: 'lo', d: 'Rango > 30 cm · % de la suma de PORCENTAJE' },
+      { t: 'C- Y RAMAS', k: 'cr', d: 'Calidad C - y Rameado · % de Valor Planta Kg' }];
+    $('gridCal').innerHTML = KP.map(function (q) {
+      var cuerpo;
+      if (!multi) {
+        cuerpo = '<div class="big">' + fmt(per[0][q.k]) + '</div><div class="lbl">' + etq + '</div>' +
+          '<div class="acum">' + etqA + ': <b>' + fmt(acu[0][q.k]) + '</b></div>';
+      } else {
+        cuerpo = '<table class="vals"><tr><th></th><th>' + esc(etq.replace('Ejec. ', '')) + '</th><th>Acum.</th></tr>' + zonas.map(function (z, i) {
+          return '<tr><td>' + NOM_ZONA[z] + '</td><td>' + fmt(per[i][q.k]) + '</td><td>' + fmt(acu[i][q.k]) + '</td></tr>';
+        }).join('') + '</table>';
+      }
+      return '<article class="card kpi"><h3>' + q.t + '</h3>' + cuerpo + '<p class="foot">' + q.d + '</p></article>';
+    }).join('');
+
+    // tendencia de longitud (barra apilada como en tu Power BI)
+    var bars = per.map(function (r, i) {
+      var peso = {}; LON_CATS.forEach(function (c, k) { peso[c.k] = r.lon[k]; });
+      return barra({ peso: peso, total: r.lt }, LON_CATS, multi ? NOM_ZONA[zonas[i]] : (state.fecha ? ddmm(state.fecha) : 'SEM ' + state.sem), NOM_ZONA[zonas[i]], function () { return ''; });
+    }).join('');
+    var head = '<tr><th></th>' + (multi ? zonas.map(function (z) { return '<th>' + NOM_ZONA[z].slice(0, 4) + '.</th>'; }).join('') : '<th>%</th>') + '</tr>';
+    var body = LON_CATS.slice().reverse().map(function (c) {
+      var k = LON_CATS.indexOf(c);
+      return '<tr><td><span class="sw" style="background:' + c.css + '"></span>' + c.k + '</td>' + per.map(function (r) { return '<td>' + (r.lt ? pct(r.lon[k] / r.lt) : '—') + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    $('cardLon').innerHTML = '<h3>% Tendencia longitud</h3><div class="card-b"><div class="bars">' + bars + '</div><table class="vals">' + head + body + '</table></div>' +
+      '<p class="foot">Suma de PORCENTAJE por rango (*LONG) · FRESCO · Evaluado</p>';
+
+    // tabla por día de la semana elegida
+    var zt = multi ? 'TODAS' : zonas[0], dias = {};
+    state.cal.concat(state.lon).forEach(function (r) { if (r.anio === state.anio && r.sem === state.sem) dias[r.ymd] = 1; });
+    dias = Object.keys(dias).map(Number).sort(function (a, b) { return b - a; });
+    var filas = dias.map(function (d) {
+      var r = ind3(zt, function (x) { return x.anio === state.anio && x.ymd === d; });
+      return '<tr' + (d === state.fecha ? ' class="sel"' : '') + '><td>' + DIAS[new Date(utc(d)).getUTCDay()] + ' ' + ddmm(d) + '</td><td>' + fmt(r.cr) + '</td><td>' + fmt(r.sm) + '</td><td>' + fmt(r.lo) + '</td></tr>';
+    }).join('');
+    var t = ind3(zt, function (x) { return x.anio === state.anio && x.sem === state.sem; });
+    $('cardDia').innerHTML = '<h3>Por día · SEM ' + state.sem + (multi ? ' · todas las zonas' : zt === 'TODAS' ? '' : ' · ' + NOM_ZONA[zt]) + '</h3>' +
+      (dias.length ? '<table class="dia"><tr><th>Fecha</th><th class="h-cr">% C- y Ram</th><th class="h-sm">% Small</th><th class="h-lo">% &gt; 30 cm</th></tr>' + filas +
+        '<tr class="tot"><td>Total semana</td><td>' + fmt(t.cr) + '</td><td>' + fmt(t.sm) + '</td><td>' + fmt(t.lo) + '</td></tr></table>' : '<p class="aviso">Sin datos en esta semana.</p>');
+  }
+
   // ---------- tooltip de cada tramo de la barra
   var tip = $('tip');
   document.addEventListener('mousemove', function (e) {
     var s = e.target.closest && e.target.closest('[data-tip]');
     if (!s) { tip.hidden = true; return; }
     var p = s.getAttribute('data-tip').split('|');
-    tip.innerHTML = '<b>' + esc(p[1]) + '</b> · ' + esc(p[0]) + '<br>' + esc(p[2]) + ' de los kilos (' + esc(p[3]) + ')';
+    tip.innerHTML = '<b>' + esc(p[1]) + '</b> · ' + esc(p[0]) + '<br>' + esc(p[2]) + (p[3] ? ' · ' + esc(p[3]) : '');
     tip.hidden = false;
     var x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8), y = Math.min(e.clientY + 14, innerHeight - tip.offsetHeight - 8);
     tip.style.left = x + 'px'; tip.style.top = y + 'px';

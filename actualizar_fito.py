@@ -9,6 +9,8 @@ Corre en GitHub Actions justo DESPUÉS de actualizar.py, dentro del mismo trabaj
    únicamente de las filas con Proceso = FR. Esos días reemplazan a los que ya estaban guardados.
 2. FOSFINA: baja de Google Drive la base "BD_FOSFINA" completa (todo el año) con la cuenta de
    servicio, igual que bd.py, y REEMPLAZA la anterior.
+2b. CALIDADES Y CALIBRES y LONGITUDES (para reporte.html): las baja de la misma carpeta de Drive y
+   guarda solo los totales por día y unidad agrícola (PROCESO = FRESCO y STATUS = EVALUADO).
 3. Guarda las dos bases juntas en fito.json, cifrado con la misma lista de DNIs y la misma clave
    de administrador que datos.json. La página fitosanitario.html lo abre con la sesión ya iniciada
    en el Flujo de cosecha.
@@ -315,6 +317,146 @@ def leer_recepcion(ruta):
 
 
 # ============================================================
+# 1b. CALIDADES Y CALIBRES + LONGITUDES (Reporte diario)
+#     Se guardan solo TOTALES por día y unidad agrícola (no cada fila), con el mismo filtro del
+#     Power BI: PROCESO = FRESCO y STATUS = EVALUADO. Así el archivo queda chico aunque la base pese 50 MB.
+# ============================================================
+
+NOMBRE_CALIDADES = os.environ.get("CALIDADES_NOMBRE", "CALIDADES Y CALIBRES")   # parte del nombre en Drive
+NOMBRE_LONGITUDES = os.environ.get("LONGITUDES_NOMBRE", "LONGITUDES")
+STATUS_REPORTE = "EVALUADO"
+
+# Mismas listas que las medidas DAX de Johan (se comparan sin espacios ni mayúsculas)
+CAL_C_RAM = {"C-", "RAMEADO"}                 # Kg C- y Rameados: CALIDAD IN {"C -", "Rameado"}
+CAL_SMALL = {"4-5.9MM", "6-7.9"}              # Kg Small: CALIBRE IN {"4 - 5.9 mm", "6 - 7.9"}
+# *LONG (año 2026): el texto se compara EXACTO, porque ">28 cm" (sin espacio) no entra y "> 28 cm" sí
+LONG_RANGO = {"<10 cm": 0, "<14 cm": 0, "10 - 13.9 cm": 0, "14 - 17.9 cm": 0, "18 - 24 cm": 0, "24.1 - 26 cm": 0,
+              "26.1 - 28 cm": 1, "28.1 - 30 cm": 2, "> 28 cm": 2, "> 30 cm": 3}
+
+COLS_CAL = {
+    "fecha": (["FECHACOSECHA", "FECHA"], "FECHA COSECHA", True), "sem": (["SEMANA"], "SEMANA", False),
+    "ua": (["UNIDADAGRICOLA"], "UNIDAD AGRICOLA", True), "proceso": (["PROCESO"], "PROCESO", True),
+    "status": (["STATUS"], "STATUS", True), "calidad": (["CALIDAD"], "CALIDAD", True),
+    "calibre": (["CALIBRE"], "CALIBRE", True), "kg": (["VALORPLANTAKG"], "Valor Planta Kg", True),
+}
+COLS_LON = {
+    "fecha": (["FECHACOSECHA", "FECHA"], "FECHA COSECHA", True), "sem": (["SEMANA"], "SEMANA", False),
+    "ua": (["UNIDADAGRICOLA"], "UNIDAD AGRICOLA", True), "proceso": (["PROCESO"], "PROCESO", True),
+    "status": (["STATUS"], "STATUS", True), "lon": (["LONGITUD"], "LONGITUD", True),
+    "pct": (["PORCENTAJE"], "PORCENTAJE", True),
+}
+
+
+def _filas_stream(ruta, preferidas=()):
+    """(hoja, iterador de filas). Con python-calamine (mucho más rápido en bases grandes) o, si no está, openpyxl."""
+    try:
+        from python_calamine import CalamineWorkbook
+    except ImportError:
+        CalamineWorkbook = None
+    if CalamineWorkbook:
+        wb = CalamineWorkbook.from_path(str(ruta))
+        for n in sorted(wb.sheet_names, key=lambda n: 0 if _clave_col(n) in preferidas else 1):
+            hoja = wb.get_sheet_by_name(n)
+            yield n, (hoja.iter_rows() if hasattr(hoja, "iter_rows") else iter(hoja.to_python()))
+        return
+    from openpyxl import load_workbook
+    wb = load_workbook(ruta, read_only=True, data_only=True)
+    for n in sorted(wb.sheetnames, key=lambda n: 0 if _clave_col(n) in preferidas else 1):
+        yield n, wb[n].iter_rows(values_only=True)
+
+
+def _tabla(ruta, cols, obligatorias, preferidas, que):
+    """Busca el encabezado en las primeras filas y devuelve (índices de columna, iterador del resto de filas)."""
+    for _, it in _filas_stream(ruta, preferidas):
+        cabeza = []
+        for fila in it:
+            cabeza.append(list(fila))
+            if len(cabeza) >= 20:
+                break
+        enc = _encabezado(cabeza, cols, obligatorias)
+        if not enc:
+            continue
+        r0, ix, faltan = enc
+        if faltan:
+            raise ValueError(f"faltan columnas en la base de {que}: " + ", ".join(faltan))
+
+        def filas(cabeza=cabeza, r0=r0, it=it):
+            yield from cabeza[r0 + 1:]
+            yield from it
+        return ix, filas()
+    raise ValueError(f"no encontré los encabezados de la base de {que}")
+
+
+def _semana_de(v, ymd):
+    m = re.search(r"\d+", _txt(v))
+    s = int(m.group(0)) if m else 0
+    return s if 1 <= s <= 53 else _semana_iso(ymd)
+
+
+def _pasa_filtro(f, ix):
+    def c(k):
+        return f[ix[k]] if 0 <= ix[k] < len(f) else None
+    return _clave_col(c("proceso")) == PROCESO_REPORTE and _clave_col(c("status")) == STATUS_REPORTE
+
+
+def _empacar_dia_ua(tot, ancho, escala):
+    """{(ymd, sem, ua): [valores]} -> {'base', 'uas', 'rows'} con filas planas [día, semana, ua, valores×escala...]."""
+    if not tot:
+        return None
+    base = min(k[0] for k in tot)
+    uas, pos, filas = [], {}, []
+    for (ymd, sem, ua), vals in sorted(tot.items()):
+        if ua not in pos:
+            pos[ua] = len(uas)
+            uas.append(ua)
+        filas += [_dias_entre(base, ymd), sem, pos[ua]] + [_redondeo(v * escala) for v in vals]
+    return {"base": base, "maxYmd": max(k[0] for k in tot), "uas": uas, "w": 3 + ancho, "rows": filas}
+
+
+def leer_calidades(ruta):
+    """Por día y unidad agrícola: kilos totales, kilos C- y Rameados y kilos Small (Valor Planta Kg)."""
+    ix, filas = _tabla(ruta, COLS_CAL, ["CALIDAD", "CALIBRE"], ("CALIDADESYCALIBRES",), "calidades y calibres")
+    tot, n = {}, 0
+    for f in filas:
+        if not f or not _pasa_filtro(f, ix):
+            continue
+        ymd = _ymd(f[ix["fecha"]])
+        if not ymd:
+            continue
+        kg = _num(f[ix["kg"]])
+        if not kg:
+            continue
+        n += 1
+        llave = (ymd, _semana_de(f[ix["sem"]] if ix["sem"] >= 0 else None, ymd), _limpio(f[ix["ua"]]))
+        t = tot.setdefault(llave, [0.0, 0.0, 0.0])
+        t[0] += kg
+        if _clave_col(f[ix["calidad"]]) in CAL_C_RAM:
+            t[1] += kg
+        if _clave_col(f[ix["calibre"]]) in CAL_SMALL:
+            t[2] += kg
+    log(f"Calidades y calibres: {n} filas FRESCO/EVALUADO en {len({k[0] for k in tot})} días.")
+    return _empacar_dia_ua(tot, 3, 100)        # kilos ×100
+
+
+def leer_longitudes(ruta):
+    """Por día y unidad agrícola: suma de PORCENTAJE de cada rango (<26, 26.1-28, 28.1-30, >30 cm)."""
+    ix, filas = _tabla(ruta, COLS_LON, ["LONGITUD", "PORCENTAJE"], ("BD", "LONGITUDES"), "longitudes")
+    tot, n = {}, 0
+    for f in filas:
+        if not f or not _pasa_filtro(f, ix):
+            continue
+        ymd = _ymd(f[ix["fecha"]])
+        rango = LONG_RANGO.get(" ".join(_txt(f[ix["lon"]]).split()))
+        if not ymd or rango is None or ymd // 10000 < 2026:      # años anteriores usan otros rangos en el DAX
+            continue
+        n += 1
+        llave = (ymd, _semana_de(f[ix["sem"]] if ix["sem"] >= 0 else None, ymd), _limpio(f[ix["ua"]]))
+        tot.setdefault(llave, [0.0, 0.0, 0.0, 0.0])[rango] += _num(f[ix["pct"]])
+    log(f"Longitudes: {n} filas FRESCO/EVALUADO en {len({k[0] for k in tot})} días.")
+    return _empacar_dia_ua(tot, 4, 1e4)        # suma de porcentajes ×1e4
+
+
+# ============================================================
 # 2. EMPAQUETADO (el mismo formato que la página ya sabe leer)
 # ============================================================
 
@@ -449,12 +591,14 @@ def guardar_fito(contenido, dnis, clave_admin, iteraciones, sal):
 # 4. DESCARGA DE LA BASE DE FOSFINA DESDE GOOGLE DRIVE (como bd.py)
 # ============================================================
 
-def descargar_fosfina(carpeta):
-    """Baja el archivo más reciente cuyo nombre contenga NOMBRE_FOSFINA. Devuelve (ruta, nombre) o (None, None)."""
+def descargar_fosfina(carpeta, buscar=None, archivo="fosfina.xlsx"):
+    """Baja de la carpeta de Drive el archivo más reciente cuyo nombre contenga `buscar` (por defecto NOMBRE_FOSFINA).
+    Devuelve (ruta, nombre) o (None, None)."""
+    buscar = buscar or NOMBRE_FOSFINA
     cred_txt = os.environ.get("GOOGLE_CREDENCIALES", "").strip()
     carpeta_id = os.environ.get("DRIVE_CARPETA_ID", "").strip()
     if not cred_txt or not carpeta_id:
-        log("Aviso: faltan los secretos GOOGLE_CREDENCIALES y/o DRIVE_CARPETA_ID; no se descarga la base de fosfina.")
+        log("Aviso: faltan los secretos GOOGLE_CREDENCIALES y/o DRIVE_CARPETA_ID; no se descarga «" + buscar + "».")
         return None, None
     from google.oauth2.service_account import Credentials
     from googleapiclient.discovery import build
@@ -462,14 +606,14 @@ def descargar_fosfina(carpeta):
 
     creds = Credentials.from_service_account_info(json.loads(cred_txt), scopes=["https://www.googleapis.com/auth/drive.readonly"])
     servicio = build("drive", "v3", credentials=creds, cache_discovery=False)
-    nombre = NOMBRE_FOSFINA.replace("'", "\\'")
+    nombre = buscar.replace("'", "\\'")
     res = servicio.files().list(
         q=f"'{carpeta_id}' in parents and name contains '{nombre}' and trashed = false",
         fields="files(id, name, mimeType, modifiedTime)", orderBy="modifiedTime desc", pageSize=5,
         supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
     archivos = res.get("files", [])
     if not archivos:
-        log(f"Aviso: en la carpeta de Drive no hay ningún archivo cuyo nombre contenga '{NOMBRE_FOSFINA}'.")
+        log(f"Aviso: en la carpeta de Drive no hay ningún archivo cuyo nombre contenga '{buscar}'.")
         return None, None
     info = archivos[0]
     log(f"Drive: '{info['name']}' (modificado {info.get('modifiedTime')}).")
@@ -482,7 +626,7 @@ def descargar_fosfina(carpeta):
     while not listo:
         _, listo = bajada.next_chunk()
     carpeta.mkdir(parents=True, exist_ok=True)
-    ruta = carpeta / "fosfina.xlsx"
+    ruta = carpeta / archivo
     ruta.write_bytes(buffer.getvalue())
     return ruta, info["name"]
 
@@ -497,6 +641,8 @@ def main():
     ap.add_argument("--recepcion", help="usar este Excel de recepción en vez del que bajó actualizar.py")
     ap.add_argument("--todo", action="store_true", help="con --recepcion: guardar TODOS los días que traiga el Excel (para cargar historia)")
     ap.add_argument("--fosfina", help="usar este Excel de fosfina en vez de bajarlo de Drive")
+    ap.add_argument("--calidades", help="usar este Excel de calidades y calibres en vez de bajarlo de Drive")
+    ap.add_argument("--longitudes", help="usar este Excel de longitudes en vez de bajarlo de Drive")
     ap.add_argument("--hoy", help="fecha de hoy AAAA-MM-DD (solo para pruebas)")
     ap.add_argument("--incluir-hoy", action="store_true", help="guardar también lo que va de hoy (día incompleto)")
     a = ap.parse_args()
@@ -546,8 +692,23 @@ def main():
     fito["name"] = "Base fitosanitaria (Drive)"
     rec["name"] = "Recepción de materia prima (intranet)"
 
-    contenido = {"v": 1, "fito": fito, "rec": rec}
-    igual = {k: anterior.get(k) for k in ("v", "fito", "rec")} == contenido
+    # --- calidades y longitudes (Reporte diario): si algo falla, se conserva lo anterior y lo demás sigue
+    extra = {}
+    for clave, buscar, archivo, leer, local in (("cal", NOMBRE_CALIDADES, "calidades.xlsx", leer_calidades, a.calidades),
+                                                 ("lon", NOMBRE_LONGITUDES, "longitudes.xlsx", leer_longitudes, a.longitudes)):
+        try:
+            ruta = Path(local) if local else descargar_fosfina(carpeta / "drive", buscar, archivo)[0]
+            extra[clave] = leer(ruta) if ruta else None
+        except Exception as e:
+            log(f"Aviso: no se pudo leer la base de {buscar} ({type(e).__name__}: {e}). Se conserva la anterior.")
+            extra[clave] = None
+        if extra[clave] is None:
+            extra[clave] = anterior.get(clave)
+        if extra[clave] is None:
+            del extra[clave]
+
+    contenido = {"v": 1, "fito": fito, "rec": rec, **extra}
+    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon") if k in anterior or k in contenido} == contenido
     if igual and firma_anterior == _firma(dnis, sal, it):
         log("fito.json ya estaba al día: no se cambia nada.")
         return 0

@@ -100,7 +100,7 @@ jobs:
           INCLUIR_HOY: ${{ steps.turno.outputs.hoy }}
           DESCARGAS_DIR: ${{ runner.temp }}/descargas
         run: |
-          pip install --quiet google-auth google-api-python-client
+          pip install --quiet google-auth google-api-python-client python-calamine
           python actualizar_fito.py
 
       - name: Publicar el cambio
