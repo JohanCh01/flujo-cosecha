@@ -148,21 +148,13 @@ def es_reproceso(proveedor, campo):
 
 
 def diagnostico(cx, c, anio):
-    """Solo en la prueba (--sin-subir): qué valores trae el proceso y cuántos kilos FR hay por campaña."""
+    """Solo en la prueba (--sin-subir): qué valores trae el proceso y sus kilos."""
     cur = cx.cursor()
     cur.execute(f"SELECT [{c['proceso']}], COUNT(*), SUM(CAST([{c['peso']}] AS float)) FROM {TABLA} "
                 f"WHERE [{c['hora']}] >= ? AND [{c['hora']}] < ? GROUP BY [{c['proceso']}] ORDER BY 2 DESC", date(anio, 1, 1), date(anio + 1, 1, 1))
     print(f"\nValores de {c['proceso']} en {anio}:")
     for v, n, kg in cur.fetchall():
         print(f"   {str(v):<20} {n:>8} filas  {kg or 0:>16,.2f} kg")
-    cols = {norm(x): x for x in c.get("_todas", [])}
-    if "CAMPANIA" in cols:
-        cur.execute(f"SELECT [{cols['CAMPANIA']}], MIN(CAST([{c['hora']}] AS date)), MAX(CAST([{c['hora']}] AS date)), SUM(CAST([{c['peso']}] AS float)) "
-                    f"FROM {TABLA} WHERE UPPER(LTRIM(RTRIM([{c['proceso']}]))) IN ('FR', 'FRESCO') AND [{c['hora']}] >= ? "
-                    f"GROUP BY [{cols['CAMPANIA']}] ORDER BY 2", date(anio - 1, 1, 1))
-        print(f"\nKilos FR por {cols['CAMPANIA']}:")
-        for v, d1, d2, kg in cur.fetchall():
-            print(f"   {str(v):<20} del {d1} al {d2}  {kg or 0:>16,.2f} kg")
     print()
 
 
