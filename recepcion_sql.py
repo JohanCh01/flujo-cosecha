@@ -3,7 +3,8 @@ Kilos recepcionados desde el SQL (para la sección «Kilos de Espárrago Recepci
 
 Corre en TU LAPTOP (el servidor CEDMARTPRD solo se alcanza desde la red de Danper; GitHub no llega).
 Qué hace:
-  1. Lee dbo.HECHO_INGRESOMMPP de CEDMARTPRD / BDDMDANPER con tu usuario de Windows (pyodbc), igual que tu Power BI:
+  1. Lee dbo.HECHO_INGRESOMMPP de CEDMARTPRD / BDDMDANPER (pyodbc), igual que tu Power BI:
+     (usuario de SQL; se pide la primera vez y se guarda en ~/.flujo_cosecha_sql, fuera del repositorio)
      Proceso = FR, fecha = solo la fecha de HoraCosecha, suma de Peso Planta, sin MODULO = REPROCESO.
      Zona: "OLMOS 2"/"OLMOS 3" -> OLMOS y se quita "ZONA-" (como tu columna Zona Agricola Est).
   2. Guarda SOLO el total por día y zona (del año que elijas, por defecto el actual) dentro de fito.json, cifrado.
@@ -37,6 +38,7 @@ SERVIDOR = os.environ.get("SQL_SERVIDOR", "CEDMARTPRD")
 BASE = os.environ.get("SQL_BASE", "BDDMDANPER")
 TABLA = os.environ.get("SQL_TABLA", "dbo.HECHO_INGRESOMMPP")
 ARCHIVO_CLAVE = Path.home() / ".flujo_cosecha_clave"
+ARCHIVO_SQL = Path.home() / ".flujo_cosecha_sql"      # usuario y contraseña del SQL (2 líneas), fuera del repositorio
 
 # Posibles nombres de cada columna en la tabla (se comparan sin espacios, guiones ni mayúsculas)
 COLUMNAS = {
@@ -73,6 +75,25 @@ def clave_admin():
     return c
 
 
+def credenciales_sql():
+    """Usuario y contraseña de SQL: variables SQL_USUARIO / SQL_CLAVE, o el archivo ~/.flujo_cosecha_sql.
+    Nunca van escritas en este archivo (el repositorio es público)."""
+    u, c = os.environ.get("SQL_USUARIO", "").strip(), os.environ.get("SQL_CLAVE", "")
+    if not u and ARCHIVO_SQL.exists():
+        lineas = ARCHIVO_SQL.read_text(encoding="utf-8").splitlines()
+        if len(lineas) >= 2:
+            u, c = lineas[0].strip(), lineas[1]
+    if not u:
+        if not sys.stdin.isatty():
+            sys.exit("Faltan el usuario y la contraseña del SQL (archivo ~/.flujo_cosecha_sql).")
+        u = input("Usuario del SQL: ").strip()
+        c = getpass.getpass("Contraseña del SQL (no se ve al escribir): ")
+        if input(f"¿Guardarlos en {ARCHIVO_SQL} para no volver a escribirlos? (s/n): ").strip().lower().startswith("s"):
+            ARCHIVO_SQL.write_text(u + "\n" + c, encoding="utf-8")
+            log(f"Guardado en {ARCHIVO_SQL} (fuera del repositorio; no se sube a GitHub).")
+    return u, c
+
+
 def conectar():
     import pyodbc
     drivers = [d for d in pyodbc.drivers() if "SQL Server" in d]
@@ -80,8 +101,14 @@ def conectar():
         sys.exit("No encontré un driver ODBC de SQL Server en esta PC.")
     preferido = next((d for d in drivers if "ODBC Driver 18" in d), None) or next((d for d in drivers if "ODBC Driver 17" in d), None) or drivers[0]
     extra = ";TrustServerCertificate=yes" if "18" in preferido else ""
-    log(f"Conectando a {SERVIDOR} / {BASE} con «{preferido}»…")
-    return pyodbc.connect(f"DRIVER={{{preferido}}};SERVER={SERVIDOR};DATABASE={BASE};Trusted_Connection=yes{extra}", timeout=30)
+    usuario, clave = credenciales_sql()
+    log(f"Conectando a {SERVIDOR} / {BASE} como {usuario} con «{preferido}»…")
+    try:
+        return pyodbc.connect(f"DRIVER={{{preferido}}};SERVER={SERVIDOR};DATABASE={BASE};UID={usuario};PWD={{{clave}}}{extra}", timeout=30)
+    except pyodbc.Error as e:
+        if "18456" in str(e) and ARCHIVO_SQL.exists():
+            sys.exit(f"El SQL rechazó el usuario o la contraseña. Borra {ARCHIVO_SQL} y vuelve a correr el script para escribirlos de nuevo.")
+        raise
 
 
 def columnas_de(cx):
