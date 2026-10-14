@@ -46,7 +46,7 @@ COLUMNAS = {
     "zona": ["ZONAAGRICOLA", "UNIDADAGRICOLA"],
     "proveedor": ["PROVEEDOR"],
     "campo": ["CAMPO"],
-    "proceso": ["PROCESO", "CODPROCESO", "PROCESOCOD", "TIPOPROCESO"],
+    "proceso": ["PROCESO", "DPROCESO", "CODPROCESO", "PROCESOCOD", "TIPOPROCESO"],
     "peso": ["PESOPLANTA", "PESOPLANTAKG", "KGPLANTA", "PESONETOPLANTA"],
 }
 
@@ -129,6 +129,7 @@ def columnas_de(cx):
     if faltan:
         print("Columnas de la tabla:", ", ".join(reales))
         sys.exit("No encontré estas columnas: " + ", ".join(faltan) + ". Pásale esta lista a Claude para ajustarlo.")
+    elegidas["_todas"] = reales
     return elegidas
 
 
@@ -146,9 +147,30 @@ def es_reproceso(proveedor, campo):
     return modulo == "REPROCESO" or prov == "REPROCESO"
 
 
-def leer_sql(anio):
+def diagnostico(cx, c, anio):
+    """Solo en la prueba (--sin-subir): qué valores trae el proceso y cuántos kilos FR hay por campaña."""
+    cur = cx.cursor()
+    cur.execute(f"SELECT [{c['proceso']}], COUNT(*), SUM(CAST([{c['peso']}] AS float)) FROM {TABLA} "
+                f"WHERE [{c['hora']}] >= ? AND [{c['hora']}] < ? GROUP BY [{c['proceso']}] ORDER BY 2 DESC", date(anio, 1, 1), date(anio + 1, 1, 1))
+    print(f"\nValores de {c['proceso']} en {anio}:")
+    for v, n, kg in cur.fetchall():
+        print(f"   {str(v):<20} {n:>8} filas  {kg or 0:>16,.2f} kg")
+    cols = {norm(x): x for x in c.get("_todas", [])}
+    if "CAMPANIA" in cols:
+        cur.execute(f"SELECT [{cols['CAMPANIA']}], MIN(CAST([{c['hora']}] AS date)), MAX(CAST([{c['hora']}] AS date)), SUM(CAST([{c['peso']}] AS float)) "
+                    f"FROM {TABLA} WHERE UPPER(LTRIM(RTRIM([{c['proceso']}]))) IN ('FR', 'FRESCO') AND [{c['hora']}] >= ? "
+                    f"GROUP BY [{cols['CAMPANIA']}] ORDER BY 2", date(anio - 1, 1, 1))
+        print(f"\nKilos FR por {cols['CAMPANIA']}:")
+        for v, d1, d2, kg in cur.fetchall():
+            print(f"   {str(v):<20} del {d1} al {d2}  {kg or 0:>16,.2f} kg")
+    print()
+
+
+def leer_sql(anio, ver=False):
     cx = conectar()
     c = columnas_de(cx)
+    if ver:
+        diagnostico(cx, c, anio)
     q = (f"SELECT CAST([{c['hora']}] AS date) AS f, [{c['zona']}] AS z, [{c['proveedor']}] AS p, [{c['campo']}] AS ca, "
          f"SUM(CAST([{c['peso']}] AS float)) AS kg "
          f"FROM {TABLA} WHERE UPPER(LTRIM(RTRIM([{c['proceso']}]))) IN ('FR', 'FRESCO') "
@@ -219,7 +241,7 @@ def main():
     ap.add_argument("--sin-subir", action="store_true", help="solo muestra los totales; no cambia ni sube nada")
     a = ap.parse_args()
 
-    tot = leer_sql(a.anio)
+    tot = leer_sql(a.anio, ver=a.sin_subir)
     if not tot:
         sys.exit(f"El SQL no devolvió kilos FR en {a.anio}.")
     resumen(tot)
