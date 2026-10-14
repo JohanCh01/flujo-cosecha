@@ -171,12 +171,16 @@ COLS_FOSFINA = {
     # para el Reporte diario (reporte.html); si alguna no está, esa tarjeta sale vacía y lo demás sigue igual
     "kilos": (["KILOS", "KG", "KILOS(KG)"], "KILOS", False),
     "color": (["COLOR", "SEMAFORO", "COLORELASMOPALPUS"], "COLOR", False),
-    "pic": (["PICADOS", "PICADOSELASMOPALPUS", "PICADOSELASMOSPALPUS", "PICADO", "%PICADOS"], "Picados (Elasmopalpus)", False),
+    "pic": (["SUMADEPICADOS", "SUMAPICADOS", "PICADOS", "PICADOSELASMOPALPUS", "PICADOSELASMOSPALPUS", "PICADOSELASMO",
+             "PICADOS(ELASMOPALPUS)", "PICADO", "%PICADOS", "%PICADOSELASMOPALPUS"], "Suma de picados (Elasmopalpus)", False),
     "prodi": (["PICADOSPRODIPLOSIS", "PICADOPRODIPLOSIS", "PRODIPLOSIS", "%PICADOSPRODIPLOSIS"], "Picados Prodiplosis", False),
+    "proceso": (["PROCESO"], "PROCESO", False),     # el Reporte diario solo toma PROCESO = FRESCO
 }
 
 # Columnas que usa el Reporte diario; se avisa en el registro si falta alguna
-COLS_REPORTE = ("kilos", "color", "pic", "prodi")
+COLS_REPORTE = ("kilos", "color", "pic", "prodi", "proceso")
+IND_W = 7            # números por evaluación en el bloque 'ind'
+PROCESO_REPORTE = "FRESCO"
 
 
 def _num_o_nada(v):
@@ -250,7 +254,9 @@ def leer_fosfina(ruta):
                     millon(_num_o_nada(celda(fila, "pic"))) if ix["pic"] >= 0 else -1,
                     millon(_num_o_nada(celda(fila, "prodi"))) if ix["prodi"] >= 0 else -1,
                     millon(_num_o_nada(celda(fila, "larva"))),
-                    millon(post)]
+                    millon(post),
+                    # 1 = entra al Reporte diario (PROCESO = FRESCO); si la base no trae PROCESO, entra todo
+                    1 if ix["proceso"] < 0 or _clave_col(celda(fila, "proceso")) == PROCESO_REPORTE else 0]
         if not campos:
             error = "La base de fosfina no tiene filas con fecha y proveedor válidos."
             continue
@@ -263,7 +269,8 @@ def leer_fosfina(ruta):
             log("Aviso (Reporte diario): la base de fosfina no trae " + ", ".join(faltan_rep) + "; esas tarjetas saldrán vacías.")
         # 'ind' va aparte de 'ev' para que fitosanitario.html siga leyendo igual que antes
         return {"nRows": n_filas, "maxYmd": tope, "base": base, "hasStatus": ix["status"] >= 0, "statuses": estados, "fields": campos, "ev": plano,
-                "colores": colores, "ind": ind, "indCols": [k for k in COLS_REPORTE if ix[k] >= 0]}
+                "colores": colores, "ind": ind, "indW": IND_W, "indCols": [k for k in COLS_REPORTE if ix[k] >= 0],
+                "headers": [" ".join(_txt(c).split()) for c in filas[r0] if _txt(c).strip()]}
     raise Detener(error)
 
 

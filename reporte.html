@@ -234,7 +234,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 
   /* Rangos iguales a los de Power BI (valores ×1e6: 10000 = 0.01 = 1 %) */
   var IND = [
-    { id: 'elasmo', titulo: 'Semaforización por Elasmopalpus', prom: 'Picados Elasmopalpus', col: 'pic', cats: null },
+    { id: 'elasmo', titulo: 'Semaforización por Elasmopalpus', prom: 'Suma de picados', col: 'pic', cats: null },
     { id: 'posturas', titulo: 'Comportamiento de posturas', prom: 'Suma posturas', col: 'post',
       cats: [{ k: '[0.00 - 1.0]', css: 'var(--c-verde)', hasta: 10000 }, { k: '[1.01 - 2.0]', css: 'var(--c-amarillo)', hasta: 20000 }, { k: '[>2]', css: 'var(--c-rojo)', hasta: Infinity }] },
     { id: 'larva', titulo: 'Larva de Lepidóptera', prom: 'Larva', col: 'larva',
@@ -258,10 +258,11 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 
   // ---------- datos: el bloque 'fito' que arma actualizar_fito.py
   function usePacked(P) {
-    var f = P.fito, ev = f.ev, ind = f.ind || [], rows = [], n = ev.length / 8, i, j, ymd, sem;
+    var f = P.fito, ev = f.ev, ind = f.ind || [], W = f.indW || 6, rows = [], n = ev.length / 8, i, j, ymd, sem;
     for (i = 0; i < n; i++) {
       j = i * 8; ymd = addDays(f.base, ev[j + 1]); sem = ev[j + 7];
-      var x = i * 6, y = Math.floor(ymd / 10000);
+      var x = i * W, y = Math.floor(ymd / 10000);
+      if (W >= 7 && ind.length && !ind[x + 6]) continue;   // solo PROCESO = FRESCO
       // semana 1 que empieza a fines de diciembre, o 52/53 en enero: se cuenta en el año de la semana
       if (sem <= 2 && ymd % 10000 > 1220) y++; else if (sem >= 52 && ymd % 10000 < 110) y--;
       rows.push({ zona: zonaDe(f.fields[ev[j]][0]), ymd: ymd, anio: y, sem: sem, st: ev[j + 2],
@@ -271,7 +272,8 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
         post: ind.length ? ind[x + 5] : Math.round(ev[j + 3] + ev[j + 4] + ev[j + 5]) });
     }
     state.rows = rows; state.colores = f.colores || []; state.statuses = f.statuses || []; state.hasStatus = !!f.hasStatus;
-    state.cols = f.indCols || []; state.gen = P.gen || ''; state.sinInd = !ind.length;
+    state.cols = f.indCols || []; state.gen = P.gen || ''; state.sinInd = !ind.length; state.headers = f.headers || [];
+    state.total = n; state.conProceso = W >= 7 && state.cols.indexOf('proceso') >= 0;
     state.sinKilos = rows.length > 0 && rows.every(function (r) { return !r.kilos; });
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
@@ -375,6 +377,10 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
     else if (state.sinKilos) avisos.push('La base no trae la columna KILOS: las barras se calculan por número de evaluaciones.');
+    if (!state.sinInd && state.cols.indexOf('pic') < 0)
+      avisos.push('No encontré la columna de picados de Elasmopalpus, por eso su Prom. y Máx. salen vacíos.' +
+        (state.headers.length ? ' Columnas de la base: ' + state.headers.join(' · ') + '.' : ''));
+    if (!state.sinInd && !state.conProceso) avisos.push('Estos datos todavía no filtran PROCESO = FRESCO; se aplica en la próxima actualización.');
     $('avisoFito').hidden = !avisos.length; $('avisoFito').textContent = avisos.join(' ');
 
     $('gridFito').innerHTML = IND.map(function (ind) {
@@ -422,7 +428,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 
   function renderMeta(extra) {
     var g = state.gen ? state.gen.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2/$1 $4') : '';
-    $('meta').innerHTML = (state.rows.length ? 'Base fitosanitaria: <strong>' + state.rows.length.toLocaleString('es-PE') + '</strong> evaluaciones' : 'Sin datos todavía') +
+    $('meta').innerHTML = (state.rows.length ? 'Base fitosanitaria: <strong>' + state.rows.length.toLocaleString('es-PE') + '</strong> evaluaciones' + (state.conProceso ? ' de PROCESO FRESCO' : '') : 'Sin datos todavía') +
       (g ? ' · actualizado el <strong>' + g + '</strong>' : '') + (extra ? ' · <span class="err">' + esc(extra) + '</span>' : '');
   }
   function mostrar(conservar) { armarFiltros(conservar); render(); renderMeta(); }
