@@ -173,6 +173,16 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .soltar { display: block; margin: 10px 0; padding: 18px; border: 2px dashed var(--line); border-radius: 10px; text-align: center; cursor: pointer; color: var(--ink, inherit); }
 .soltar:hover, .soltar.encima { border-color: var(--accent); background: var(--accent-soft); }
 .soltar small { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.prod-wrap { display: grid; grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .prod-wrap { grid-template-columns: 1fr; } }
+table.prod { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.prod th, table.prod td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+table.prod th { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+table.prod input { width: 100%; box-sizing: border-box; height: 34px; padding: 0 8px; font: inherit; border: 1px dashed var(--line); border-radius: 6px; background: var(--surface); color: inherit; }
+table.prod input:focus { outline: 2px solid var(--accent); border-style: solid; }
+table.prod .dif { font-size: 12px; margin-top: 2px; } .dif.ok { color: #1e8e3e; } .dif.mal { color: #c0392b; }
+.soltar.img { min-height: 150px; display: flex; align-items: center; justify-content: center; margin: 0; }
+.soltar.img img { max-width: 100%; max-height: 260px; display: block; }
 .desp-tablas { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
 table.desp { border-collapse: collapse; min-width: 300px; font-size: 14px; font-variant-numeric: tabular-nums; background: var(--surface); }
 table.desp th, table.desp td { border: 1px solid #333; padding: 5px 12px; }
@@ -242,6 +252,19 @@ html.locked .ppt { display: none !important; }
     <label class="field"><span>Fecha</span><select class="sel" id="fFecha"></select></label>
     <fieldset class="field"><legend>Procedencia</legend><div class="seg" id="fZona"></div></fieldset>
     <fieldset class="field" id="statusWrap"><legend>Status</legend><div class="seg" id="fStatus"></div></fieldset>
+  </section>
+
+  <section class="sec" aria-labelledby="t-prod">
+    <div class="sec-h"><h2 id="t-prod">Indicadores de Producción</h2><p>por ahora se completan aquí · se guardan en este navegador</p></div>
+    <div class="band">INDICADORES DE PRODUCCIÓN</div>
+    <div class="prod-wrap">
+      <table class="prod" id="prodTabla"></table>
+      <label class="soltar img" id="img1Soltar" for="img1Archivo">
+        <input type="file" id="img1Archivo" accept="image/*" hidden>
+        <span id="img1Ver"><b>Arrastra aquí la imagen</b> o haz clic para seleccionarla</span>
+      </label>
+    </div>
+    <p class="aviso" id="prodMsg" hidden></p>
   </section>
 
   <section class="sec" aria-labelledby="t-fito">
@@ -557,7 +580,7 @@ html.locked .ppt { display: none !important; }
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp();
+    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp(); renderProd();
     if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
@@ -938,6 +961,87 @@ html.locked .ppt { display: none !important; }
     $('despTablas').innerHTML = tabla('AÉREO', 'Mercado', d.ae, A.aeTot) + tabla('Marítimo', 'Cliente', d.ma, A.maTot);
   }
 
+  // ---------- Indicadores de Producción (diapositiva 2): por ahora se escriben aquí (avance, semana y objetivo de cada uno);
+  //            la diferencia con el objetivo y el color salen solos. Valores por semana; objetivos e imagen para todas.
+  var PROD = [
+    { k: 'eg', t: 'Eficiencia Global', obj: 83.0, pct: true, mas: true },
+    { k: 'ef', t: 'Eficiencia', obj: 84.0, pct: true, mas: true },
+    { k: 'mo', t: 'Mano de Obra – Producción', obj: 0.282, pct: false, mas: false },
+    { k: 'ap', t: 'Aprovechamiento', obj: 70, pct: true, mas: true },
+    { k: 're', t: 'Rendimiento', obj: 53.5, pct: true, mas: true }
+  ];
+  function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  function claveProd() { return 'rpt.prod.' + state.anio + '.' + state.sem; }
+  function numProd(t, pct) {
+    if (t == null || String(t).trim() === '') return null;
+    var x = parseFloat(String(t).replace('%', '').replace(',', '.').trim()); if (isNaN(x)) return null;
+    return pct && Math.abs(x) <= 1.5 ? x * 100 : x;          // 0.852 → 85.2 %
+  }
+  function prod() {
+    var V = lsGet(claveProd()) || {}, O = lsGet('rpt.prod.obj') || {}, out = {};
+    PROD.forEach(function (d) {
+      var o = numProd(O[d.k], d.pct); if (o == null) o = d.obj;
+      out[d.k] = { acu: numProd(V[d.k + '.acu'], d.pct), sem: numProd(V[d.k + '.sem'], d.pct), obj: o, pct: d.pct, mas: d.mas,
+        txt: { acu: V[d.k + '.acu'] || '', sem: V[d.k + '.sem'] || '', obj: O[d.k] || '' } };
+    });
+    var img = null; try { img = localStorage.getItem('rpt.img1'); } catch (e) { img = null; }
+    out.img1 = img ? JSON.parse(img) : null;
+    return out;
+  }
+  function difProd(x, o, pct) {
+    if (x == null || o == null) return null;
+    var d = x - o; return { txt: '(' + (d >= 0 ? '+' : '-') + (pct ? Math.abs(d).toFixed(1) + '%' : Math.abs(d).toFixed(3)) + ')', d: d };
+  }
+  function renderProd() {
+    var P = prod(), sem = state.sem;
+    var h = '<tr><th>Indicador</th><th>Avance de campaña</th><th>Semana ' + sem + '</th><th>Objetivo</th></tr>';
+    PROD.forEach(function (d) {
+      var p = P[d.k], semLbl = d.k === 'mo' ? 'semana ' + (sem - 1) : 'semana ' + sem;
+      var celda = function (q) {
+        var df = difProd(p[q], p.obj, d.pct), ok = df && (d.mas ? df.d >= 0 : df.d <= 0);
+        return '<td><input data-prod="' + d.k + '.' + q + '" inputmode="decimal" value="' + esc(p.txt[q]) + '" placeholder="' + (d.pct ? 'p. ej. 82.2' : 'p. ej. 0.290') + '" aria-label="' + esc(d.t) + ' · ' + (q === 'acu' ? 'avance de campaña' : semLbl) + '">' +
+          (df ? '<div class="dif ' + (ok ? 'ok' : 'mal') + '">' + df.txt + '</div>' : '') + '</td>';
+      };
+      h += '<tr><td><b>' + esc(d.t) + '</b>' + (d.k === 'mo' ? '<div class="dif">la semana es la ' + (sem - 1) + '</div>' : '') + '</td>' + celda('acu') + celda('sem') +
+        '<td><input data-prodobj="' + d.k + '" inputmode="decimal" value="' + esc(p.txt.obj) + '" placeholder="' + (d.pct ? d.obj.toFixed(1) + ' %' : d.obj.toFixed(3)) + '" aria-label="Objetivo de ' + esc(d.t) + '"></td></tr>';
+    });
+    $('prodTabla').innerHTML = h;
+    $('img1Ver').innerHTML = P.img1 ? '<img alt="Imagen 1 de los indicadores de producción" src="' + P.img1.src + '">' : '<b>Arrastra aquí la imagen</b> o haz clic para seleccionarla';
+  }
+  document.addEventListener('change', function (e) {
+    var k = e.target.getAttribute && e.target.getAttribute('data-prod'), ko = e.target.getAttribute && e.target.getAttribute('data-prodobj');
+    if (!k && !ko) return;
+    if (k) { var V = lsGet(claveProd()) || {}; V[k] = e.target.value.trim(); lsSet(claveProd(), V); }
+    else { var O = lsGet('rpt.prod.obj') || {}; O[ko] = e.target.value.trim(); lsSet('rpt.prod.obj', O); }
+    renderProd(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+  });
+  function subirImagen1(f) {
+    var m = $('prodMsg');
+    if (!/^image\//.test(f.type)) { m.hidden = false; m.textContent = 'Ese archivo no es una imagen.'; return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      var im = new Image();
+      im.onload = function () {                       // se achica a 1600 px de ancho como máximo para que entre en el navegador
+        var k = Math.min(1, 1600 / im.width), c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        var dato = { src: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height };
+        var ok = lsSet('rpt.img1', dato); m.hidden = ok; if (!ok) m.textContent = 'Este navegador no deja guardar la imagen (modo privado o muy grande).';
+        renderProd(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  }
+  (function () {
+    var z = $('img1Soltar'), inp = $('img1Archivo');
+    inp.addEventListener('change', function () { if (inp.files[0]) subirImagen1(inp.files[0]); inp.value = ''; });
+    ['dragenter', 'dragover'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.add('encima'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('encima'); }); });
+    z.addEventListener('drop', function (e) { var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) subirImagen1(f); });
+  })();
+
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
   window.RPT = {
     state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
@@ -950,6 +1054,7 @@ html.locked .ppt { display: none !important; }
     dren: dren,
     mo: mo,
     recl: recl,
+    prod: prod, difProd: difProd,
     desp: function () { var d = desp(); if (d.hay) { var A = leerDesp().anios[String(state.anio)]; d.aeTot = A.aeTot; d.maTot = A.maTot; } return d; },
     rec: function () {
       var R = state.rec || [];
@@ -1051,6 +1156,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610151830"></script>
+<script src="reporte_ppt.js?v=202610151900"></script>
 </body>
 </html>

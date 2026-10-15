@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151830';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151900';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -107,6 +107,19 @@
       v['recl.pen'] = rl.pen != null ? Math.round(rl.pen).toLocaleString('en-US') : '';
       v['recl.venta'] = rl.venta != null ? Math.round(rl.venta).toLocaleString('en-US') : '';
     }
+    // indicadores de producción (diapositiva 2): lo que se escribe en la página
+    var PR = R.prod ? R.prod() : null;
+    if (PR) ['eg', 'ef', 'mo', 'ap', 're'].forEach(function (k) {
+      var p = PR[k]; if (!p) return;
+      var fv = function (x) { return x == null ? '' : p.pct ? x.toFixed(1) + ' %' : x.toFixed(3); };
+      v['p.' + k + '.obj'] = p.pct ? (k === 'eg' || k === 'ef' ? p.obj.toFixed(1).replace('.', ',') + '%' : +p.obj.toFixed(2) + ' %') : p.obj.toFixed(3);
+      ['acu', 'sem'].forEach(function (q) {
+        v['p.' + k + '.' + q] = fv(p[q]);
+        var df = R.difProd(p[q], p.obj, p.pct);
+        v['p.' + k + '.' + q + '.dif'] = df ? df.txt : '';
+        if (df) v['p.' + k + '.' + q + '.c'] = (p.mas ? df.d >= 0 : df.d <= 0) ? '00B050' : 'FF0000';
+      });
+    });
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
@@ -165,7 +178,8 @@
 
   // imágenes que llegan de los datos: «Imagen 2» = gráfico de penalidad del Power BI de reclamos
   function imagenesDe(n) {
-    var rl = R.recl ? R.recl() : {}, fuentes = { 'Imagen 2': rl.img ? { src: rl.img, w: rl.imgW, h: rl.imgH } : null };
+    var rl = R.recl ? R.recl() : {}, pr = R.prod ? R.prod() : {}, fuentes = { 'Imagen 2': rl.img ? { src: rl.img, w: rl.imgW, h: rl.imgH } : null,
+      'Imagen 1': pr.img1 ? { src: pr.img1.src, w: pr.img1.w, h: pr.img1.h } : null };
     return (plantilla.imagenes || []).filter(function (im) { return im.s === n && fuentes[im.nombre]; })
       .map(function (im) { var f = fuentes[im.nombre]; return { s: im.s, box: im.box, nombre: im.nombre, src: f.src, w: f.w, h: f.h }; });
   }

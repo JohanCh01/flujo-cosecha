@@ -243,7 +243,7 @@
 "font": "Arial",
 "al": "left",
 "id": "F8",
-"t": ""
+"t": "{{p.mo.acu}}"
 }
 ]
 },
@@ -277,7 +277,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F9",
-"t": ""
+"t": "{{p.mo.acu.dif}}"
 }
 ]
 },
@@ -311,7 +311,7 @@
 "font": "Century Gothic",
 "al": "left",
 "id": "F10",
-"t": ""
+"t": "{{p.mo.sem}}"
 }
 ]
 },
@@ -345,7 +345,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F11",
-"t": ""
+"t": "{{p.mo.sem.dif}}"
 }
 ]
 },
@@ -379,7 +379,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F12",
-"t": ""
+"t": "{{p.eg.acu.dif}}"
 }
 ]
 },
@@ -413,7 +413,7 @@
 "font": "Abadi ExtraLight",
 "al": "center",
 "id": "F13",
-"t": ""
+"t": "{{p.eg.sem.dif}}"
 }
 ]
 },
@@ -447,7 +447,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F14",
-"t": ""
+"t": "{{p.ap.acu}}"
 }
 ]
 },
@@ -481,7 +481,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F15",
-"t": ""
+"t": "{{p.ap.acu.dif}}"
 }
 ]
 },
@@ -515,7 +515,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F16",
-"t": ""
+"t": "{{p.ap.sem}}"
 }
 ]
 },
@@ -549,7 +549,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F17",
-"t": ""
+"t": "{{p.ap.sem.dif}}"
 }
 ]
 },
@@ -583,7 +583,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F18",
-"t": ""
+"t": "{{p.re.sem}}"
 }
 ]
 },
@@ -617,7 +617,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F19",
-"t": ""
+"t": "{{p.re.sem.dif}}"
 }
 ]
 },
@@ -651,7 +651,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F20",
-"t": ""
+"t": "{{p.re.acu}}"
 }
 ]
 },
@@ -685,7 +685,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F21",
-"t": ""
+"t": "{{p.re.acu.dif}}"
 }
 ]
 },
@@ -719,7 +719,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F22",
-"t": ""
+"t": "{{p.eg.acu}}"
 }
 ]
 },
@@ -753,7 +753,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F23",
-"t": ""
+"t": "{{p.ef.acu}}"
 }
 ]
 },
@@ -787,7 +787,7 @@
 "font": "Abadi ExtraLight",
 "al": "center",
 "id": "F24",
-"t": ""
+"t": "{{p.ef.acu.dif}}"
 }
 ]
 },
@@ -821,7 +821,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F25",
-"t": ""
+"t": "{{p.ef.sem}}"
 }
 ]
 },
@@ -855,7 +855,7 @@
 "font": "Abadi ExtraLight",
 "al": "center",
 "id": "F26",
-"t": ""
+"t": "{{p.ef.sem.dif}}"
 }
 ]
 },
@@ -889,7 +889,7 @@
 "font": "Aptos Light",
 "al": "center",
 "id": "F27",
-"t": ""
+"t": "{{p.eg.sem}}"
 }
 ]
 },
@@ -1263,7 +1263,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F38",
-"t": "Objetivo: 0.282"
+"t": "Objetivo: {{p.mo.obj}}"
 }
 ]
 },
@@ -1331,7 +1331,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F40",
-"t": "Objetivo: 0.282"
+"t": "Objetivo: {{p.mo.obj}}"
 }
 ]
 },
@@ -1467,7 +1467,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F44",
-"t": "Objetivo: 83,0%"
+"t": "Objetivo: {{p.eg.obj}}"
 }
 ]
 },
@@ -1569,7 +1569,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F47",
-"t": "Objetivo: 83,0%"
+"t": "Objetivo: {{p.eg.obj}}"
 }
 ]
 },
@@ -1807,7 +1807,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F54",
-"t": "Objetivo: 70 %"
+"t": "Objetivo: {{p.ap.obj}}"
 }
 ]
 },
@@ -1841,7 +1841,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F55",
-"t": "Objetivo: 70 %"
+"t": "Objetivo: {{p.ap.obj}}"
 }
 ]
 },
@@ -1875,7 +1875,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F56",
-"t": "Objetivo: 53.5 %"
+"t": "Objetivo: {{p.re.obj}}"
 }
 ]
 },
@@ -1909,7 +1909,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F57",
-"t": "Objetivo: 53.5 %"
+"t": "Objetivo: {{p.re.obj}}"
 }
 ]
 },
@@ -1943,7 +1943,7 @@
 "font": "Abadi ExtraLight",
 "al": "center",
 "id": "F58",
-"t": "Objetivo: 84,0%"
+"t": "Objetivo: {{p.ef.obj}}"
 }
 ]
 },
@@ -1977,7 +1977,7 @@
 "font": "Abadi ExtraLight",
 "al": "center",
 "id": "F59",
-"t": "Objetivo: 84,0%"
+"t": "Objetivo: {{p.ef.obj}}"
 }
 ]
 },

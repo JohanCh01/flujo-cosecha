@@ -28,7 +28,13 @@ MAPA = {
     1: {3: ["REPORTE DIARIO ESPÁRRAGO ({{fecha}})", "AÑO {{anio}}"]},
     2: {2: ["AVANCE DE CAMPAÑA ESPÁRRAGO - {{anio}}"], 4: ["CORTE HASTA SEM. {{sem}}"]},
     7: {2: ["INDICADORES DE\nLA\nSEMANA {{sem}}"]},
-    3: {**{i: [V] for i in (52, 56, 69, 71, 29, 39, 7, 25, 60, 81, 83, 87, 91, 97, 99, 101, 105, 107, 113, 115)}},
+    # indicadores de producción (por ahora se escriben en la página): eg = Eficiencia Global, ef = Eficiencia,
+    # mo = Mano de Obra – Producción, ap = Aprovechamiento, re = Rendimiento · acu = avance de campaña, sem = semana
+    3: {52: ["{{p.mo.acu}}"], 56: ["{{p.mo.acu.dif}}"], 69: ["{{p.mo.sem}}"], 71: ["{{p.mo.sem.dif}}"],
+        29: ["{{p.eg.acu.dif}}"], 39: ["{{p.eg.sem.dif}}"], 7: ["{{p.ap.acu}}"], 25: ["{{p.ap.acu.dif}}"],
+        60: ["{{p.ap.sem}}"], 81: ["{{p.ap.sem.dif}}"], 83: ["{{p.re.sem}}"], 87: ["{{p.re.sem.dif}}"],
+        91: ["{{p.re.acu}}"], 97: ["{{p.re.acu.dif}}"], 99: ["{{p.eg.acu}}"], 101: ["{{p.ef.acu}}"],
+        105: ["{{p.ef.acu.dif}}"], 107: ["{{p.ef.sem}}"], 113: ["{{p.ef.sem.dif}}"], 115: ["{{p.eg.sem}}"]},
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
         77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: ["{{obs.acu}}"], 123: ["{{obs.acu.dif}}"], 118: ["{{obs.sem}}"], 119: ["{{obs.sem.dif}}"]},
     5: {49: [V], 39: [V], 31: [V], 9: [V]},
@@ -70,6 +76,9 @@ PIE = {3: (40, 6.44, 0.52, 1300)}
 # textos fijos que traen la semana o la fecha del reporte del 12/10
 REEMPLAZOS = [(r"(?i)(semana de |semana |sem\. ?|sem ?|s\.)41", r"\g<1>{{sem}}"), (r"(?i)(semana |semana de )40", r"\g<1>{{sem_ant}}"),
               (r"Objetivo: 3\.50%", "Objetivo: {{obs.obj}}"),
+              (r"^Objetivo: 83,0%$", "Objetivo: {{p.eg.obj}}"), (r"^Objetivo: 84,0%$", "Objetivo: {{p.ef.obj}}"),
+              (r"^Objetivo: 0\.282$", "Objetivo: {{p.mo.obj}}"), (r"^Objetivo: 70 %$", "Objetivo: {{p.ap.obj}}"),
+              (r"^Objetivo: 53\.5 %$", "Objetivo: {{p.re.obj}}"),
               (r"Información del mes de Julio - Agosto", "Información de {{recl.meses}}"),
               (r"12/10/2026", "{{fecha}}"), (r"12/10", "{{ddmm}}"), (r"Lun\.", "{{dia}}")]
 
