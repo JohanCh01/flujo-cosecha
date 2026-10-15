@@ -25,6 +25,8 @@ dos Edge no pueden abrir el mismo perfil a la vez.
 
 import argparse
 import json
+import os
+import subprocess
 import re
 import sys
 import time
@@ -55,7 +57,38 @@ ARCHIVO_DIAG = Path.home() / "drenados_diagnostico.txt"
 
 
 # ---------------------------------------------------------------- navegador (igual que tu script de capturas)
+def cerrar_edge_colgado():
+    """Si quedó un Edge abierto con el perfil de automatización (p. ej. al cortar el script con Ctrl+C),
+    lo cierra. Solo ese: tu Edge normal no se toca."""
+    if os.name != "nt":
+        return
+    carpeta = Path(EDGE_PROFILE_DIR).name
+    ps = ("Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | "
+          f"Where-Object {{ $_.CommandLine -like '*{carpeta}*' }} | "
+          "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }")
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=30)
+        if r.stdout.strip():
+            log("Cerré un Edge que había quedado abierto con el perfil de automatización.")
+            time.sleep(2)
+    except Exception:
+        pass
+
+
 def iniciar_driver(ver):
+    cerrar_edge_colgado()
+    try:
+        return _iniciar_driver(ver)
+    except Exception as e:
+        if "crashed" not in str(e) and "DevToolsActivePort" not in str(e):
+            raise
+        log("Edge no arrancó (el perfil estaba ocupado); lo intento otra vez…")
+        cerrar_edge_colgado()
+        time.sleep(3)
+        return _iniciar_driver(ver)
+
+
+def _iniciar_driver(ver):
     o = Options()
     o.add_argument(f"--user-data-dir={EDGE_PROFILE_DIR}")
     if ver:
