@@ -169,6 +169,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .kpis.rec { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .kpi .big.azul { color: var(--band-ink); }
 .kpi .big.rojo { color: #c0392b; }
+.recl-img { grid-column: 1 / -1; } .recl-img img { display: block; max-width: 100%; height: auto; margin: 6px auto 0; border-radius: 6px; background: #fff; }
 .kpi.obs { background: color-mix(in srgb, #c76b86 9%, var(--surface)); }
 .kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
 .proy-in { width: 100%; box-sizing: border-box; margin-top: 6px; height: 46px; padding: 0 10px; font: 600 26px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
@@ -272,10 +273,17 @@ html.locked .ppt { display: none !important; }
     <div class="kpis rec" id="gridMo"></div>
   </section>
 
+  <section class="sec" aria-labelledby="t-recl">
+    <div class="sec-h"><h2 id="t-recl">Ratio de reclamos penalizados</h2><p id="reclNota"></p></div>
+    <div class="band">RATIO DE RECLAMOS PENALIZADOS</div>
+    <p class="aviso" id="avisoRecl" hidden></p>
+    <div class="kpis rec" id="gridRecl"></div>
+  </section>
+
   <section class="sec" aria-labelledby="t-pend">
     <div class="sec-h"><h2 id="t-pend">Próximas secciones</h2><p>Se irán llenando a medida que se conecte cada base</p></div>
     <div class="pendiente">
-      <div><b>Producción, despachos y ratio de reclamos</b>Bases del área de Producción y del informe de reclamos</div>
+      <div><b>Producción y despachos</b>Bases del área de Producción</div>
     </div>
   </section>
 </div>
@@ -381,6 +389,8 @@ html.locked .ppt { display: none !important; }
     state.drenAcu = P.dren && P.dren.acu ? P.dren.acu : {};
     // Mano de obra: CMO del Power BI de asistencia (bloque «mo» que sube mano_obra_pbi.py desde la laptop)
     state.mo = P.mo && P.mo.anios ? P.mo.anios : {}; state.moGen = P.mo ? P.mo.gen : '';
+    // Ratio de reclamos penalizados: del Power BI de reclamos (bloque «recl» que sube reclamos_pbi.py desde la laptop)
+    state.recl = P.recl || null;
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -527,7 +537,7 @@ html.locked .ppt { display: none !important; }
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo();
+    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl();
     if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
@@ -784,6 +794,40 @@ html.locked .ppt { display: none !important; }
     if (window.RPT_PPT) window.RPT_PPT.refrescar();
   });
 
+  // ---------- Ratio de reclamos penalizados (diapositiva 6): % penalidad, objetivo (editable), penalizado $, venta $ y el gráfico
+  function leerObjRecl() { try { var v = localStorage.getItem('rpt.recl.obj'); return v == null || v === '' ? null : v; } catch (e) { return null; } }
+  function recl() {
+    var r = state.recl, t = leerObjRecl(), ob = t != null ? parseFloat(String(t).replace(',', '.').replace('%', '')) : NaN;
+    if (!r) return { hay: false, objTxt: t, obj: !isNaN(ob) ? ob / 100 : null };
+    return { hay: true, pct: r.pct, obj: !isNaN(ob) ? ob / 100 : r.obj, objPbi: r.obj, objTxt: t, pen: r.pen, venta: r.venta,
+      mesesTxt: r.mesesTxt, img: r.img, imgW: r.imgW, imgH: r.imgH, gen: r.gen, anio: r.anio };
+  }
+  function renderRecl() {
+    var d = recl();
+    $('avisoRecl').hidden = d.hay;
+    $('avisoRecl').textContent = 'Todavía no hay datos de reclamos en la página. Corre «python reclamos_pbi.py» en tu laptop para subirlos.';
+    var g = d.gen ? d.gen.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
+    $('reclNota').textContent = d.hay ? 'Power BI Reclamos penalizados · ' + (d.anio || '') + (d.mesesTxt ? ' · ' + d.mesesTxt : '') + (g ? ' · subido el ' + g : '') : '';
+    var html = '';
+    if (d.hay) {
+      var dd = d.pct != null && d.obj != null ? (d.pct - d.obj) * 100 : null;
+      html += '<article class="card kpi"><h3>% Penalidad · año ' + (d.anio || '') + '</h3><div class="big ' + (dd != null && dd > 0 ? 'rojo' : '') + '">' + (d.pct != null ? (d.pct * 100).toFixed(2) + '%' : '—') + '</div>' +
+        '<div class="lbl">' + (d.obj != null ? 'objetivo ' + +(d.obj * 100).toFixed(2) + '% · ' + (dd >= 0 ? '+' : '−') + Math.abs(dd).toFixed(2) + ' pts' : 'sin objetivo') + '</div></article>';
+      html += '<article class="card kpi"><h3>Monto penalizado</h3><div class="big rojo">' + (d.pen != null ? '$' + Math.round(d.pen).toLocaleString('es-PE') : '—') + '</div><div class="lbl">penalizado $</div></article>';
+      html += '<article class="card kpi"><h3>Venta</h3><div class="big">' + (d.venta != null ? '$' + Math.round(d.venta).toLocaleString('es-PE') : '—') + '</div><div class="lbl">venta $</div></article>';
+    }
+    html += '<article class="card kpi"><h3>Objetivo % penalidad</h3>' +
+      '<input class="proy-in" id="reclObjIn" type="text" inputmode="decimal" autocomplete="off" value="' + esc(d.objTxt || '') + '" placeholder="' + (d.objPbi != null ? 'Power BI: ' + +(d.objPbi * 100).toFixed(2) + '%' : 'Escribe, p. ej. 0.5') + '" aria-label="Objetivo del % de penalidad">' +
+      '<div class="lbl">' + (d.objTxt ? 'escrito por ti (en %)' + (d.objPbi != null ? ' · Power BI: ' + +(d.objPbi * 100).toFixed(2) + '%' : '') : 'vacío = el del Power BI') + '</div></article>';
+    if (d.img) html += '<article class="card kpi recl-img"><h3>Penalidad ($) por clasificación de reclamo</h3><img alt="Gráfico de penalidad por clasificación de reclamo (captura del Power BI)" src="' + d.img + '"></article>';
+    $('gridRecl').innerHTML = html;
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'reclObjIn') return;
+    try { var o = e.target.value.trim(); if (o) localStorage.setItem('rpt.recl.obj', o); else localStorage.removeItem('rpt.recl.obj'); } catch (er) { /* sin almacenamiento */ }
+    renderRecl(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+  });
+
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
   window.RPT = {
     state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
@@ -795,6 +839,7 @@ html.locked .ppt { display: none !important; }
     cal: function (z) { return { per: ind3(z, periodo), acu: ind3(z, acumulado) }; },
     dren: dren,
     mo: mo,
+    recl: recl,
     rec: function () {
       var R = state.rec || [];
       function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
@@ -895,6 +940,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610151600"></script>
+<script src="reporte_ppt.js?v=202610151800"></script>
 </body>
 </html>

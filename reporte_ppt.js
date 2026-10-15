@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151600';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151800';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -93,6 +93,20 @@
     if (mo.acu) { v['mo.acu'] = f4(mo.acu.v); v['mo.acu.dif'] = dif4(mo.acu.v, mo.acu.proy); if (mo.acu.proy != null) v['mo.acu.c'] = mo.acu.v <= mo.acu.proy ? '00B050' : 'FF0000'; }
     if (mo.sem) { v['mo.sem'] = f4(mo.sem.v); v['mo.sem.dif'] = dif4(mo.sem.v, mo.sem.proy); if (mo.sem.proy != null) v['mo.sem.c'] = mo.sem.v <= mo.sem.proy ? '00B050' : 'FF0000'; }
     v['mo.pers'] = mo.pers != null ? String(mo.pers) : '';
+    // ratio de reclamos penalizados (Power BI de reclamos): % penalidad, objetivo, penalizado $ y venta $
+    var rl = R.recl ? R.recl() : {};
+    v['recl.obj'] = rl.obj != null ? +(rl.obj * 100).toFixed(2) + '%' : '0.5%';
+    v['recl.meses'] = rl.mesesTxt || 'Julio - Agosto';
+    if (rl.hay) {
+      v['recl.pct'] = rl.pct != null ? (rl.pct * 100).toFixed(2) + '%' : '';
+      if (rl.pct != null && rl.obj != null) {
+        var dr2 = (rl.pct - rl.obj) * 100;
+        v['recl.dif'] = '(' + (dr2 >= 0 ? '+' : '-') + Math.abs(dr2).toFixed(2) + ')';
+        v['recl.pct.c'] = rl.pct <= rl.obj ? '00B050' : 'FF0000';
+      }
+      v['recl.pen'] = rl.pen != null ? Math.round(rl.pen).toLocaleString('en-US') : '';
+      v['recl.venta'] = rl.venta != null ? Math.round(rl.venta).toLocaleString('en-US') : '';
+    }
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
@@ -149,6 +163,12 @@
   function colorDe(p) { var m = p.t.match(/^\{\{([^}#]+)\}\}$/); return m && valores[m[1] + '.c'] ? valores[m[1] + '.c'] : p.c; }
   function fmt(p) { var o = ed.f[p.id] || {}; return { sz: o.sz || p.sz, b: o.b != null ? o.b : p.b, i: o.i != null ? o.i : p.i, font: o.font || p.font }; }
 
+  // imágenes que llegan de los datos: «Imagen 2» = gráfico de penalidad del Power BI de reclamos
+  function imagenesDe(n) {
+    var rl = R.recl ? R.recl() : {}, fuentes = { 'Imagen 2': rl.img ? { src: rl.img, w: rl.imgW, h: rl.imgH } : null };
+    return (plantilla.imagenes || []).filter(function (im) { return im.s === n && fuentes[im.nombre]; })
+      .map(function (im) { var f = fuentes[im.nombre]; return { s: im.s, box: im.box, nombre: im.nombre, src: f.src, w: f.w, h: f.h }; });
+  }
   // ---------- dibujo de una diapositiva (fondo de tu PPT + todos los textos encima)
   function htmlSlide(n, editable) {
     var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg?v=' + V + '">';
@@ -169,6 +189,10 @@
           ';text-align:' + p.al + ';font-family:' + familia(f.font) + ';font-weight:' + (f.b ? 700 : 400) + ';font-style:' + (f.i ? 'italic' : 'normal') + ';' + (p.u ? 'text-decoration:underline;' : '') + '">' + cuerpo + '</div>';
       });
       h += '</div>';
+    });
+    imagenesDe(n).forEach(function (im) {           // capturas del Power BI en lugar de los recuadros «Imagen N»
+      var b = im.box;
+      h += '<img class="pimg" alt="' + esc(im.nombre) + '" src="' + im.src + '" style="left:' + (b[0] * PX - 4) + 'px;top:' + (b[1] * PX - 4) + 'px;width:' + (b[2] * PX + 8) + 'px;height:' + (b[3] * PX + 8) + 'px;padding:4px;box-sizing:border-box">';
     });
     (plantilla.barras || []).forEach(function (bb) {
       if (bb.s !== n) return;
@@ -223,6 +247,7 @@
     '.slide .pr{white-space:pre-wrap;line-height:1.2;min-height:1em}.slide .cp.nw .pr,.slide .pr.nw1{white-space:pre}' +
     '.slide.edit .cp.sel{outline:2px solid #e8912d;outline-offset:2px}' +
     '.slide .sw{display:inline-block;width:.62em;height:.62em;margin-right:.35em;vertical-align:.02em;border-radius:1px}' +
+    '.slide .pimg{position:absolute;object-fit:contain;background:#fff}' +
     '.slide .pbar{position:absolute}.slide .pbar>div{position:absolute;left:0;right:0;border-top:1px solid #fff;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 10.5px/1 Calibri,Carlito,Arial,sans-serif;color:#262626}' +
     '.slide .asa{position:absolute;width:26px;height:26px;margin:-30px 0 0 -30px;border-radius:6px;background:#e8912d;color:#fff;font:700 16px/26px Arial;text-align:center;cursor:move;user-select:none;touch-action:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}' +
     '.ppt-fmt{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}.sel.sm{height:30px;min-width:0;padding:0 24px 0 8px;font-size:12.5px}' +
@@ -497,6 +522,30 @@
     });
     return xml.replace(/\{\{#(F\d+)\}\}/g, function (_, id) { return xmlEsc(textos[id] != null ? textos[id] : ''); });
   }
+  // pone las capturas en el PowerPoint: quita el recuadro «Imagen N» y agrega la foto (sin deformarla) en su lugar
+  function ponerImagenes(zip) {
+    var arch = plantilla.archivos || {}, tareas = [];
+    for (var n = 1; n <= plantilla.n; n++) imagenesDe(n).forEach(function (im, k) {
+      var f = arch[im.s], rels = f.replace(/slides\/(slide\d+\.xml)$/, 'slides/_rels/$1.rels');
+      var m = /^data:(image\/(png|jpeg));base64,(.*)$/.exec(im.src); if (!m) return;
+      var ext = m[2] === 'jpeg' ? 'jpeg' : 'png', media = 'ppt/media/dato_' + im.s + '_' + k + '.' + ext, rid = 'rIdDato' + im.s + k;
+      zip.file(media, m[3], { base64: true });
+      tareas.push(Promise.all([zip.file(f).async('string'), zip.file(rels) ? zip.file(rels).async('string') : Promise.resolve('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>'), zip.file('[Content_Types].xml').async('string')])
+        .then(function (r) {
+          var xml = r[0], rx = r[1], ct = r[2], E = 914400, b = im.box, x = b[0], y = b[1], w = b[2], hh = b[3];
+          if (im.w && im.h) { var esc_ = Math.min(w / im.w, hh / im.h); var w2 = im.w * esc_, h2 = im.h * esc_; x += (w - w2) / 2; y += (hh - h2) / 2; w = w2; hh = h2; }
+          xml = xml.replace(new RegExp('<p:sp>(?:(?!<\\/p:sp>)[\\s\\S])*?name="' + im.nombre + '"[\\s\\S]*?<\\/p:sp>'), '');
+          var pic = '<p:pic><p:nvPicPr><p:cNvPr id="' + (7000 + im.s) + '" name="' + im.nombre + ' (Power BI)"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>' +
+            '<p:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="' + Math.round(x * E) + '" y="' + Math.round(y * E) + '"/><a:ext cx="' + Math.round(w * E) + '" cy="' + Math.round(hh * E) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>';
+          xml = xml.replace('</p:spTree>', pic + '</p:spTree>');
+          if (xml.indexOf('xmlns:r=') < 0) xml = xml.replace('<p:sld ', '<p:sld xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+          rx = rx.replace('</Relationships>', '<Relationship Id="' + rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/' + media.split('/').pop() + '"/></Relationships>');
+          if (ct.indexOf('Extension="' + ext + '"') < 0) ct = ct.replace('<Default ', '<Default Extension="' + ext + '" ContentType="image/' + ext + '"/><Default ');
+          zip.file(f, xml); zip.file(rels, rx); zip.file('[Content_Types].xml', ct);
+        }));
+    });
+    return tareas.reduce(function (p, t) { return p.then(function () { return t; }); }, Promise.resolve());
+  }
   // quita del PowerPoint las diapositivas que no van (zona sin datos): de la lista, de las relaciones y sus archivos
   function quitarSlides(zip, lista) {
     var arch = plantilla.archivos || {}, fuera = [];
@@ -525,6 +574,7 @@
         var arch = plantilla.archivos || {}, nombres = Object.keys(zip.files).filter(function (f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
         var num = {}; Object.keys(arch).forEach(function (k) { num[arch[k]] = Number(k); });
         return Promise.all(nombres.map(function (f) { return zip.file(f).async('string').then(function (x) { zip.file(f, llenarXml(x, textos, num[f] || Number(f.match(/slide(\d+)/)[1]))); }); }))
+          .then(function () { return ponerImagenes(zip); })
           .then(function () { return quitarSlides(zip, activas()); })
           .then(function () { return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', compression: 'DEFLATE' }); });
       })

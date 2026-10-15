@@ -32,8 +32,8 @@ MAPA = {
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
         77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: ["{{obs.acu}}"], 123: ["{{obs.acu.dif}}"], 118: ["{{obs.sem}}"], 119: ["{{obs.sem.dif}}"]},
     5: {49: [V], 39: [V], 31: [V], 9: [V]},
-    6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: [V], 56: [V], 16: [V], 20: [V],
-        49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"]},
+    6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: ["{{recl.pct}}"], 56: ["{{recl.dif}}"], 16: ["{{recl.pen}}"], 20: ["{{recl.venta}}"],
+        49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"], 54: ["Objetivo: {{recl.obj}}"]},
     8: {15: ["{{rec.sem}}"], 30: [V], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
     12: {14: [V], 13: ["INSPECTORES EN EL DÍA – {{dia}} {{ddmm}}"]},
 }
@@ -70,6 +70,7 @@ PIE = {3: (40, 6.44, 0.52, 1300)}
 # textos fijos que traen la semana o la fecha del reporte del 12/10
 REEMPLAZOS = [(r"(?i)(semana de |semana |sem\. ?|sem ?|s\.)41", r"\g<1>{{sem}}"), (r"(?i)(semana |semana de )40", r"\g<1>{{sem_ant}}"),
               (r"Objetivo: 3\.50%", "Objetivo: {{obs.obj}}"),
+              (r"Información del mes de Julio - Agosto", "Información de {{recl.meses}}"),
               (r"12/10/2026", "{{fecha}}"), (r"12/10", "{{ddmm}}"), (r"Lun\.", "{{dia}}")]
 
 
@@ -251,7 +252,7 @@ def tabla_xml(x, y, cols, alto, filas, nid):
 def main(origen, destino):
     prs = Presentation(origen)
     tema = leer_tema(prs)
-    campos, n, barras = [], 0, []
+    campos, n, barras, huecos = [], 0, [], []
     fondo = Presentation(origen)          # copia para los fondos (se le quitan los textos que cambian)
 
     def marcar(sl_i, sh, textos):
@@ -308,6 +309,7 @@ def main(origen, destino):
         if i in IMAGENES:
             sid, txt = IMAGENES[i]
             x, y, w, h = abs_xfrm(por_id[sid])
+            huecos.append({"s": i, "box": [x, y, w, h], "nombre": txt})
             for presen in (sl, sf):
                 presen.shapes._spTree.append(recuadro_imagen(x, y, w, h, txt, 700 + i))
         # 0b) nota al pie más arriba, en dos líneas
@@ -421,7 +423,7 @@ def main(origen, destino):
                                "p": [{"id": fid, "t": "{{tz.%d.%d}}" % (r, c), "sz": 10, "b": ult, "i": False, "u": False, "c": "262626", "font": tema["minor"], "al": "right" if c else "left"}]})
     destino.mkdir(parents=True, exist_ok=True)
     prs.save(destino / "plantilla_reporte.pptx")
-    (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "campos": campos, "barras": barras,
+    (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "campos": campos, "barras": barras, "imagenes": huecos,
                                                        "archivos": {str(k): sl.part.partname.lstrip("/") for k, sl in enumerate(prs.slides, 1)}}, ensure_ascii=False, indent=0), encoding="utf-8")
 
     # fondos: la copia sin los textos que cambian → PDF (LibreOffice) → JPG
