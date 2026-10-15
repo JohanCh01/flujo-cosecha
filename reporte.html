@@ -170,12 +170,18 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .kpi .big.azul { color: var(--band-ink); }
 .kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
 .kpi.zonas { grid-column: 1 / -1; }
+.split.on { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; }
+.split.on .app { max-width: none; margin: 0; }
+html.locked .ppt { display: none !important; }
+@media (max-width: 1100px) { .split.on { display: block; } .split.on .ppt { position: static; height: auto; } }
 .tip { position: fixed; z-index: 30; pointer-events: none; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--pop); border-radius: 8px; padding: 7px 10px; font-size: 12px; line-height: 1.45; max-width: 240px; }
 .tip b { font-weight: 600; }
 </style>
 </head>
 <body>
 <div class="gate">Comprobando acceso…</div>
+<div class="split" id="split">
+<aside class="ppt" id="pptPanel" hidden aria-label="Vista PPT"></aside>
 <div class="app">
   <div class="apps" id="apps">
     <button class="apps-b" id="appsB" type="button" aria-expanded="false" aria-controls="appsM" aria-label="Ir a otra página" title="Páginas">
@@ -198,6 +204,10 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg>
         Bajar datos ahora
       </a>
+      <button class="btn" id="btnPpt" type="button" aria-pressed="false" title="Muestra las diapositivas con los datos filtrados, para revisarlas, editarlas y descargarlas">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.2"/><path d="M8 11.5v2.5M5.5 14h5M4.5 8.5l2-2 1.5 1.5 3-3"/></svg>
+        Vista PPT
+      </button>
       <button class="btn primary" id="btnAct" type="button" title="Vuelve a leer los últimos datos publicados">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/></svg>
         Actualizar
@@ -250,6 +260,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
       <div><b>Producción, despachos y mano de obra</b>Bases del área de Producción</div>
     </div>
   </section>
+</div>
 </div>
 <div class="tip" id="tip" hidden></div>
 
@@ -461,6 +472,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
     renderCal(zonas); renderRec(zonas);
+    if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
     else if (state.sinKilos) avisos.push('La base no trae la columna KILOS: las barras se calculan por número de evaluaciones.');
@@ -612,6 +624,23 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
     $('gridRec').innerHTML = html;
   }
 
+  // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
+  window.RPT = {
+    state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
+    ddmm: ddmm, pct: pct, utc: utc,
+    fito: function (z) {                     // cada indicador fitosanitario de una zona en el periodo elegido
+      var filas = state.rows.filter(function (r) { return r.anio === state.anio && r.sem === state.sem && (!state.fecha || r.ymd === state.fecha) && (state.status < 0 || r.st === state.status) && (z === 'TODAS' || r.zona === z); });
+      return IND.map(function (ind) { return { ind: ind, cats: categorias(ind), res: calcular(ind, filas), falta: faltaColumna(ind) }; });
+    },
+    cal: function (z) { return { per: ind3(z, periodo), acu: ind3(z, acumulado) }; },
+    rec: function () {
+      var R = state.rec || [];
+      function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
+      return { hay: R.length > 0, eje: suma('TODAS', acumulado), per: suma('TODAS', periodo),
+        zonas: ZONAS.map(function (z) { return { z: z, kg: suma(z, periodo) }; }).sort(function (a, b) { return b.kg - a.kg; }) };
+    }
+  };
+
   // ---------- tooltip de cada tramo de la barra
   var tip = $('tip');
   document.addEventListener('mousemove', function (e) {
@@ -704,5 +733,6 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   })().catch(toLogin);
 })();
 </script>
+<script src="reporte_ppt.js"></script>
 </body>
 </html>
