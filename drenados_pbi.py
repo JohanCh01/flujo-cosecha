@@ -59,20 +59,31 @@ ARCHIVO_DIAG = Path.home() / "drenados_diagnostico.txt"
 # ---------------------------------------------------------------- navegador (igual que tu script de capturas)
 def cerrar_edge_colgado():
     """Si quedó un Edge abierto con el perfil de automatización (p. ej. al cortar el script con Ctrl+C),
-    lo cierra. Solo ese: tu Edge normal no se toca."""
+    lo cierra (solo ese: tu Edge normal no se toca), cierra los msedgedriver huérfanos y borra los
+    archivos de bloqueo que deja un Edge cortado dentro de la carpeta del perfil."""
     if os.name != "nt":
         return
     carpeta = Path(EDGE_PROFILE_DIR).name
-    ps = ("Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | "
-          f"Where-Object {{ $_.CommandLine -like '*{carpeta}*' }} | "
-          "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }")
+    ps = ("$n = 0; Get-CimInstance Win32_Process | Where-Object { "
+          f"($_.Name -eq 'msedge.exe' -and $_.CommandLine -like '*{carpeta}*') -or $_.Name -eq 'msedgedriver.exe' }} | "
+          "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $n++ }; $n")
     try:
-        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=30)
-        if r.stdout.strip():
-            log("Cerré un Edge que había quedado abierto con el perfil de automatización.")
-            time.sleep(2)
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=40)
+        n = int((r.stdout or "0").strip().splitlines()[-1] or 0) if (r.stdout or "").strip() else 0
+        if n:
+            log(f"Cerré {n} proceso(s) de Edge que habían quedado abiertos con el perfil de automatización.")
+            time.sleep(3)
     except Exception:
         pass
+    base = Path(EDGE_PROFILE_DIR)
+    for nombre in ("lockfile", "SingletonLock", "SingletonCookie", "SingletonSocket", "DevToolsActivePort"):
+        f = base / nombre
+        try:
+            if f.exists():
+                f.unlink()
+                log(f"Borré el bloqueo «{nombre}» que quedó en el perfil.")
+        except Exception:
+            pass
 
 
 def iniciar_driver(ver):
@@ -84,8 +95,12 @@ def iniciar_driver(ver):
             raise
         log("Edge no arrancó (el perfil estaba ocupado); lo intento otra vez…")
         cerrar_edge_colgado()
-        time.sleep(3)
-        return _iniciar_driver(ver)
+        time.sleep(5)
+        try:
+            return _iniciar_driver(ver)
+        except Exception:
+            sys.exit("Edge sigue sin arrancar con el perfil de automatización.\n"
+                     "Cierra TODAS las ventanas de Edge (o en Git Bash:  taskkill //F //IM msedge.exe ) y vuelve a correr el script.")
 
 
 def _iniciar_driver(ver):
