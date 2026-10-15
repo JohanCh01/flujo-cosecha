@@ -177,27 +177,37 @@ const quiero = arguments[0].toLowerCase();
 for (const v of document.querySelectorAll('visual-container')) {
   const h = v.querySelector('[data-testid="visual-title"], .visualTitle, h3');
   const t = ((h && (h.getAttribute('title') || h.textContent)) || '').trim().toLowerCase();
-  if (t.indexOf(quiero) >= 0) { v.scrollIntoView({block: 'center'}); return v.querySelector('.vcBody') || v; }
+  if (t.indexOf(quiero) < 0) continue;
+  const caja = v.querySelector('.vcBody') || v;
+  caja.scrollIntoView({block: 'center'});
+  const r = caja.getBoundingClientRect();          // el rectángulo que SE VE (ya con el achicado del reporte)
+  return {x: r.x, y: r.y, w: r.width, h: r.height, dpr: window.devicePixelRatio || 1};
 }
 return null;
 """
 
 
+
 def captura(driver):
-    """Foto del gráfico «Penalidad ($) por clasificación de reclamo» → JPG en bytes."""
+    """Foto del gráfico «Penalidad ($) por clasificación de reclamo» → JPG en bytes.
+    Se toma la pantalla completa y se recorta justo el rectángulo visible del gráfico (sin pedazos de otros)."""
     driver.switch_to.default_content()
-    el = driver.execute_script(JS_GRAFICO, TITULO_GRAFICO)
-    if el is None:
+    if driver.execute_script(JS_GRAFICO, TITULO_GRAFICO) is None:
         return None
     time.sleep(1.5)
-    png = el.screenshot_as_png
+    r = driver.execute_script(JS_GRAFICO, TITULO_GRAFICO)    # otra vez, ya quieto después de moverse a la vista
+    png = driver.get_screenshot_as_png()
     try:
         from PIL import Image
         im = Image.open(io.BytesIO(png)).convert("RGB")
+        k = im.width / driver.execute_script("return window.innerWidth;") if r else 1
+        caja = (max(0, int(r["x"] * k)), max(0, int(r["y"] * k)), min(im.width, int((r["x"] + r["w"]) * k)), min(im.height, int((r["y"] + r["h"]) * k)))
+        im = im.crop(caja)
         b = io.BytesIO()
-        im.save(b, "JPEG", quality=88, optimize=True)
+        im.save(b, "JPEG", quality=90, optimize=True)
         return b.getvalue(), "image/jpeg", im.size
-    except Exception:
+    except Exception as ex:
+        log(f"[!] No pude recortar la captura ({ex}); va la pantalla completa.")
         return png, "image/png", None
 
 
