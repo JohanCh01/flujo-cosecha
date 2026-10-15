@@ -199,10 +199,57 @@ def captura(driver):
         return png, "image/png", None
 
 
+JS_ESTADO = r"""
+return {url: location.href, titulo: document.title,
+        visuales: document.querySelectorAll('visual-container').length,
+        indicadores: document.querySelectorAll('text.mainText').length,
+        valores: document.querySelectorAll('text.value').length,
+        filtros: Array.from(document.querySelectorAll('.slicer-dropdown-menu')).map(e => e.getAttribute('aria-label')),
+        iframes: document.querySelectorAll('iframe').length,
+        texto: (document.body ? document.body.innerText : '').replace(/\s+/g, ' ').slice(0, 600)};
+"""
+
+
+def estado(driver):
+    """Lo que hay en la página (y en cada iframe): para saber si el reporte cargó."""
+    driver.switch_to.default_content()
+    out = []
+    try:
+        out.append(("página", driver.execute_script(JS_ESTADO)))
+    except Exception as e:
+        out.append(("página", {"error": str(e)}))
+    for k in range(len(driver.find_elements(By.TAG_NAME, "iframe"))):
+        try:
+            driver.switch_to.frame(driver.find_elements(By.TAG_NAME, "iframe")[k])
+            out.append((f"iframe {k + 1}", driver.execute_script(JS_ESTADO)))
+        except Exception as e:
+            out.append((f"iframe {k + 1}", {"error": str(e)}))
+        driver.switch_to.default_content()
+    return out
+
+
+def esperar_reporte(driver, maximo=90):
+    """Espera hasta que aparezcan los gráficos del reporte (visual-container) y los filtros."""
+    fin = time.time() + maximo
+    while time.time() < fin:
+        for _, e in estado(driver):
+            if e.get("visuales", 0) >= 5 and e.get("filtros"):
+                time.sleep(4)
+                return True
+        time.sleep(3)
+    return False
+
+
 def diagnostico(driver):
     d = dp.en_todos_los_frames(driver, JS_VALORES)
     with open(ARCHIVO_DIAG, "w", encoding="utf-8") as f:
         f.write(f"{datetime.now():%d/%m/%Y %H:%M}\n\n")
+        for donde, e in estado(driver):
+            f.write(f"[{donde}]\n")
+            for k, v in e.items():
+                f.write(f"  {k}: {v}\n")
+            f.write("\n")
+        f.write(f"TARJETAS CON VALORES ({len(d.get('tarjetas') or [])}):\n")
         for t in d.get("tarjetas") or []:
             f.write(f"x={t['x']:.0f} y={t['y']:.0f}  valores={t['valores']}  indicador={t['main']}  objetivo={t['obj']}\n   texto: {t['t']}\n")
     log(f"Diagnóstico guardado en {ARCHIVO_DIAG}")
@@ -266,8 +313,12 @@ def main():
     try:
         log("Abriendo el Power BI de Reclamos penalizados…")
         driver.get(REPORT_URL)
-        time.sleep(14)
+        time.sleep(10)
         dp.cancelar_reautenticacion(driver)
+        log("Esperando a que cargue el reporte…")
+        if not esperar_reporte(driver):
+            diagnostico(driver)
+            sys.exit(f"El reporte no terminó de cargar (o abrió otra página). Mándame {ARCHIVO_DIAG.name}.")
         if a.diagnostico:
             diagnostico(driver)
         # AÑO: si ya dice el año, no se toca
