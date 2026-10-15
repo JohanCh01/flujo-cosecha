@@ -262,6 +262,14 @@ def main(origen, destino):
                 st["font"] = tema["major"]
             st.update({"id": "F%d" % n, "t": textos[j]})
             poner_texto(p_, "{{#F%d}}" % n)
+            if sl_i == 3 and textos[j].lstrip().startswith("Objetivo") and box[1] < 3.6:
+                # objetivos de Eficiencia Global, Eficiencia y Mano de Obra: 17 pt
+                st["sz"] = 17
+                for r_ in p_.findall(A + "r"):
+                    rpr = r_.find(A + "rPr")
+                    if rpr is None:
+                        rpr = etree.Element(A + "rPr"); r_.insert(0, rpr)
+                    rpr.set("sz", "1700")
             if textos[j].lstrip().startswith("*"):
                 st.update({"c": "000000", "b": False, "i": False, "u": False, "font": "Arial", "sz": 13})
                 estilo_nota(p_)

@@ -12,16 +12,16 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151241';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151251';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
-  var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {} };
+  var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
   // ---------- ediciones guardadas en este navegador (por semana de corte y fecha)
   function claveGuardado() { var s = R.state; return 'rpt.ppt3.' + s.anio + '.' + s.sem + '.' + (s.fecha || 'sem') + '.' + hoyYmd(); }
   // ed.t = textos cambiados, ed.f = formato por párrafo {sz, b, i, font}, ed.m = cuánto se movió cada cuadro [dx, dy] en pulgadas
   function leerEd() {
     var o = {}; try { o = JSON.parse(localStorage.getItem(claveGuardado()) || '{}') || {}; } catch (e) { o = {}; }
-    return { t: o.t || {}, f: o.f || {}, m: o.m || {} };
+    return { t: o.t || {}, f: o.f || {}, m: o.m || {}, x: o.x || [] };
   }
   function guardarEd() { try { localStorage.setItem(claveGuardado(), JSON.stringify(ed)); return true; } catch (e) { return false; } }
 
@@ -98,6 +98,14 @@
     return v;
   }
   // diapositivas que van: si una zona (Compositan, Olmos, Terceros) no tiene datos en el periodo, su diapositiva no se incluye
+  // cuadros: los de la plantilla + los textos que agregues con «+ Texto»
+  function campos() {
+    return plantilla.campos.concat((ed.x || []).map(function (x) {
+      return { s: x.s, box: x.box, anchor: 'top', ins: [0.06, 0.03, 0.06, 0.03], wrap: 'none', k: [1, 1], extra: true,
+        p: [{ id: x.id, t: 'Nuevo texto', sz: 14, b: false, i: false, u: false, c: '000000', font: 'Arial', al: 'left' }] };
+    }));
+  }
+  function claveMov(ci) { var c = campos()[ci]; return c && c.extra ? 'M' + c.p[0].id : 'C' + ci; }
   function zonaDeSlide(n) { var b = (plantilla.barras || []).filter(function (x) { return x.s === n; })[0]; return b ? b.z : null; }
   function activas() {
     var out = [];
@@ -117,9 +125,9 @@
   // ---------- dibujo de una diapositiva (fondo de tu PPT + todos los textos encima)
   function htmlSlide(n, editable) {
     var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg?v=' + V + '">';
-    plantilla.campos.forEach(function (c, ci) {
+    campos().forEach(function (c, ci) {
       if (c.s !== n) return;
-      var b = c.box, m = ed.m['C' + ci] || [0, 0];
+      var b = c.box, m = ed.m[claveMov(ci)] || [0, 0];
       var st = 'left:' + (b[0] + m[0]) * PX + 'px;top:' + (b[1] + m[1]) * PX + 'px;width:' + b[2] * PX + 'px;height:' + b[3] * PX + 'px;' +
         'padding:' + c.ins[1] * PX + 'px ' + c.ins[2] * PX + 'px ' + c.ins[3] * PX + 'px ' + c.ins[0] * PX + 'px;justify-content:' + ({ middle: 'center', bottom: 'flex-end' }[c.anchor] || 'flex-start');
       h += '<div class="cp' + (c.wrap === 'none' ? ' nw' : '') + '" data-c="' + ci + '" style="' + st + '">';
@@ -168,7 +176,9 @@
         '<button class="btn sm" id="fmtB" type="button" title="Negrita"><b>N</b></button>' +
         '<button class="btn sm" id="fmtI" type="button" title="Cursiva"><i>K</i></button>' +
         '<button class="btn sm" id="fmtOrig" type="button" title="Vuelve este cuadro a su formato y lugar original">Original</button>' +
+        '<button class="btn sm" id="fmtQuitar" type="button" hidden title="Quita este texto agregado">Quitar texto</button>' +
       '</span>' +
+      '<button class="btn sm" id="fmtNuevo" type="button" hidden title="Agrega un cuadro de texto nuevo en esta diapositiva">+ Texto</button>' +
       '<span class="ppt-sp"></span>' +
       '<button class="btn sm" id="pptPdf" type="button">Descargar PDF</button>' +
       '<button class="btn sm primary" id="pptPptx" type="button">Descargar PowerPoint</button></div>' +
@@ -220,7 +230,7 @@
     if (lista.indexOf(actual) < 0) actual = lista.filter(function (x) { return x <= (actual || 1); }).pop() || lista[0];
     var pos = lista.indexOf(actual);
     $('pptView').innerHTML = htmlSlide(actual, editando);
-    if (selC != null && plantilla.campos[selC] && plantilla.campos[selC].s !== actual) { selP = null; selC = null; }
+    if (selC != null && (!campos()[selC] || campos()[selC].s !== actual)) { selP = null; selC = null; }
     setTimeout(marcarSel, 0);
     var omitidas = plantilla.n - lista.length;
     $('pptN').textContent = (pos + 1) + ' / ' + lista.length + ' · corte SEM ' + R.state.sem + ' · reporte del ' + valores.fecha + (omitidas ? ' · ' + omitidas + ' zona(s) sin datos no se incluyen' : '');
@@ -258,11 +268,11 @@
   // ---------- edición
   $('pptEdit').onclick = function () {
     editando = !editando; this.setAttribute('aria-pressed', String(editando)); this.textContent = editando ? 'Terminar edición' : 'Editar';
-    $('pptGuardar').hidden = !editando; selP = null; selC = null; pintar(); marcarSel();
+    $('pptGuardar').hidden = !editando; $('fmtNuevo').hidden = !editando; selP = null; selC = null; pintar(); marcarSel();
     msg(editando ? 'Haz clic en un texto para cambiarlo; arriba eliges fuente, tamaño, negrita y cursiva; arrastra el botón ✥ para moverlo. Se guarda en este navegador.' : '');
   };
   var selP = null, selC = null;                    // párrafo y cuadro elegidos
-  function campoDe(id) { for (var i = 0; i < plantilla.campos.length; i++) for (var j = 0; j < plantilla.campos[i].p.length; j++) if (plantilla.campos[i].p[j].id === id) return plantilla.campos[i].p[j]; return null; }
+  function campoDe(id) { var cs = campos(); for (var i = 0; i < cs.length; i++) for (var j = 0; j < cs[i].p.length; j++) if (cs[i].p[j].id === id) return cs[i].p[j]; return null; }
   function marcarSel() {
     Array.prototype.forEach.call(document.querySelectorAll('#pptView .cp.sel'), function (x) { x.classList.remove('sel'); });
     var asa = document.querySelector('#pptView .asa'); if (asa) asa.remove();
@@ -270,7 +280,8 @@
     if (!editando || selC == null) return;
     var cp = document.querySelector('#pptView .cp[data-c="' + selC + '"]'); if (!cp) return;
     cp.classList.add('sel');
-    if (!plantilla.campos[selC].tabla) {
+    $('fmtQuitar').hidden = !campos()[selC].extra;
+    if (!campos()[selC].tabla) {
       var a = document.createElement('div'); a.className = 'asa'; a.title = 'Arrastra para mover el cuadro'; a.textContent = '✥';
       a.style.left = cp.style.left; a.style.top = cp.style.top; cp.parentNode.appendChild(a);
     }
@@ -302,17 +313,32 @@
   $('fmtB').onclick = function () { cambiarFmt(function (o, f) { o.b = !f.b; }); };
   $('fmtI').onclick = function () { cambiarFmt(function (o, f) { o.i = !f.i; }); };
   $('fmtFont').onchange = function () { var v = this.value; cambiarFmt(function (o) { o.font = v; }); };
-  $('fmtOrig').onclick = function () { if (!selP) return; var c = plantilla.campos[selC]; c.p.forEach(function (p) { delete ed.f[p.id]; }); delete ed.m['C' + selC]; cambiarFmt(function () {}); };
+  $('fmtOrig').onclick = function () { if (!selP) return; var c = campos()[selC]; c.p.forEach(function (p) { delete ed.f[p.id]; }); delete ed.m[claveMov(selC)]; cambiarFmt(function () {}); };
+  // agregar / quitar un texto propio en la diapositiva que estás viendo
+  $('fmtNuevo').onclick = function () {
+    var id = 'X' + Date.now().toString(36);
+    ed.x.push({ id: id, s: actual, box: [plantilla.w / 2 - 1.5, plantilla.h / 2 - 0.25, 3, 0.5] });
+    ed.t[id] = 'Nuevo texto'; guardarEd(); pintar();
+    var cs = campos(); selC = cs.length - 1; selP = id;
+    setTimeout(function () { var el = document.querySelector('#pptView [data-f="' + id + '"]'); if (el) { el.focus(); document.execCommand && document.execCommand('selectAll', false, null); } marcarSel(); }, 30);
+    msg('Texto agregado al centro: escríbelo y arrástralo con ✥ a donde quieras.');
+  };
+  $('fmtQuitar').onclick = function () {
+    var c = campos()[selC]; if (!c || !c.extra) return;
+    var id = c.p[0].id;
+    ed.x = ed.x.filter(function (x) { return x.id !== id; }); delete ed.t[id]; delete ed.f[id]; delete ed.m['M' + id];
+    selP = null; selC = null; guardarEd(); pintar(); msg('Texto quitado.');
+  };
   // mover: se arrastra el botón ✥ que aparece junto al cuadro elegido
   $('pptView').addEventListener('pointerdown', function (e) {
     var a = e.target.closest('.asa'); if (!a || selC == null) return;
     e.preventDefault(); a.setPointerCapture(e.pointerId);
-    var k = $('pptView').clientWidth / 1280, x0 = e.clientX, y0 = e.clientY, m0 = (ed.m['C' + selC] || [0, 0]).slice();
-    var cp = document.querySelector('#pptView .cp[data-c="' + selC + '"]'), b = plantilla.campos[selC].box;
+    var k = $('pptView').clientWidth / 1280, x0 = e.clientX, y0 = e.clientY, clave = claveMov(selC), m0 = (ed.m[clave] || [0, 0]).slice();
+    var cp = document.querySelector('#pptView .cp[data-c="' + selC + '"]'), b = campos()[selC].box;
     function mover(ev) {
       var dx = m0[0] + (ev.clientX - x0) / k / PX, dy = m0[1] + (ev.clientY - y0) / k / PX;
       cp.style.left = (b[0] + dx) * PX + 'px'; cp.style.top = (b[1] + dy) * PX + 'px'; a.style.left = cp.style.left; a.style.top = cp.style.top;
-      ed.m['C' + selC] = [Math.round(dx * 1000) / 1000, Math.round(dy * 1000) / 1000];
+      ed.m[clave] = [Math.round(dx * 1000) / 1000, Math.round(dy * 1000) / 1000];
     }
     function soltar() { a.removeEventListener('pointermove', mover); a.removeEventListener('pointerup', soltar); guardarEd(); miniaturas(); msg('Cuadro movido (guardado en este navegador).'); }
     a.addEventListener('pointermove', mover); a.addEventListener('pointerup', soltar);
@@ -320,9 +346,9 @@
   $('pptView').addEventListener('focusout', function () { setTimeout(miniaturas, 0); });
   $('pptGuardar').onclick = function () { msg(guardarEd() ? 'Cambios guardados en este navegador.' : 'Este navegador no deja guardar (modo privado): los cambios se pierden al cerrar.'); };
   $('pptReset').onclick = function () {
-    if (!Object.keys(ed.t).length && !Object.keys(ed.f).length && !Object.keys(ed.m).length) { msg('No hay cambios que descartar.'); return; }
+    if (!Object.keys(ed.t).length && !Object.keys(ed.f).length && !Object.keys(ed.m).length && !ed.x.length) { msg('No hay cambios que descartar.'); return; }
     if (!confirm('¿Descartar todos los cambios de este reporte y volver a los valores calculados?')) return;
-    ed = { t: {}, f: {}, m: {} }; try { localStorage.removeItem(claveGuardado()); } catch (e) { /* sin almacenamiento */ }
+    ed = { t: {}, f: {}, m: {}, x: [] }; try { localStorage.removeItem(claveGuardado()); } catch (e) { /* sin almacenamiento */ }
     pintar(); msg('Se descartaron los cambios.');
   };
 
@@ -391,6 +417,19 @@
     });
     return out;
   }
+  function extrasXml(n, textos) {
+    var out = '', id = 6000, E = 914400;
+    campos().forEach(function (c, ci) {
+      if (!c.extra || c.s !== n) return;
+      var p = c.p[0], f = fmt(p), m = ed.m[claveMov(ci)] || [0, 0], b = c.box;
+      var lineas = String(textos[p.id] != null ? textos[p.id] : '').split('\n');
+      var rpr = '<a:rPr lang="es-PE" sz="' + Math.round(f.sz * 100) + '" b="' + (f.b ? 1 : 0) + '" i="' + (f.i ? 1 : 0) + '"><a:solidFill><a:srgbClr val="' + p.c + '"/></a:solidFill><a:latin typeface="' + xmlEsc(f.font) + '"/></a:rPr>';
+      out += '<p:sp><p:nvSpPr><p:cNvPr id="' + (id++) + '" name="Texto agregado"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="' + Math.round((b[0] + m[0]) * E) + '" y="' + Math.round((b[1] + m[1]) * E) + '"/><a:ext cx="' + Math.round(b[2] * E) + '" cy="' + Math.round(b[3] * E) + '"/></a:xfrm>' +
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap="none" lIns="54864" tIns="27432" rIns="54864" bIns="27432"><a:spAutoFit/></a:bodyPr><a:lstStyle/>' +
+        lineas.map(function (l) { return '<a:p><a:r>' + rpr + '<a:t>' + xmlEsc(l) + '</a:t></a:r></a:p>'; }).join('') + '</p:txBody></p:sp>';
+    });
+    return out;
+  }
   function llenarXml(xml, textos, n) {
     xml = aplicarFormatos(xml);
     // líneas con cuadrito de color: un párrafo por línea, con un primer run "■ " del color de la barra
@@ -410,7 +449,7 @@
         xml = xml.replace(par, nuevo);
       });
     });
-    var b = barrasXml(n); if (b) xml = xml.replace('</p:spTree>', b + '</p:spTree>');
+    var b = barrasXml(n) + extrasXml(n, textos); if (b) xml = xml.replace('</p:spTree>', b + '</p:spTree>');
     // primero los valores de varias líneas: se repite el párrafo una vez por línea
     xml = xml.replace(/<a:p>(?:(?!<\/a:p>)[\s\S])*?\{\{#(F\d+)\}\}[\s\S]*?<\/a:p>/g, function (par, id) {
       var t = textos[id] != null ? textos[id] : '';
@@ -439,7 +478,7 @@
   $('pptPptx').onclick = function () {
     var b = this; b.disabled = true; b.textContent = 'Generando…';
     var textos = {};
-    plantilla.campos.forEach(function (c) { c.p.forEach(function (p) { textos[p.id] = textoCampo(p); }); });
+    campos().forEach(function (c) { c.p.forEach(function (p) { textos[p.id] = textoCampo(p); }); });
     Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx?v=' + V).then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
       .then(function (res) { return window.JSZip.loadAsync(res[1]); })
       .then(function (zip) {
