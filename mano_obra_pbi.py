@@ -151,7 +151,7 @@ def diagnostico(driver):
 def texto(v):
     if not v:
         return "(no se pudo leer)"
-    return f"CMO {v['v']:.4f}" + (f" · Proy {v['proy']:.4f}" if v["proy"] is not None else " · (sin Proy)") + \
+    return f"CMO {v['v']:.4f}" + (f" · Proy {v['proy']:.4f}" if v["proy"] is not None else f" · (sin Proy; la tarjeta dice: «{v.get('texto', '')}»)") + \
            (f" ({v['dif']:+.1f} %)" if v["dif"] is not None else "")
 
 
@@ -244,6 +244,10 @@ def main():
             if solo_semana(driver, n):
                 par["sem"] = leer_estable(driver, antes)
                 antes = par["sem"] or antes
+                if par["sem"] and par["sem"]["proy"] is None and par.get("acu") and par["acu"]["proy"] is not None:
+                    log(f"Solo la semana {n}: {texto(par['sem'])}")
+                    par["sem"] = dict(par["sem"], proy=par["acu"]["proy"])      # el objetivo es el mismo que el del avance
+                    log("   → uso el Proy del avance de campaña como objetivo de la semana.")
                 log(f"Solo la semana {n}: {texto(par['sem'])}")
             par = {k: v for k, v in par.items() if v}
             if not par:
