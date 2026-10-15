@@ -62,6 +62,10 @@ CAJAS_QUITAR = {9: [25, 36, 63, 88, 27, 40, 65, 90], 10: None, 11: None}     # r
 PROM_MAX = [(100, 102), (104, 106), (125, 127), (129, 131)]
 # imágenes con datos viejos (pantallazos de Power BI): se quitan
 QUITAR = {3: [119], 6: [7], 8: [26], 12: [8]}
+# donde estaba el pantallazo va un recuadro punteado gris "Imagen N" (ahí irá una imagen)
+IMAGENES = {3: (119, "Imagen 1"), 6: (7, "Imagen 2"), 12: (8, "Imagen 3")}
+# nota al pie de la diapositiva 3: se parte en dos líneas y se sube para que no se salga
+PIE = {3: (40, 6.44, 0.52, 1300)}
 # textos fijos que traen la semana o la fecha del reporte del 12/10
 REEMPLAZOS = [(r"(?i)(semana de |semana |sem\. ?|sem ?|s\.)41", r"\g<1>{{sem}}"), (r"(?i)(semana |semana de )40", r"\g<1>{{sem_ant}}"),
               (r"12/10/2026", "{{fecha}}"), (r"12/10", "{{ddmm}}"), (r"Lun\.", "{{dia}}")]
@@ -209,6 +213,17 @@ def nuevo_cuadro(slide, modelo, x, y, w, h, texto, nid):
     return el
 
 
+def recuadro_imagen(x, y, w, h, texto, nid):
+    """Recuadro punteado gris claro con el texto al centro (marca dónde va una imagen)."""
+    return etree.fromstring(
+        '<p:sp xmlns:p="%s" xmlns:a="%s"><p:nvSpPr><p:cNvPr id="%d" name="%s"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
+        '<p:spPr><a:xfrm><a:off x="%d" y="%d"/><a:ext cx="%d" cy="%d"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 5000"/></a:avLst></a:prstGeom>'
+        '<a:solidFill><a:srgbClr val="F4F4F4"/></a:solidFill><a:ln w="15875"><a:solidFill><a:srgbClr val="A6A6A6"/></a:solidFill><a:prstDash val="dash"/></a:ln></p:spPr>'
+        '<p:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="es-PE" sz="1600"><a:solidFill><a:srgbClr val="A6A6A6"/></a:solidFill>'
+        '<a:latin typeface="Arial"/></a:rPr><a:t>%s</a:t></a:r></a:p></p:txBody></p:sp>'
+        % (NS["p"], NS["a"], nid, texto, x * EMU, y * EMU, w * EMU, h * EMU, texto))
+
+
 def tabla_xml(x, y, cols, alto, filas, nid):
     """Tabla nativa (Zona | Kg | %) en lugar del pantallazo."""
     w = sum(cols)
@@ -287,6 +302,22 @@ def main(origen, destino):
     for i, (sl, sf) in enumerate(zip(prs.slides, fondo.slides), 1):
         por_id = {sh.shape_id: sh for sh in todas(sl.shapes)}
         por_id_f = {sh.shape_id: sh for sh in todas(sf.shapes)}
+        # 0) recuadros "Imagen N" en el lugar de los pantallazos (van en el fondo y en el PowerPoint)
+        if i in IMAGENES:
+            sid, txt = IMAGENES[i]
+            x, y, w, h = abs_xfrm(por_id[sid])
+            for presen in (sl, sf):
+                presen.shapes._spTree.append(recuadro_imagen(x, y, w, h, txt, 700 + i))
+        # 0b) nota al pie más arriba, en dos líneas
+        if i in PIE:
+            sid, y, h, sz = PIE[i]
+            for d in (por_id, por_id_f):
+                el = d[sid]._element
+                xf = el.find(".//" + A + "xfrm")
+                xf.find(A + "off").set("y", str(int(y * EMU))); xf.find(A + "ext").set("cy", str(int(h * EMU)))
+                el.find(".//" + A + "bodyPr").set("wrap", "square")
+                for r_ in el.iter(A + "rPr"):
+                    r_.set("sz", str(sz))
         # 1) quitar pantallazos y líneas de categorías
         for sid in QUITAR.get(i, []) + LINEAS.get(i, []):
             for d in (por_id, por_id_f):

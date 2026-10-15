@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151251';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151320';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -180,8 +180,8 @@
       '</span>' +
       '<button class="btn sm" id="fmtNuevo" type="button" hidden title="Agrega un cuadro de texto nuevo en esta diapositiva">+ Texto</button>' +
       '<span class="ppt-sp"></span>' +
-      '<button class="btn sm" id="pptPdf" type="button">Descargar PDF</button>' +
-      '<button class="btn sm primary" id="pptPptx" type="button">Descargar PowerPoint</button></div>' +
+      '<button class="ico-dl" id="pptPdf" type="button" title="Descargar PDF" aria-label="Descargar PDF"><svg viewBox="0 0 32 36" width="26" height="30" aria-hidden="true"><path d="M3 2h18l8 8v24H3z" fill="#fff" stroke="#D93025" stroke-width="2" stroke-linejoin="round"/><path d="M21 2v8h8" fill="none" stroke="#D93025" stroke-width="2" stroke-linejoin="round"/><rect x="0" y="17" width="27" height="12" rx="2" fill="#D93025"/><text x="13.5" y="26.3" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="9" fill="#fff">PDF</text></svg></button>' +
+      '<button class="ico-dl" id="pptPptx" type="button" title="Descargar PowerPoint" aria-label="Descargar PowerPoint"><svg viewBox="0 0 32 36" width="26" height="30" aria-hidden="true"><path d="M3 2h18l8 8v24H3z" fill="#fff" stroke="#C43E1C" stroke-width="2" stroke-linejoin="round"/><path d="M21 2v8h8" fill="none" stroke="#C43E1C" stroke-width="2" stroke-linejoin="round"/><rect x="0" y="17" width="27" height="12" rx="2" fill="#C43E1C"/><text x="13.5" y="26.3" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="9" fill="#fff">PPT</text></svg></button></div>' +
     '<p class="ppt-msg" id="pptMsg" aria-live="polite"></p>' +
     '<div class="ppt-thumbs" id="pptThumbs"></div>';
   var css = document.createElement('style');
@@ -207,6 +207,8 @@
     "@font-face{font-family:Carlito;font-weight:400;font-style:italic;src:url(lib/fuentes/carlito-latin-400-italic.woff2) format('woff2')}" +
     "@font-face{font-family:Carlito;font-weight:700;font-style:italic;src:url(lib/fuentes/carlito-latin-700-italic.woff2) format('woff2')}" +
     '.slide.edit .pr{outline:1px dashed #5b8def;outline-offset:1px;cursor:text;min-width:20px}.slide.edit .pr:focus{outline:2px solid #2f6fe0;background:rgba(47,111,224,.08)}' +
+    '.ico-dl{width:40px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;padding:0}' +
+    '.ico-dl:hover{border-color:var(--accent);background:var(--accent-soft)}.ico-dl:disabled{opacity:.45;cursor:progress}' +
     '.ppt-msg{margin:0;font-size:12.5px;color:var(--muted);min-height:16px}' +
     '.ppt-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}' +
     '.ppt-th{position:relative;aspect-ratio:16/9;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#fff;cursor:pointer;padding:0}' +
@@ -476,7 +478,7 @@
       });
   }
   $('pptPptx').onclick = function () {
-    var b = this; b.disabled = true; b.textContent = 'Generando…';
+    var b = this; b.disabled = true; msg('Generando…');
     var textos = {};
     campos().forEach(function (c) { c.p.forEach(function (p) { textos[p.id] = textoCampo(p); }); });
     Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx?v=' + V).then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
@@ -494,10 +496,10 @@
         msg('PowerPoint descargado: es tu misma plantilla con los valores puestos (editable).');
       })
       .catch(function (e) { msg('No se pudo generar el PowerPoint: ' + e.message); })
-      .then(function () { b.disabled = false; b.textContent = 'Descargar PowerPoint'; });
+      .then(function () { b.disabled = false; });
   };
   $('pptPdf').onclick = function () {
-    var b = this; b.disabled = true; b.textContent = 'Generando…';
+    var b = this; b.disabled = true; msg('Generando…');
     var caja = document.createElement('div');
     caja.style.cssText = 'position:fixed;left:-20000px;top:0;width:1280px;height:720px;';
     document.body.appendChild(caja);
@@ -516,7 +518,7 @@
       return cadena.then(function () { pdf.save(nombreArchivo('pdf')); });
     }).then(function () { msg('PDF descargado.'); })
       .catch(function (e) { msg('No se pudo generar el PDF: ' + e.message); })
-      .then(function () { caja.remove(); b.disabled = false; b.textContent = 'Descargar PDF'; });
+      .then(function () { caja.remove(); b.disabled = false; });
   };
 
   window.RPT_PPT = { refrescar: refrescar };
