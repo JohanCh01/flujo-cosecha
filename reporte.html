@@ -743,9 +743,13 @@ html.locked .ppt { display: none !important; }
   //            personas planilladas: se escriben aquí (por semana) y quedan guardadas en este navegador
   function claveP() { return 'rpt.pers.' + state.anio + '.' + state.sem; }
   function leerPers() { try { var v = localStorage.getItem(claveP()); return v == null || v === '' ? null : v; } catch (e) { return null; } }
+  // objetivo del CMO: el que escribas en la página (para todas las semanas); si está vacío, el del Power BI («cmo py»)
+  function leerObjMo() { try { var v = localStorage.getItem('rpt.mo.obj'); return v == null || v === '' ? null : v; } catch (e) { return null; } }
+  function numObjMo() { var t = leerObjMo(); if (t == null) return null; var x = parseFloat(String(t).replace(',', '.')); return isNaN(x) ? null : x; }
   function mo() {
-    var A = (state.mo || {})[String(state.anio)] || {}, s = String(state.sem);
-    return { acu: (A.acu || {})[s] || null, sem: (A.sem || {})[s] || null, pers: leerPers(), hay: !!(A.acu || A.sem) };
+    var A = (state.mo || {})[String(state.anio)] || {}, s = String(state.sem), ob = numObjMo();
+    var con = function (x) { return x ? (ob != null ? Object.assign({}, x, { proy: ob, pbi: x.proy }) : Object.assign({}, x, { pbi: x.proy })) : null; };
+    return { acu: con((A.acu || {})[s]), sem: con((A.sem || {})[s]), pers: leerPers(), hay: !!(A.acu || A.sem), objTxt: leerObjMo(), objNum: ob };
   }
   function renderMo() {
     var d = mo(), sem = state.sem;
@@ -761,12 +765,20 @@ html.locked .ppt { display: none !important; }
     }
     var falta = 'falta: python mano_obra_pbi.py --semanas ' + sem;
     var html = tarj('CMO · avance de campaña (hasta S.' + sem + ')', d.acu, falta) + tarj('CMO · solo semana ' + sem, d.sem, falta);
+    var pbi = (d.acu && d.acu.pbi != null) ? d.acu.pbi : (d.sem && d.sem.pbi != null) ? d.sem.pbi : null;
+    html += '<article class="card kpi"><h3>Objetivo CMO</h3>' +
+      '<input class="proy-in" id="moObjIn" type="text" inputmode="decimal" autocomplete="off" value="' + esc(d.objTxt || '') + '" placeholder="' + (pbi != null ? 'Power BI: ' + pbi.toFixed(4) : 'Escribe, p. ej. 0.0162') + '" aria-label="Objetivo del CMO">' +
+      '<div class="lbl">' + (d.objNum != null ? 'escrito por ti' + (pbi != null ? ' · Power BI: ' + pbi.toFixed(4) : '') : d.objTxt ? 'no entiendo ese número' : 'vacío = el del Power BI (cmo py)') + '</div></article>';
     html += '<article class="card kpi"><h3>Personas planilladas · semana ' + sem + '</h3>' +
       '<input class="proy-in" id="persIn" type="text" inputmode="numeric" autocomplete="off" value="' + esc(d.pers || '') + '" placeholder="Escribe el número" aria-label="Personas planilladas de la semana ' + sem + '">' +
       '<div class="lbl">se guarda en este navegador</div></article>';
     $('gridMo').innerHTML = html;
   }
   document.addEventListener('change', function (e) {
+    if (e.target.id === 'moObjIn') {
+      try { var o = e.target.value.trim(); if (o) localStorage.setItem('rpt.mo.obj', o); else localStorage.removeItem('rpt.mo.obj'); } catch (er) { /* sin almacenamiento */ }
+      renderMo(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); return;
+    }
     if (e.target.id !== 'persIn') return;
     try { var v = e.target.value.trim(); if (v) localStorage.setItem(claveP(), v); else localStorage.removeItem(claveP()); } catch (er) { /* sin almacenamiento */ }
     if (window.RPT_PPT) window.RPT_PPT.refrescar();

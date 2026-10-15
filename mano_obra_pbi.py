@@ -5,7 +5,8 @@ Para la sección «Mano de Obra/Personal – Calidad» de reporte.html y su diap
 Corre en TU LAPTOP (mismo perfil de Edge que drenados_pbi.py). Qué hace, para cada SEMANA DE CORTE N:
   1. Abre el reporte y pone Año = el año elegido (por defecto, el actual); deja Mes y Fecha en «Todas».
   2. AVANCE DE CAMPAÑA: en «Sem» marca «Seleccionar todo» y desmarca las semanas mayores que N
-     → lee la tarjeta CMO ($/KGDW): el valor grande (0,0172) y su «Proy: 0,0162 (+6,4 %)».
+     → lee la tarjeta CMO ($/KGDW): el valor grande (0,0172). El objetivo sale de «cmo py: 0.0162»
+       (subtítulo del gráfico de tendencia; si no está, del «Proy:» de la tarjeta).
   3. SOLO LA SEMANA N: deja marcada solo N → lee lo mismo.
   4. Lo guarda dentro de fito.json (cifrado) y lo sube a GitHub.
 Por defecto, N = la semana pasada y la actual.
@@ -52,6 +53,13 @@ for (const ind of document.querySelectorAll('.indicatorText')) {
   out.tarjetas.push({x: r.x, y: r.y, w: r.width, h: r.height, v: ind.textContent.trim(), goal: g ? g.textContent.trim() : '',
                      t: tx.join(' | ').slice(0, 300), a: titulo.slice(0, 300)});
 }
+// objetivo del gráfico de tendencia: «cmo py: 0.0162»
+out.py = [];
+for (const e of document.querySelectorAll('h1,h2,h3,h4,h5,h6,div,span,p')) {
+  if (e.children.length) continue;
+  const t = (e.textContent || '').trim();
+  if (/^cmo\s*py\s*:/i.test(t)) out.py.push(t);
+}
 return out;
 """
 
@@ -83,9 +91,14 @@ def leer_cmo(driver):
     cmo = [t for t in ts if "CMO" in norm(t["t"] + " " + t["a"]) and "TENDENCIA" not in norm(t["t"])]
     t = min(cmo or ts, key=lambda t: (round(t["y"] / 40), t["x"]))    # la de arriba a la izquierda
     g = t["goal"] or ""
+    py = None
+    for x in d.get("py") or []:                          # «cmo py: 0.0162» (subtítulo del gráfico de tendencia)
+        mm = re.search(r"py\s*:\s*([-+]?\d[\d.,]*)", x, re.I)
+        if mm and decimal(mm.group(1)) is not None:
+            py = decimal(mm.group(1)); break
     m = re.search(r"Proy\.?\s*:?\s*([-+]?\d[\d.,]*)", g, re.I)
     p = re.search(r"\(\s*([-+]?\s*\d[\d.,]*)\s*%?\s*\)", g)
-    return {"v": decimal(t["v"]), "proy": decimal(m.group(1)) if m else None,
+    return {"v": decimal(t["v"]), "proy": py if py is not None else decimal(m.group(1)) if m else None,
             "dif": decimal(p.group(1).replace(" ", "")) if p else None, "texto": g}
 
 
