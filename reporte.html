@@ -265,10 +265,17 @@ html.locked .ppt { display: none !important; }
     <div class="kpis rec" id="gridDren"></div>
   </section>
 
+  <section class="sec" aria-labelledby="t-mo">
+    <div class="sec-h"><h2 id="t-mo">Mano de Obra/Personal – Calidad</h2><p id="moNota"></p></div>
+    <div class="band">MANO DE OBRA (CMO $/KGDW) · PERSONAS PLANILLADAS</div>
+    <p class="aviso" id="avisoMo" hidden></p>
+    <div class="kpis rec" id="gridMo"></div>
+  </section>
+
   <section class="sec" aria-labelledby="t-pend">
     <div class="sec-h"><h2 id="t-pend">Próximas secciones</h2><p>Se irán llenando a medida que se conecte cada base</p></div>
     <div class="pendiente">
-      <div><b>Producción, despachos y mano de obra</b>Bases del área de Producción</div>
+      <div><b>Producción, despachos y ratio de reclamos</b>Bases del área de Producción y del informe de reclamos</div>
     </div>
   </section>
 </div>
@@ -372,6 +379,8 @@ html.locked .ppt { display: none !important; }
     state.drenObs = P.dren && P.dren.obs ? P.dren.obs : {}; state.drenPct = P.dren && P.dren.pct ? P.dren.pct : {};
     state.drenObj = P.dren && P.dren.obj != null ? P.dren.obj : null;
     state.drenAcu = P.dren && P.dren.acu ? P.dren.acu : {};
+    // Mano de obra: CMO del Power BI de asistencia (bloque «mo» que sube mano_obra_pbi.py desde la laptop)
+    state.mo = P.mo && P.mo.anios ? P.mo.anios : {}; state.moGen = P.mo ? P.mo.gen : '';
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -518,7 +527,7 @@ html.locked .ppt { display: none !important; }
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas); renderRec(zonas); renderDren(zonas);
+    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo();
     if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
@@ -730,6 +739,39 @@ html.locked .ppt { display: none !important; }
     $('gridDren').innerHTML = html;
   }
 
+  // ---------- Mano de obra – calidad (diapositiva 6): CMO avance hasta la semana elegida y solo esa semana;
+  //            personas planilladas: se escriben aquí (por semana) y quedan guardadas en este navegador
+  function claveP() { return 'rpt.pers.' + state.anio + '.' + state.sem; }
+  function leerPers() { try { var v = localStorage.getItem(claveP()); return v == null || v === '' ? null : v; } catch (e) { return null; } }
+  function mo() {
+    var A = (state.mo || {})[String(state.anio)] || {}, s = String(state.sem);
+    return { acu: (A.acu || {})[s] || null, sem: (A.sem || {})[s] || null, pers: leerPers(), hay: !!(A.acu || A.sem) };
+  }
+  function renderMo() {
+    var d = mo(), sem = state.sem;
+    $('avisoMo').hidden = d.hay;
+    $('avisoMo').textContent = 'Todavía no hay CMO de ' + state.anio + ' en la página. Corre «python mano_obra_pbi.py» en tu laptop para subirlo.';
+    var g = state.moGen ? state.moGen.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
+    $('moNota').textContent = d.hay ? 'Power BI Control de Asistencia N05 · CMO ($/KGDW)' + (g ? ' · subido el ' + g : '') : '';
+    function tarj(t, x, falta) {
+      if (!x) return '<article class="card kpi"><h3>' + t + '</h3><div class="big">—</div><div class="lbl">' + falta + '</div></article>';
+      var dd = x.proy != null ? x.v - x.proy : null;
+      return '<article class="card kpi"><h3>' + t + '</h3><div class="big ' + (dd != null && dd > 0 ? 'rojo' : '') + '">' + x.v.toFixed(4) + '</div>' +
+        '<div class="lbl">' + (x.proy != null ? 'objetivo ' + x.proy.toFixed(4) + ' · ' + (dd >= 0 ? '+' : '−') + Math.abs(dd).toFixed(4) : 'sin objetivo') + '</div></article>';
+    }
+    var falta = 'falta: python mano_obra_pbi.py --semanas ' + sem;
+    var html = tarj('CMO · avance de campaña (hasta S.' + sem + ')', d.acu, falta) + tarj('CMO · solo semana ' + sem, d.sem, falta);
+    html += '<article class="card kpi"><h3>Personas planilladas · semana ' + sem + '</h3>' +
+      '<input class="proy-in" id="persIn" type="text" inputmode="numeric" autocomplete="off" value="' + esc(d.pers || '') + '" placeholder="Escribe el número" aria-label="Personas planilladas de la semana ' + sem + '">' +
+      '<div class="lbl">se guarda en este navegador</div></article>';
+    $('gridMo').innerHTML = html;
+  }
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'persIn') return;
+    try { var v = e.target.value.trim(); if (v) localStorage.setItem(claveP(), v); else localStorage.removeItem(claveP()); } catch (er) { /* sin almacenamiento */ }
+    if (window.RPT_PPT) window.RPT_PPT.refrescar();
+  });
+
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
   window.RPT = {
     state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
@@ -740,6 +782,7 @@ html.locked .ppt { display: none !important; }
     },
     cal: function (z) { return { per: ind3(z, periodo), acu: ind3(z, acumulado) }; },
     dren: dren,
+    mo: mo,
     rec: function () {
       var R = state.rec || [];
       function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
@@ -840,6 +883,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610151520"></script>
+<script src="reporte_ppt.js?v=202610151600"></script>
 </body>
 </html>

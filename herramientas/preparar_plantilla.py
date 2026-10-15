@@ -32,7 +32,8 @@ MAPA = {
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
         77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: ["{{obs.acu}}"], 123: ["{{obs.acu.dif}}"], 118: ["{{obs.sem}}"], 119: ["{{obs.sem.dif}}"]},
     5: {49: [V], 39: [V], 31: [V], 9: [V]},
-    6: {47: [V], 51: [V], 40: [V], 22: [V], 25: [V], 52: [V], 56: [V], 16: [V], 20: [V]},
+    6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: [V], 56: [V], 16: [V], 20: [V],
+        49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"]},
     8: {15: ["{{rec.sem}}"], 30: [V], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
     12: {14: [V], 13: ["INSPECTORES EN EL DÍA – {{dia}} {{ddmm}}"]},
 }

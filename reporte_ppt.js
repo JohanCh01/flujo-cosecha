@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151520';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151600';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -84,6 +84,15 @@
     // color del número: verde si está en el objetivo o por debajo, rojo si lo pasa
     if (dr.obsAcu != null) v['obs.acu.c'] = dr.obsAcu <= dr.obj ? '00B050' : 'FF0000';
     if (dr.obsSem != null) v['obs.sem.c'] = dr.obsSem <= dr.obj ? '00B050' : 'FF0000';
+    // mano de obra – calidad (CMO $/KGDW del Power BI de asistencia): avance hasta la semana de corte y solo esa semana
+    var mo = R.mo ? R.mo() : {};
+    var f4 = function (x) { return x == null ? '' : x.toFixed(4); };
+    var dif4 = function (x, p) { if (x == null || p == null) return ''; var d = x - p; return '(' + (d >= 0 ? '+' : '-') + Math.abs(d).toFixed(4) + ')'; };
+    v['mo.acu.obj'] = mo.acu && mo.acu.proy != null ? f4(mo.acu.proy) : '0.016';
+    v['mo.sem.obj'] = mo.sem && mo.sem.proy != null ? f4(mo.sem.proy) : '0.016';
+    if (mo.acu) { v['mo.acu'] = f4(mo.acu.v); v['mo.acu.dif'] = dif4(mo.acu.v, mo.acu.proy); if (mo.acu.proy != null) v['mo.acu.c'] = mo.acu.v <= mo.acu.proy ? '00B050' : 'FF0000'; }
+    if (mo.sem) { v['mo.sem'] = f4(mo.sem.v); v['mo.sem.dif'] = dif4(mo.sem.v, mo.sem.proy); if (mo.sem.proy != null) v['mo.sem.c'] = mo.sem.v <= mo.sem.proy ? '00B050' : 'FF0000'; }
+    v['mo.pers'] = mo.pers != null ? String(mo.pers) : '';
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();

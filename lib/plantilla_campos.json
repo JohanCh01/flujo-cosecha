@@ -3813,7 +3813,7 @@
 "font": "Century Gothic",
 "al": "center",
 "id": "F113",
-"t": ""
+"t": "{{mo.acu}}"
 }
 ]
 },
@@ -3847,7 +3847,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F114",
-"t": ""
+"t": "{{mo.acu.dif}}"
 }
 ]
 },
@@ -3881,7 +3881,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F115",
-"t": ""
+"t": "{{mo.sem.dif}}"
 }
 ]
 },
@@ -3915,7 +3915,7 @@
 "font": "Century Gothic",
 "al": "center",
 "id": "F116",
-"t": ""
+"t": "{{mo.sem}}"
 }
 ]
 },
@@ -3949,7 +3949,7 @@
 "font": "Century Gothic",
 "al": "left",
 "id": "F117",
-"t": ""
+"t": "{{mo.pers}}"
 }
 ]
 },
@@ -4092,6 +4092,74 @@
 {
 "s": 6,
 "box": [
+3.5593,
+2.6803,
+1.7653,
+0.4039
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "none",
+"k": [
+1.000019,
+0.999984
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "left",
+"id": "F122",
+"t": "Objetivo: {{mo.acu.obj}}"
+}
+]
+},
+{
+"s": 6,
+"box": [
+5.6765,
+2.7763,
+1.7653,
+0.4039
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "none",
+"k": [
+1.000019,
+0.999984
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "left",
+"id": "F123",
+"t": "Objetivo: {{mo.sem.obj}}"
+}
+]
+},
+{
+"s": 6,
+"box": [
 0.2465,
 0.2408,
 13.0869,
@@ -4118,7 +4186,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F122",
+"id": "F124",
 "t": "4.  Mano de Obra – Calidad / Ratio de Reclamos"
 }
 ]
@@ -4152,42 +4220,8 @@
 "c": "000000",
 "font": "Aptos Light",
 "al": "left",
-"id": "F123",
+"id": "F125",
 "t": "PERSONAS PLANILLADAS"
-}
-]
-},
-{
-"s": 6,
-"box": [
-3.5593,
-2.6803,
-1.7653,
-0.4039
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "none",
-"k": [
-1.000019,
-0.999984
-],
-"p": [
-{
-"sz": 18.0,
-"b": true,
-"i": false,
-"u": false,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
-"id": "F124",
-"t": "Objetivo: 0.016"
 }
 ]
 },
@@ -4220,42 +4254,8 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F125",
-"t": "AVANCE DE CAMPAÑA"
-}
-]
-},
-{
-"s": 6,
-"box": [
-5.6765,
-2.7763,
-1.7653,
-0.4039
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "none",
-"k": [
-1.000019,
-0.999984
-],
-"p": [
-{
-"sz": 18.0,
-"b": true,
-"i": false,
-"u": false,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
 "id": "F126",
-"t": "Objetivo: 0.016"
+"t": "AVANCE DE CAMPAÑA"
 }
 ]
 },
