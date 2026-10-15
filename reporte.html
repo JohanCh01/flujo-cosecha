@@ -383,7 +383,12 @@ html.locked .ppt { display: none !important; }
   }
   function armarSemanas(conservar) {
     var sems = semanasDe(state.anio);
-    if (!conservar || sems.indexOf(state.sem) < 0) state.sem = sems[sems.length - 1] || 0;
+    if (!conservar || sems.indexOf(state.sem) < 0) {
+      // por defecto, la semana de corte del reporte diario: la semana ANTERIOR a hoy (si no hay datos de esa, la última que haya)
+      var h = new Date(Date.now() - 5 * 3600000), hy = h.getUTCFullYear() * 10000 + (h.getUTCMonth() + 1) * 100 + h.getUTCDate(), w = isoSem(hy);
+      var corte = w[1] > 1 ? w[1] - 1 : 52;
+      state.sem = (w[0] === state.anio && sems.indexOf(corte) >= 0) ? corte : sems[sems.length - 1] || 0;
+    }
     $('fSem').innerHTML = sems.slice().reverse().map(function (s) { return '<option value="' + s + '"' + (s === state.sem ? ' selected' : '') + '>SEM ' + s + '</option>'; }).join('');
     var i = sems.indexOf(state.sem);
     $('semPrev').disabled = i <= 0; $('semNext').disabled = i < 0 || i >= sems.length - 1;
