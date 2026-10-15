@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151510';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151520';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -72,9 +72,9 @@
     var dr = R.dren ? R.dren() : { hay: false };
     if (dr.hay) {
       v['dren.proy'] = dr.proy ? dr.proyVer || mill(dr.proy) : '';
-      v['dren.eje'] = mill(dr.eje);
+      v['dren.eje'] = dr.eje == null ? '' : mill(dr.eje);
       v['dren.sem'] = dr.per == null ? '' : mill(dr.per);
-      v['dren.avance'] = dr.proy ? (dr.eje / dr.proy * 100).toFixed(1) + ' %' : '';
+      v['dren.avance'] = dr.proy && dr.eje != null ? (dr.eje / dr.proy * 100).toFixed(1) + ' %' : '';
     }
     // producto terminado observado (mismo Power BI): avance = Kg Obs ÷ Kg Prod de las semanas 1 a la de corte
     var dif = function (x, o) { var d = (x - o) * 100; return '(' + (d >= 0 ? '+' : '-') + Math.abs(d).toFixed(arguments[2] || 1) + ')'; };

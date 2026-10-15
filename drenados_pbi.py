@@ -3,20 +3,20 @@ Kilos DRENADOS y Producto terminado OBSERVADO desde el Power BI «5.07 Evaluacio
 Para la sección «Kilogramos drenados» de reporte.html y su diapositiva en la Vista PPT.
 
 Corre en TU LAPTOP (usa tu perfil de Edge, donde ya tienes la sesión de Power BI iniciada).
-Qué hace (sin capturas: lee el número):
+Qué hace (sin capturas: lee el número), para cada SEMANA DE CORTE N:
   1. Abre el reporte, borra todos los filtros y pone Año = el año elegido (por defecto, el actual).
-  2. Elige UNA semana a la vez en el filtro «Semana» y lee, del lado 2026: Kg Prod, Kg Obs y el % observado (con su objetivo).
-  3. Guarda el Kg Prod de cada semana dentro de fito.json (cifrado) y lo sube a GitHub.
-     En la página: Ejecutados hasta S.N = suma de las semanas 1 a N; Solo semana N = la semana N.
-     Observado avance de campaña = Kg Obs ÷ Kg Prod de las semanas 1 a N; Observado semana N = el de esa semana.
+  2. ACUMULADO: en «Semana» marca «Seleccionar todo» y desmarca las semanas mayores que N
+     → lee del lado 2026: Kg Prod (Ejecutados hasta S.N), Kg Obs y % observado (avance de campaña).
+  3. SOLO LA SEMANA N: borra el filtro «Semana» y marca solo N → lee los mismos valores (y el objetivo).
+  4. Lo guarda dentro de fito.json (cifrado) y lo sube a GitHub.
+Por defecto, N = la semana pasada y la actual (así sirve elijas la que elijas en la página).
 
 Uso (en Git Bash, dentro de la carpeta flujo-cosecha):
-    python drenados_pbi.py                  (vuelve a leer las 3 últimas semanas con datos y sube)
-    python drenados_pbi.py --todo           (lee TODAS las semanas del año; la primera vez)
-    python drenados_pbi.py --semanas 40 41  (solo esas semanas)
-    python drenados_pbi.py --sin-subir      (solo prueba: muestra los kilos y no sube nada)
+    python drenados_pbi.py                  (semana pasada y actual; sube)
+    python drenados_pbi.py --semanas 41     (solo esa semana de corte)
+    python drenados_pbi.py --sin-subir      (solo prueba: muestra los valores y no sube nada)
     python drenados_pbi.py --ver            (con la ventana de Edge visible, para mirar qué hace)
-    python drenados_pbi.py --diagnostico    (si no encuentra el «Kg Prod»: guarda en tu carpeta de usuario
+    python drenados_pbi.py --diagnostico    (si no encuentra los valores: guarda en tu carpeta de usuario
                                              drenados_diagnostico.txt con lo que ve en la hoja; mándamelo)
 
 Cierra antes cualquier otro script que use el mismo perfil de Edge (por ejemplo, el de las capturas):
@@ -148,9 +148,10 @@ def cerrar_slicer(driver, s):
         pass
 
 
-def recorrer(driver, popup, quiere=None):
-    """Recorre la lista (que se carga a medida que se baja). Sin «quiere»: devuelve todos los textos.
-    Con «quiere(texto)»: hace clic en la primera opción que cumpla y devuelve True."""
+def recorrer(driver, popup, quiere=None, solo_marcadas=False, con_estado=False):
+    """Recorre la lista (que se carga a medida que se baja). Sin «quiere»: devuelve todos los textos
+    (con con_estado=True, pares (texto, marcada)). Con «quiere(texto)»: hace clic en la primera opción que cumpla
+    (con solo_marcadas=True, solo si está marcada) y devuelve True."""
     cont = driver.execute_script("""const r=arguments[0];let m=r,d=0;for(const e of r.querySelectorAll('*')){const x=e.scrollHeight-e.clientHeight;if(x>d){d=x;m=e;}}return m;""", popup)
     driver.execute_script("arguments[0].scrollTop = 0;", cont)
     time.sleep(0.3)
@@ -160,11 +161,18 @@ def recorrer(driver, popup, quiere=None):
             t = texto_opcion(o)
             if not t:
                 continue
+            sel = o.get_attribute("aria-selected") == "true" or o.get_attribute("aria-checked") == "true"
             if quiere is None:
-                if t not in vistos:
-                    vistos.append(t)
+                item = (t, sel) if con_estado else t
+                if all((v[0] if con_estado else v) != t for v in vistos):
+                    vistos.append(item)
             elif quiere(t):
-                if o.get_attribute("aria-selected") != "true":
+                if solo_marcadas:
+                    if sel:
+                        clic(driver, o)
+                        return True
+                    continue
+                if not sel:
                     clic(driver, o)
                 return True
         antes = driver.execute_script("return arguments[0].scrollTop;", cont)
@@ -188,6 +196,39 @@ def limpiar(driver, nombre):
             time.sleep(1)
     except Exception:
         pass
+
+
+def es_todo(t):
+    n = norm(t)
+    return n.startswith("SELECCIONAR TODO") or n.startswith("SELECT ALL")
+
+
+def marcar_hasta(driver, nombre, hasta):
+    """Marca «Seleccionar todo» y desmarca las semanas mayores que «hasta». Devuelve True si quedó bien."""
+    s, popup = abrir_slicer(driver, nombre)
+    if popup is None:
+        log(f"[!] No encontré el filtro «{nombre}».")
+        return False
+    ok = recorrer(driver, popup, es_todo)              # clic en «Seleccionar todo» (si ya estaba marcado, no lo toca)
+    if not ok:
+        log("[!] El filtro «Semana» no tiene la opción «Seleccionar todo».")
+        cerrar_slicer(driver, s)
+        return False
+    time.sleep(1)
+    quitar = lambda t: not es_todo(t) and (num_semana(t) or 0) > hasta
+    for _ in range(60):                                 # desmarca una por una las semanas mayores (la lista se vuelve a dibujar)
+        if not recorrer(driver, popup, quitar, solo_marcadas=True):
+            break
+        time.sleep(0.8)
+    # comprobación: ninguna semana mayor marcada y alguna menor sí
+    marc = recorrer(driver, popup, None, con_estado=True)
+    cerrar_slicer(driver, s)
+    mal = [t for t, sel in marc if sel and quitar(t)]
+    bien = [t for t, sel in marc if sel and not es_todo(t) and (num_semana(t) or 99) <= hasta]
+    if mal or not bien:
+        log(f"[!] La selección de semanas no quedó bien (marcadas de más: {mal[:5]}).")
+        return False
+    return True
 
 
 def num_semana(t):
@@ -339,12 +380,15 @@ def leer_2026(driver, anio):
     return out if out["prod"] is not None else None
 
 
-def leer_estable(driver, anio, espera=25):
-    """Espera a que el reporte termine de recalcular: los mismos valores dos veces seguidas."""
-    time.sleep(3)
-    previo, fin = object(), time.time() + espera
+def leer_estable(driver, anio, antes=None, espera=30):
+    """Espera a que el reporte termine de recalcular: primero que cambie respecto de «antes» (hasta 12 s)
+    y luego los mismos valores dos veces seguidas."""
+    time.sleep(2.5)
+    t0, fin, previo = time.time(), time.time() + espera, object()
     while time.time() < fin:
         v = leer_2026(driver, anio)
+        if v is not None and antes is not None and v == antes and time.time() - t0 < 12:
+            time.sleep(1); continue
         if v is not None and v == previo:
             return v
         previo = v
@@ -372,23 +416,32 @@ def diagnostico(driver):
 
 # ---------------------------------------------------------------- guardar en fito.json y subir
 def guardar(anio, kilos, clave):
+    """kilos = {N: {'acu': {prod, obs, pct, obj}, 'sem': {...}}}"""
     dnis, it, sal = af.accesos(clave)
     contenido, _ = af.abrir_fito(clave)
     if not contenido:
         sys.exit("No pude abrir fito.json con esa clave (¿es la clave de administrador correcta?).")
     dren = contenido.get("dren") or {}
-    # anios = Kg Prod por semana · obs = Kg Obs por semana · pct = % observado del indicador · obj = objetivo
+    # anios/obs/pct = solo esa semana · acu = acumulado de la semana 1 hasta N · obj = objetivo
     prod = dren.setdefault("anios", {}).setdefault(str(anio), {})
     obs = dren.setdefault("obs", {}).setdefault(str(anio), {})
     pct = dren.setdefault("pct", {}).setdefault(str(anio), {})
-    for s, v in kilos.items():
-        prod[str(s)] = round(v["prod"], 2)
-        if v.get("obs") is not None:
-            obs[str(s)] = round(v["obs"], 2)
-        if v.get("pct") is not None:
-            pct[str(s)] = round(v["pct"], 6)
-        if v.get("obj"):
-            dren["obj"] = round(v["obj"], 6)
+    acu = dren.setdefault("acu", {}).setdefault(str(anio), {})
+    for n, par in kilos.items():
+        v = par.get("sem")
+        if v:
+            prod[str(n)] = round(v["prod"], 2)
+            if v.get("obs") is not None:
+                obs[str(n)] = round(v["obs"], 2)
+            if v.get("pct") is not None:
+                pct[str(n)] = round(v["pct"], 6)
+            if v.get("obj"):
+                dren["obj"] = round(v["obj"], 6)
+        w = par.get("acu")
+        if w:
+            acu[str(n)] = {k: (round(w[k], 6) if k == "pct" else round(w[k], 2)) for k in ("prod", "obs", "pct") if w.get(k) is not None}
+            if w.get("obj"):
+                dren["obj"] = round(w["obj"], 6)
     dren["gen"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
     dren["fuente"] = "Power BI 5.07 Evaluaciones de PT NV05 · Kg Prod, Kg Obs y % observado"
     contenido["dren"] = dren
@@ -415,21 +468,21 @@ def subir(anio, kilos, clave):
     sys.exit("No se pudo subir después de 3 intentos. Prueba otra vez en unos minutos.")
 
 
-def semanas_guardadas(anio, clave):
-    try:
-        contenido, _ = af.abrir_fito(clave)
-        return {int(k): v for k, v in ((contenido or {}).get("dren", {}).get("anios", {}).get(str(anio), {})).items()}
-    except Exception:
-        return {}
-
-
 # ---------------------------------------------------------------- principal
+def texto(v):
+    if not v:
+        return "(no se pudo leer)"
+    return (f"Kg Prod {v['prod']:,.2f}" + (f" · Kg Obs {v['obs']:,.2f}" if v["obs"] is not None else " · (sin Kg Obs)") +
+            (f" · Observado {v['obs'] / v['prod'] * 100:.2f} %" if v["obs"] is not None and v["prod"] else
+             f" · Observado {v['pct'] * 100:.1f} %" if v["pct"] is not None else "") +
+            (f" · objetivo {v['obj'] * 100:.1f} %" if v["obj"] else ""))
+
+
 def main():
-    ap = argparse.ArgumentParser(description="Sube a la página los kilos drenados (Kg Prod por semana) del Power BI")
+    ap = argparse.ArgumentParser(description="Sube a la página los kilos drenados y el producto observado del Power BI")
     ap.add_argument("--anio", type=int, default=date.today().year)
-    ap.add_argument("--todo", action="store_true", help="lee todas las semanas del año")
-    ap.add_argument("--semanas", type=int, nargs="+", help="solo estas semanas")
-    ap.add_argument("--sin-subir", action="store_true", help="solo muestra los kilos; no cambia ni sube nada")
+    ap.add_argument("--semanas", type=int, nargs="+", help="semanas de corte (por defecto: la pasada y la actual)")
+    ap.add_argument("--sin-subir", action="store_true", help="solo muestra los valores; no cambia ni sube nada")
     ap.add_argument("--ver", action="store_true", help="muestra la ventana de Edge")
     ap.add_argument("--diagnostico", action="store_true", help="guarda lo que ve en la hoja (para revisar)")
     a = ap.parse_args()
@@ -462,47 +515,44 @@ def main():
         s, popup = abrir_slicer(driver, "Semana")
         if popup is None:
             sys.exit("No encontré el filtro «Semana».")
-        disponibles = sorted({n for n in (num_semana(t) for t in recorrer(driver, popup)) if n})
+        disponibles = sorted({n for n in (num_semana(t) for t in recorrer(driver, popup) if not es_todo(t)) if n})
         cerrar_slicer(driver, s)
         if not disponibles:
             sys.exit(f"El filtro «Semana» no tiene semanas para {a.anio}.")
         log(f"Semanas con datos en {a.anio}: {disponibles[0]} a {disponibles[-1]}")
 
         if a.semanas:
-            leer = [x for x in a.semanas if x in disponibles]
-        elif a.todo or a.sin_subir:
-            leer = disponibles
+            cortes = [x for x in a.semanas if x in disponibles]
         else:
-            hechas = semanas_guardadas(a.anio, clave)
-            leer = [x for x in disponibles if x not in hechas] + [x for x in disponibles[-3:] if x in hechas]   # nuevas + las 3 últimas otra vez
-            leer = sorted(set(leer))
-
-        for n in leer:
+            hoy = date.today().isocalendar()[1] if a.anio == date.today().year else disponibles[-1]
+            cortes = [x for x in (hoy - 1, hoy) if x in disponibles] or disponibles[-1:]
+        anterior = leer_2026(driver, a.anio)
+        for n in cortes:
+            par = {}
+            # acumulado: Seleccionar todo y quitar las semanas mayores que n
             limpiar(driver, "Semana")
-            if not elegir(driver, "Semana", lambda t, n=n: num_semana(t) == n):
-                log(f"[!] No pude elegir la semana {n}; la salto.")
+            if marcar_hasta(driver, "Semana", n):
+                par["acu"] = leer_estable(driver, a.anio, anterior)
+                anterior = par["acu"] or anterior
+                log(f"Hasta la semana {n}: {texto(par['acu'])}")
+            # solo la semana n
+            limpiar(driver, "Semana")
+            if elegir(driver, "Semana", lambda t, n=n: not es_todo(t) and num_semana(t) == n):
+                par["sem"] = leer_estable(driver, a.anio, anterior)
+                anterior = par["sem"] or anterior
+                log(f"Solo la semana {n}: {texto(par['sem'])}")
+            par = {k: v for k, v in par.items() if v}
+            if not par:
+                diagnostico(driver)
+                log(f"[!] Semana {n}: no pude leer los valores de {a.anio}. Mándame {ARCHIVO_DIAG.name}.")
                 continue
-            v = leer_estable(driver, a.anio)
-            if v is None:
-                if a.diagnostico or not kilos:
-                    diagnostico(driver)
-                log(f"[!] Semana {n}: no encontré el «Kg Prod» de {a.anio}. Corre con --diagnostico y mándame {ARCHIVO_DIAG.name}.")
-                if not kilos:
-                    sys.exit(1)
-                continue
-            kilos[n] = v
-            log(f"Semana {n}: Kg Prod {v['prod']:,.2f}" + (f" · Kg Obs {v['obs']:,.2f}" if v["obs"] is not None else " · (sin Kg Obs)") +
-                (f" · Observado {v['pct'] * 100:.1f} %" if v["pct"] is not None else " · (sin % observado)") +
-                (f" · objetivo {v['obj'] * 100:.1f} %" if v["obj"] else ""))
+            kilos[n] = par
         limpiar(driver, "Semana")
     finally:
         driver.quit()
 
     if not kilos:
         sys.exit("No se leyó ninguna semana.")
-    tp = sum(v["prod"] for v in kilos.values())
-    to = sum(v["obs"] for v in kilos.values() if v["obs"] is not None)
-    log(f"Total de las semanas leídas: Kg Prod {tp:,.2f}" + (f" · Kg Obs {to:,.2f} · Observado {to / tp * 100:.2f} %" if tp and to else ""))
     if a.sin_subir:
         return
     subir(a.anio, kilos, clave)
