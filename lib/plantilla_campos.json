@@ -2283,7 +2283,7 @@
 "font": "Arial",
 "al": "left",
 "id": "F68",
-"t": ""
+"t": "{{obs.acu}}"
 }
 ]
 },
@@ -2317,7 +2317,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F69",
-"t": ""
+"t": "{{obs.acu.dif}}"
 }
 ]
 },
@@ -2351,7 +2351,7 @@
 "font": "Arial",
 "al": "left",
 "id": "F70",
-"t": ""
+"t": "{{obs.sem}}"
 }
 ]
 },
@@ -2385,7 +2385,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F71",
-"t": ""
+"t": "{{obs.sem.dif}}"
 }
 ]
 },
@@ -3031,7 +3031,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F90",
-"t": "Objetivo: 3.50%"
+"t": "Objetivo: {{obs.obj}}"
 }
 ]
 },
@@ -3065,7 +3065,7 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F91",
-"t": "Objetivo: 3.50%"
+"t": "Objetivo: {{obs.obj}}"
 }
 ]
 },

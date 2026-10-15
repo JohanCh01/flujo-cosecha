@@ -1,13 +1,14 @@
 """
-Kilos DRENADOS desde el Power BI «5.07 Evaluaciones de PT NV05» (hoja Resumen Producto Observado).
+Kilos DRENADOS y Producto terminado OBSERVADO desde el Power BI «5.07 Evaluaciones de PT NV05» (hoja Resumen Producto Observado).
 Para la sección «Kilogramos drenados» de reporte.html y su diapositiva en la Vista PPT.
 
 Corre en TU LAPTOP (usa tu perfil de Edge, donde ya tienes la sesión de Power BI iniciada).
 Qué hace (sin capturas: lee el número):
   1. Abre el reporte, borra todos los filtros y pone Año = el año elegido (por defecto, el actual).
-  2. Elige UNA semana a la vez en el filtro «Semana» y lee el «Kg Prod» del lado 2026.
+  2. Elige UNA semana a la vez en el filtro «Semana» y lee, del lado 2026: Kg Prod, Kg Obs y el % observado (con su objetivo).
   3. Guarda el Kg Prod de cada semana dentro de fito.json (cifrado) y lo sube a GitHub.
      En la página: Ejecutados hasta S.N = suma de las semanas 1 a N; Solo semana N = la semana N.
+     Observado avance de campaña = Kg Obs ÷ Kg Prod de las semanas 1 a N; Observado semana N = el de esa semana.
 
 Uso (en Git Bash, dentro de la carpeta flujo-cosecha):
     python drenados_pbi.py                  (vuelve a leer las 3 últimas semanas con datos y sube)
@@ -204,22 +205,30 @@ def elegir(driver, nombre, cumple):
     return ok
 
 
-# ---------------------------------------------------------------- lectura del «Kg Prod» de 2026
-# En la hoja, el Kg Prod es una TARJETA cuyo aria-label dice, por ejemplo, «Kg dw, 30.922 tarjeta».
-# Hay una por año (2025 y 2026): se toma la que está debajo del título «2026».
+# ---------------------------------------------------------------- lectura de los valores de 2026
+# En la hoja, cada valor es una TARJETA cuyo aria-label dice «<nombre>, <valor> tarjeta», p. ej. «Kg dw, 30.922 tarjeta»
+# (Kg Prod) y la del Kg Obs. El % observado es el indicador (gauge): su número grande es <text class="mainText"> «2,4 %»
+# y el objetivo es <text class="targetText"> «3,5 %». Hay uno de cada por año: se toma el que está debajo del título «2026».
 JS_TARJETAS = r"""
-const out = {tarjetas: [], titulos: [], etiquetas: []};
+const out = {tarjetas: [], titulos: [], gauges: [], etiquetas: []};
+const rc = e => { const r = e.getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; };
 for (const e of document.querySelectorAll('[aria-label]')) {
   const a = (e.getAttribute('aria-label') || '').replace(/ /g, ' ').trim();
-  const r = e.getBoundingClientRect();
-  if (r.width < 2 || r.height < 2) continue;
-  if (/^kg\s*(dw|prod)\b/i.test(a)) out.tarjetas.push({a: a, x: r.x, y: r.y, w: r.width, h: r.height});
+  const r = rc(e);
+  if (r.w < 2 || r.h < 2) continue;
+  if (/^[^,]{1,40},\s*.*tarjeta\s*$/i.test(a)) out.tarjetas.push(Object.assign({a: a}, r));
   if (/\d/.test(a) && out.etiquetas.length < 400) out.etiquetas.push({a: a.slice(0, 200), x: Math.round(r.x), y: Math.round(r.y)});
+}
+for (const t of document.querySelectorAll('text.mainText')) {
+  const r = rc(t); if (r.w < 1) continue;
+  const svg = t.closest('svg'), obj = svg ? svg.querySelector('text.targetText') : null;
+  const txt = n => n ? (n.childNodes[0] && n.childNodes[0].nodeType === 3 ? n.childNodes[0].nodeValue : n.textContent).trim() : '';
+  out.gauges.push(Object.assign({v: txt(t), obj: txt(obj)}, r));
 }
 const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
 while (w.nextNode()) {
   const t = w.currentNode.nodeValue.trim();
-  if (/^20\d\d$/.test(t)) { const r = w.currentNode.parentElement.getBoundingClientRect(); if (r.width > 1) out.titulos.push({t: t, x: r.x, y: r.y, w: r.width, h: r.height}); }
+  if (/^20\d\d$/.test(t)) { const r = rc(w.currentNode.parentElement); if (r.w > 1) out.titulos.push(Object.assign({t: t}, r)); }
 }
 return out;
 """
@@ -252,7 +261,7 @@ def en_todos_los_frames(driver, js, profundidad=2):
         return None
     r = correr(profundidad)
     driver.switch_to.default_content()
-    return r or (vistos[0] if vistos else {"tarjetas": [], "titulos": [], "etiquetas": []})
+    return r or (vistos[0] if vistos else {"tarjetas": [], "titulos": [], "gauges": [], "etiquetas": []})
 
 
 def a_numero(t):
@@ -276,52 +285,82 @@ def a_numero(t):
     return v * (1e6 if suf in ("mill", "m") else 1e3 if suf in ("mil", "k") else 1)
 
 
+def nombre_tarjeta(a):
+    return norm(a.split(",")[0])
+
+
 def valor_tarjeta(a):
     """«Kg dw, 30.922 tarjeta» → 30922.0 ; «Kg dw, (En blanco) tarjeta» → 0.0"""
-    resto = re.sub(r"^kg\s*(dw|prod)\s*[,:]?\s*", "", a, flags=re.I)
+    resto = a.split(",", 1)[1] if "," in a else ""
     resto = re.sub(r"\s*tarjeta\s*$", "", resto, flags=re.I).strip()
     return a_numero(resto)
 
 
-def kg_prod_2026(driver, anio):
+def porcentaje(t):
+    """«2,4 %» → 0.024"""
+    v = a_numero((t or "").replace("%", "").strip()) if t and re.search(r"\d", t) else None
+    return None if v is None else v / 100
+
+
+def es_prod(a):
+    return nombre_tarjeta(a) in ("KG DW", "KG PROD", "KGDW", "KGPROD")
+
+
+def es_obs(a):
+    n = nombre_tarjeta(a)
+    return n.startswith("KG") and "OBS" in n
+
+
+def leer_2026(driver, anio):
+    """{'prod': Kg Prod, 'obs': Kg Obs, 'pct': % observado (fracción), 'obj': objetivo (fracción)} del lado 2026."""
     d = en_todos_los_frames(driver, JS_TARJETAS)
-    tarjetas = [t for t in d["tarjetas"] if valor_tarjeta(t["a"]) is not None]
-    if not tarjetas:
-        return None
     cx = lambda v: v["x"] + v["w"] / 2
-    tit = {}
-    cerca = lambda t: min(abs(cx(t) - cx(c)) for c in tarjetas)
+    prods = [t for t in d["tarjetas"] if es_prod(t["a"]) and valor_tarjeta(t["a"]) is not None]
+    if not prods:
+        return None
+    tit, cerca = {}, lambda t: min(abs(cx(t) - cx(c)) for c in prods)
     for t in d["titulos"]:                              # de cada año, el título más cercano a las tarjetas (no el de la tabla)
         if t["t"] in (str(anio), str(anio - 1)) and (t["t"] not in tit or cerca(t) < cerca(tit[t["t"]])):
             tit[t["t"]] = t
-    if str(anio) in tit:
-        x26 = cx(tit[str(anio)])
-        x25 = cx(tit[str(anio - 1)]) if str(anio - 1) in tit else None
-        lado = [t for t in tarjetas if x25 is None or abs(cx(t) - x26) < abs(cx(t) - x25)]
-        if lado:
-            return valor_tarjeta(min(lado, key=lambda t: abs(cx(t) - x26))["a"])
-    return valor_tarjeta(max(tarjetas, key=cx)["a"])  # sin títulos: la de más a la derecha (2026)
+    x26 = cx(tit[str(anio)]) if str(anio) in tit else max(cx(t) for t in prods)
+    x25 = cx(tit[str(anio - 1)]) if str(anio - 1) in tit else None
+
+    def del_lado(lista):
+        lado = [t for t in lista if x25 is None or abs(cx(t) - x26) < abs(cx(t) - x25)]
+        return min(lado, key=lambda t: abs(cx(t) - x26)) if lado else None
+
+    out = {"prod": valor_tarjeta(del_lado(prods)["a"]) if del_lado(prods) else None, "obs": None, "pct": None, "obj": None}
+    o = del_lado([t for t in d["tarjetas"] if es_obs(t["a"]) and valor_tarjeta(t["a"]) is not None])
+    if o:
+        out["obs"] = valor_tarjeta(o["a"])
+    g = del_lado(d.get("gauges") or [])
+    if g:
+        out["pct"], out["obj"] = porcentaje(g["v"]), porcentaje(g["obj"])
+    return out if out["prod"] is not None else None
 
 
 def leer_estable(driver, anio, espera=25):
-    """Espera a que el reporte termine de recalcular: el mismo número dos veces seguidas."""
+    """Espera a que el reporte termine de recalcular: los mismos valores dos veces seguidas."""
     time.sleep(3)
     previo, fin = object(), time.time() + espera
     while time.time() < fin:
-        v = kg_prod_2026(driver, anio)
+        v = leer_2026(driver, anio)
         if v is not None and v == previo:
             return v
         previo = v
         time.sleep(1.5)
-    return previo if isinstance(previo, float) else None
+    return previo if isinstance(previo, dict) else None
 
 
 def diagnostico(driver):
     d = en_todos_los_frames(driver, JS_TARJETAS)
     with open(ARCHIVO_DIAG, "w", encoding="utf-8") as f:
-        f.write(f"{datetime.now():%d/%m/%Y %H:%M}\n\nTARJETAS Kg dw / Kg Prod ({len(d['tarjetas'])}):\n")
+        f.write(f"{datetime.now():%d/%m/%Y %H:%M}\n\nTARJETAS ({len(d['tarjetas'])}):\n")
         for t in d["tarjetas"]:
             f.write(f"  x={t['x']:.0f} y={t['y']:.0f}  {t['a']}\n")
+        f.write(f"\nINDICADORES (gauge) ({len(d.get('gauges') or [])}):\n")
+        for t in d.get("gauges") or []:
+            f.write(f"  x={t['x']:.0f} y={t['y']:.0f}  valor={t['v']}  objetivo={t['obj']}\n")
         f.write(f"\nTÍTULOS DE AÑO ({len(d['titulos'])}):\n")
         for t in d["titulos"]:
             f.write(f"  x={t['x']:.0f} y={t['y']:.0f}  {t['t']}\n")
@@ -338,11 +377,20 @@ def guardar(anio, kilos, clave):
     if not contenido:
         sys.exit("No pude abrir fito.json con esa clave (¿es la clave de administrador correcta?).")
     dren = contenido.get("dren") or {}
-    sem = dren.setdefault("anios", {}).setdefault(str(anio), {})
-    for s, kg in kilos.items():
-        sem[str(s)] = round(kg, 2)
+    # anios = Kg Prod por semana · obs = Kg Obs por semana · pct = % observado del indicador · obj = objetivo
+    prod = dren.setdefault("anios", {}).setdefault(str(anio), {})
+    obs = dren.setdefault("obs", {}).setdefault(str(anio), {})
+    pct = dren.setdefault("pct", {}).setdefault(str(anio), {})
+    for s, v in kilos.items():
+        prod[str(s)] = round(v["prod"], 2)
+        if v.get("obs") is not None:
+            obs[str(s)] = round(v["obs"], 2)
+        if v.get("pct") is not None:
+            pct[str(s)] = round(v["pct"], 6)
+        if v.get("obj"):
+            dren["obj"] = round(v["obj"], 6)
     dren["gen"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
-    dren["fuente"] = "Power BI 5.07 Evaluaciones de PT NV05 · Kg Prod"
+    dren["fuente"] = "Power BI 5.07 Evaluaciones de PT NV05 · Kg Prod, Kg Obs y % observado"
     contenido["dren"] = dren
     contenido["gen"] = datetime.now().strftime("%Y-%m-%dT%H:%M")
     af.guardar_fito(contenido, dnis, clave, it, sal)
@@ -434,23 +482,27 @@ def main():
             if not elegir(driver, "Semana", lambda t, n=n: num_semana(t) == n):
                 log(f"[!] No pude elegir la semana {n}; la salto.")
                 continue
-            kg = leer_estable(driver, a.anio)
-            if kg is None:
+            v = leer_estable(driver, a.anio)
+            if v is None:
                 if a.diagnostico or not kilos:
                     diagnostico(driver)
                 log(f"[!] Semana {n}: no encontré el «Kg Prod» de {a.anio}. Corre con --diagnostico y mándame {ARCHIVO_DIAG.name}.")
                 if not kilos:
                     sys.exit(1)
                 continue
-            kilos[n] = kg
-            log(f"Semana {n}: {kg:,.2f} kg")
+            kilos[n] = v
+            log(f"Semana {n}: Kg Prod {v['prod']:,.2f}" + (f" · Kg Obs {v['obs']:,.2f}" if v["obs"] is not None else " · (sin Kg Obs)") +
+                (f" · Observado {v['pct'] * 100:.1f} %" if v["pct"] is not None else " · (sin % observado)") +
+                (f" · objetivo {v['obj'] * 100:.1f} %" if v["obj"] else ""))
         limpiar(driver, "Semana")
     finally:
         driver.quit()
 
     if not kilos:
         sys.exit("No se leyó ninguna semana.")
-    log(f"Total de las semanas leídas: {sum(kilos.values()):,.2f} kg")
+    tp = sum(v["prod"] for v in kilos.values())
+    to = sum(v["obs"] for v in kilos.values() if v["obs"] is not None)
+    log(f"Total de las semanas leídas: Kg Prod {tp:,.2f}" + (f" · Kg Obs {to:,.2f} · Observado {to / tp * 100:.2f} %" if tp and to else ""))
     if a.sin_subir:
         return
     subir(a.anio, kilos, clave)

@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151400';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151510';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -76,6 +76,14 @@
       v['dren.sem'] = dr.per == null ? '' : mill(dr.per);
       v['dren.avance'] = dr.proy ? (dr.eje / dr.proy * 100).toFixed(1) + ' %' : '';
     }
+    // producto terminado observado (mismo Power BI): avance = Kg Obs ÷ Kg Prod de las semanas 1 a la de corte
+    var dif = function (x, o) { var d = (x - o) * 100; return '(' + (d >= 0 ? '+' : '-') + Math.abs(d).toFixed(arguments[2] || 1) + ')'; };
+    v['obs.obj'] = dr.obj != null ? (dr.obj * 100).toFixed(2) + '%' : '3.50%';
+    if (dr.obsAcu != null) { v['obs.acu'] = (dr.obsAcu * 100).toFixed(1) + '%'; v['obs.acu.dif'] = dif(dr.obsAcu, dr.obj, 1); }
+    if (dr.obsSem != null) { v['obs.sem'] = (dr.obsSem * 100).toFixed(2) + '%'; v['obs.sem.dif'] = dif(dr.obsSem, dr.obj, 2); }
+    // color del número: verde si está en el objetivo o por debajo, rojo si lo pasa
+    if (dr.obsAcu != null) v['obs.acu.c'] = dr.obsAcu <= dr.obj ? '00B050' : 'FF0000';
+    if (dr.obsSem != null) v['obs.sem.c'] = dr.obsSem <= dr.obj ? '00B050' : 'FF0000';
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
@@ -128,6 +136,8 @@
   var SUSTITUTA = { 'Abadi ExtraLight': 'AbadiWeb', 'Century Gothic': 'GothicWeb', 'Calibri': 'Carlito', 'Candara': 'Carlito', 'Aptos Light': 'AbadiWeb', 'Aptos': 'Carlito' };
   var FUENTES = ['Abadi ExtraLight', 'Century Gothic', 'Calibri', 'Candara', 'Arial', 'Aptos Light', 'Times New Roman', 'Verdana', 'Tahoma'];
   function familia(f) { return "'" + f + "'" + (SUSTITUTA[f] ? ",'" + SUSTITUTA[f] + "'" : '') + ",'Carlito',Arial,sans-serif"; }
+  // color que depende del dato (p. ej. observado: verde o rojo según el objetivo): valores['<marca>.c']
+  function colorDe(p) { var m = p.t.match(/^\{\{([^}#]+)\}\}$/); return m && valores[m[1] + '.c'] ? valores[m[1] + '.c'] : p.c; }
   function fmt(p) { var o = ed.f[p.id] || {}; return { sz: o.sz || p.sz, b: o.b != null ? o.b : p.b, i: o.i != null ? o.i : p.i, font: o.font || p.font }; }
 
   // ---------- dibujo de una diapositiva (fondo de tu PPT + todos los textos encima)
@@ -146,7 +156,7 @@
           var cols = valores[p.lineas + '.colores'] || [];
           cuerpo = txt.split('\n').map(function (l, k) { return (cols[k] ? '<span class="sw" contenteditable="false" style="background:#' + cols[k] + '"></span>' : '') + esc(l); }).join('\n');
         }
-        h += '<div class="pr' + (corto ? ' nw1' : '') + '" data-f="' + p.id + '"' + (editable ? ' contenteditable="true" spellcheck="false"' : '') + ' style="font-size:' + f.sz * PX / 72 + 'px;color:#' + p.c +
+        h += '<div class="pr' + (corto ? ' nw1' : '') + '" data-f="' + p.id + '"' + (editable ? ' contenteditable="true" spellcheck="false"' : '') + ' style="font-size:' + f.sz * PX / 72 + 'px;color:#' + colorDe(p) +
           ';text-align:' + p.al + ';font-family:' + familia(f.font) + ';font-weight:' + (f.b ? 700 : 400) + ';font-style:' + (f.i ? 'italic' : 'normal') + ';' + (p.u ? 'text-decoration:underline;' : '') + '">' + cuerpo + '</div>';
       });
       h += '</div>';
@@ -442,6 +452,17 @@
   }
   function llenarXml(xml, textos, n) {
     xml = aplicarFormatos(xml);
+    plantilla.campos.forEach(function (c) {           // colores que dependen del dato
+      if (c.s !== n) return;
+      c.p.forEach(function (p) {
+        var col = colorDe(p); if (col === p.c) return;
+        var tok = '{{#' + p.id + '}}', i = xml.indexOf(tok); if (i < 0) return;
+        var r0 = xml.lastIndexOf('<a:r>', i); if (r0 < 0) return;
+        var seg = xml.slice(r0, i), m = seg.match(/<a:rPr\b[^>]*?\/>|<a:rPr\b[\s\S]*?<\/a:rPr>/);
+        var nuevo = m ? seg.replace(m[0], conColor(m[0], col)) : seg.replace('<a:r>', '<a:r>' + conColor('<a:rPr lang="es-PE"/>', col));
+        xml = xml.slice(0, r0) + nuevo + xml.slice(i);
+      });
+    });
     // líneas con cuadrito de color: un párrafo por línea, con un primer run "■ " del color de la barra
     plantilla.campos.forEach(function (c) {
       c.p.forEach(function (p) {

@@ -30,7 +30,7 @@ MAPA = {
     7: {2: ["INDICADORES DE\nLA\nSEMANA {{sem}}"]},
     3: {**{i: [V] for i in (52, 56, 69, 71, 29, 39, 7, 25, 60, 81, 83, 87, 91, 97, 99, 101, 105, 107, 113, 115)}},
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
-        77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: [V], 123: [V], 118: [V], 119: [V]},
+        77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: ["{{obs.acu}}"], 123: ["{{obs.acu.dif}}"], 118: ["{{obs.sem}}"], 119: ["{{obs.sem.dif}}"]},
     5: {49: [V], 39: [V], 31: [V], 9: [V]},
     6: {47: [V], 51: [V], 40: [V], 22: [V], 25: [V], 52: [V], 56: [V], 16: [V], 20: [V]},
     8: {15: ["{{rec.sem}}"], 30: [V], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
@@ -68,6 +68,7 @@ IMAGENES = {3: (119, "Imagen 1"), 6: (7, "Imagen 2"), 12: (8, "Imagen 3")}
 PIE = {3: (40, 6.44, 0.52, 1300)}
 # textos fijos que traen la semana o la fecha del reporte del 12/10
 REEMPLAZOS = [(r"(?i)(semana de |semana |sem\. ?|sem ?|s\.)41", r"\g<1>{{sem}}"), (r"(?i)(semana |semana de )40", r"\g<1>{{sem_ant}}"),
+              (r"Objetivo: 3\.50%", "Objetivo: {{obs.obj}}"),
               (r"12/10/2026", "{{fecha}}"), (r"12/10", "{{ddmm}}"), (r"Lun\.", "{{dia}}")]
 
 

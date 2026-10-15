@@ -168,6 +168,8 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .dia tr.tot td { font-weight: 600; border-top: 1.5px solid var(--line); }
 .kpis.rec { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .kpi .big.azul { color: var(--band-ink); }
+.kpi .big.rojo { color: #c0392b; }
+.kpi.obs { background: color-mix(in srgb, #c76b86 9%, var(--surface)); }
 .kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
 .proy-in { width: 100%; box-sizing: border-box; margin-top: 6px; height: 46px; padding: 0 10px; font: 600 26px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
 .proy-in:hover { border-color: var(--accent); } .proy-in:focus { outline: 2px solid var(--accent); border-style: solid; }
@@ -258,7 +260,7 @@ html.locked .ppt { display: none !important; }
 
   <section class="sec" aria-labelledby="t-dren">
     <div class="sec-h"><h2 id="t-dren">Kilos de Espárrago Drenado</h2><p id="drenNota"></p></div>
-    <div class="band">KILOGRAMOS DRENADOS</div>
+    <div class="band">KILOGRAMOS DRENADOS · PRODUCTO TERMINADO OBSERVADO</div>
     <p class="aviso" id="avisoDren" hidden></p>
     <div class="kpis rec" id="gridDren"></div>
   </section>
@@ -266,7 +268,6 @@ html.locked .ppt { display: none !important; }
   <section class="sec" aria-labelledby="t-pend">
     <div class="sec-h"><h2 id="t-pend">Próximas secciones</h2><p>Se irán llenando a medida que se conecte cada base</p></div>
     <div class="pendiente">
-      <div><b>Producto terminado observado</b>% observado · indicadores de proceso</div>
       <div><b>Producción, despachos y mano de obra</b>Bases del área de Producción</div>
     </div>
   </section>
@@ -368,6 +369,8 @@ html.locked .ppt { display: none !important; }
     // Kilos drenados: Kg Prod por semana del Power BI (bloque «dren» que sube drenados_pbi.py desde la laptop)
     state.dren = P.dren && P.dren.anios ? P.dren.anios : {};
     state.drenGen = P.dren ? P.dren.gen : '';
+    state.drenObs = P.dren && P.dren.obs ? P.dren.obs : {}; state.drenPct = P.dren && P.dren.pct ? P.dren.pct : {};
+    state.drenObj = P.dren && P.dren.obj != null ? P.dren.obj : null;
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -686,7 +689,15 @@ html.locked .ppt { display: none !important; }
     var S = drenSemanas(), ks = Object.keys(S).map(Number), eje = 0, per = S[String(state.sem)];
     ks.forEach(function (k) { if (k <= state.sem) eje += S[k]; });
     var p = proy('dren');
-    return { hay: ks.length > 0, eje: eje, per: per == null ? null : per, proy: p.kg, proyVer: p.ver, ult: ks.length ? Math.max.apply(null, ks) : 0 };
+    // producto terminado observado: Kg Obs ÷ Kg Prod (si falta el Kg Obs de una semana, se usa el % del indicador × Kg Prod)
+    var O = (state.drenObs || {})[String(state.anio)] || {}, PC = (state.drenPct || {})[String(state.anio)] || {};
+    function obsDe(k) { return O[k] != null ? O[k] : PC[k] != null ? PC[k] * S[k] : null; }
+    var to = 0, tp = 0, hayObs = false;
+    ks.forEach(function (k) { if (k <= state.sem) { var o = obsDe(k); if (o != null) { to += o; tp += S[k]; hayObs = true; } } });
+    var os = obsDe(state.sem), ps = S[String(state.sem)];
+    return { hay: ks.length > 0, eje: eje, per: per == null ? null : per, proy: p.kg, proyVer: p.ver, ult: ks.length ? Math.max.apply(null, ks) : 0,
+      obsAcu: hayObs && tp ? to / tp : null, obsSem: os != null && ps ? os / ps : (PC[state.sem] != null ? PC[state.sem] : null),
+      kgObsAcu: hayObs ? to : null, kgObsSem: os, obj: state.drenObj != null ? state.drenObj : 0.035 };
   }
   function renderDren(zonas) {
     var d = dren(), conProy = d.proy > 0 && zonas.length === 1 && zonas[0] === 'TODAS';
@@ -699,6 +710,13 @@ html.locked .ppt { display: none !important; }
     html += '<article class="card kpi"><h3>Ejecutados hasta S.' + state.sem + '</h3><div class="big">' + kgTxt(d.eje) + '</div><div class="lbl">kilos · semanas 1 a ' + state.sem + '</div></article>';
     html += '<article class="card kpi"><h3>Avance de campaña</h3><div class="big">' + (conProy ? pct(d.eje / d.proy) : '—') + '</div><div class="lbl">' + (d.proy ? 'ejecutado ÷ proyectado' : 'escribe el proyectado') + '</div></article>';
     html += '<article class="card kpi"><h3>Solo semana ' + state.sem + '</h3><div class="big">' + (d.per == null ? '—' : kgTxt(d.per)) + '</div><div class="lbl">' + (d.per == null ? 'sin dato de esa semana' : 'kilos') + '</div></article>';
+    // producto terminado observado
+    var ob = function (x, dec, o) { if (x == null) return '<div class="big">—</div><div class="lbl">sin dato</div>'; var dd = (x - o) * 100;
+      return '<div class="big ' + (x <= o ? '' : 'rojo') + '">' + (x * 100).toFixed(dec) + '%</div><div class="lbl">objetivo ' + (o * 100).toFixed(2) + '% · ' + (dd >= 0 ? '+' : '−') + Math.abs(dd).toFixed(dec) + ' pts</div>'; };
+    html += '<article class="card kpi obs"><h3>P.T. observado · avance de campaña</h3>' + ob(d.obsAcu, 1, d.obj) +
+      (d.kgObsAcu != null ? '<p class="foot">' + Math.round(d.kgObsAcu).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.eje).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
+    html += '<article class="card kpi obs"><h3>P.T. observado · semana ' + state.sem + '</h3>' + ob(d.obsSem, 2, d.obj) +
+      (d.kgObsSem != null && d.per ? '<p class="foot">' + Math.round(d.kgObsSem).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.per).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
     $('gridDren').innerHTML = html;
   }
 
@@ -812,6 +830,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610151400"></script>
+<script src="reporte_ppt.js?v=202610151510"></script>
 </body>
 </html>
