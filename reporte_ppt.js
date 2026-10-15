@@ -12,6 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
+  var V = '202610151153';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = {};
 
@@ -94,7 +95,7 @@
 
   // ---------- dibujo de una diapositiva (fondo de tu PPT + valores encima)
   function htmlSlide(n, editable) {
-    var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg">';
+    var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg?v=' + V + '">';
     plantilla.campos.forEach(function (c) {
       if (c.s !== n) return;
       var b = c.box, st = 'left:' + b[0] * PX + 'px;top:' + b[1] * PX + 'px;width:' + b[2] * PX + 'px;height:' + b[3] * PX + 'px;' +
@@ -166,7 +167,7 @@
 
   function cargarPlantilla() {
     if (plantilla) return Promise.resolve();
-    return fetch('lib/plantilla_campos.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('sin plantilla'); return r.json(); }).then(function (j) { plantilla = j; });
+    return fetch('lib/plantilla_campos.json?v=' + V, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('sin plantilla'); return r.json(); }).then(function (j) { plantilla = j; });
   }
   function abrir(on) {
     abierto = on; panel.hidden = !on; split.classList.toggle('on', on); btn.setAttribute('aria-pressed', String(on));
@@ -231,7 +232,7 @@
     var b = this; b.disabled = true; b.textContent = 'Generando…';
     var textos = {};
     plantilla.campos.forEach(function (c) { c.p.forEach(function (p) { textos[p.id] = textoCampo(p); }); });
-    Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx').then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
+    Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx?v=' + V).then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
       .then(function (res) { return window.JSZip.loadAsync(res[1]); })
       .then(function (zip) {
         var nombres = Object.keys(zip.files).filter(function (f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
