@@ -131,7 +131,9 @@ def restatement(driver, nombre):
 JS_VALORES = r"""
 const out = {tarjetas: []};
 for (const v of document.querySelectorAll('visual-container')) {
-  const r = v.getBoundingClientRect(); if (r.width < 2) continue;
+  // el contenedor puede medir 0 (lo que se ve está en sus hijos): se mide el primer hijo con tamaño
+  let r = v.getBoundingClientRect();
+  if (r.width < 2) { for (const c of v.querySelectorAll('*')) { const q = c.getBoundingClientRect(); if (q.width >= 2) { r = q; break; } } }
   const tx = [], w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT);
   while (w.nextNode()) { const t = w.currentNode.nodeValue.trim(); if (t) tx.push(t); }
   const valores = Array.from(v.querySelectorAll('text.value')).map(e => e.textContent.trim());
