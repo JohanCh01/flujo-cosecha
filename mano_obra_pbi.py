@@ -61,10 +61,18 @@ def decimal(t):
     m = re.search(r"[-+]?\d[\d.,]*", t or "")
     if not m:
         return None
-    n = m.group(0)
-    if "," in n:
-        n = n.replace(".", "").replace(",", ".")
-    return float(n)
+    n = m.group(0).rstrip(".,")
+    if "," in n and "." in n:                           # 1.234,5 o 1,234.5: el último separador es el decimal
+        dec = "," if n.rfind(",") > n.rfind(".") else "."
+        n = n.replace("." if dec == "," else ",", "").replace(dec, ".")
+    elif n.count(".") > 1 or n.count(",") > 1:           # 2.749.648 → 2749648
+        n = n.replace(".", "").replace(",", "")
+    elif "," in n:                                       # 0,0172 → 0.0172
+        n = n.replace(",", ".")
+    try:
+        return float(n)
+    except ValueError:
+        return None
 
 
 def leer_cmo(driver):
@@ -93,6 +101,21 @@ def leer_estable(driver, antes=None, espera=30):
         previo = v
         time.sleep(1.5)
     return previo if isinstance(previo, dict) else None
+
+
+def borrar_sem(driver):
+    """Deja «Sem» sin nada marcado: «Seleccionar todo» (todo marcado) y otra vez (nada marcado)."""
+    s, popup = dp.abrir_slicer(driver, FILTRO_SEM)
+    if popup is None:
+        return False
+    dp.recorrer(driver, popup, dp.es_todo)
+    time.sleep(1)
+    dp.recorrer(driver, popup, dp.es_todo, solo_marcadas=True)
+    time.sleep(1)
+    marc = dp.recorrer(driver, popup, None, con_estado=True)
+    dp.cerrar_slicer(driver, s)
+    time.sleep(2)
+    return not any(sel for t, sel in marc if not dp.es_todo(t))
 
 
 def solo_semana(driver, n):
@@ -191,8 +214,11 @@ def main():
         if not dp.elegir(driver, "Año", lambda t: norm(t) == str(a.anio)):
             log(f"[!] No pude poner Año = {a.anio} (sigo con el que tenga).")
         time.sleep(2)
-        for f in ("Mes", "Fecha"):
+        for f in ("Mes", "Fecha", FILTRO_SEM):              # se borra lo que haya quedado marcado (también en Sem)
             dp.limpiar(driver, f)
+        time.sleep(2)
+        if not borrar_sem(driver):
+            log("[!] No pude dejar «Sem» sin selección; sigo igual (luego se marca lo que corresponde).")
 
         s, popup = dp.abrir_slicer(driver, FILTRO_SEM)
         if popup is None:
