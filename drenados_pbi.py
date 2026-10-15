@@ -50,8 +50,6 @@ XPATH_LIMPIAR_TODO = "//div[@aria-label='Marcador . Borrar todos los filtros']"
 XPATH_MOSTRAR_FILTROS = "//div[@aria-label='Marcador . Mostrar Filtros']"
 def xpath_slicer(nombre):
     return f"//div[@aria-label='{nombre}' and contains(@class,'slicer-dropdown-menu')]"
-XPATH_HOJA = "//*[@data-automation-type='visualContainerHost']"
-ETIQUETA = "KG PROD"                 # el texto que acompaña al número que se lee
 ARCHIVO_DIAG = Path.home() / "drenados_diagnostico.txt"
 
 
@@ -207,22 +205,54 @@ def elegir(driver, nombre, cumple):
 
 
 # ---------------------------------------------------------------- lectura del «Kg Prod» de 2026
-JS_VISUALES = r"""
-const out = [];
-let vs = document.querySelectorAll('visual-container');
-if (!vs.length) vs = document.querySelectorAll('.visualContainer, [class*="visual-container"]');
-for (const v of vs) {
-  const r = v.getBoundingClientRect();
+# En la hoja, el Kg Prod es una TARJETA cuyo aria-label dice, por ejemplo, «Kg dw, 30.922 tarjeta».
+# Hay una por año (2025 y 2026): se toma la que está debajo del título «2026».
+JS_TARJETAS = r"""
+const out = {tarjetas: [], titulos: [], etiquetas: []};
+for (const e of document.querySelectorAll('[aria-label]')) {
+  const a = (e.getAttribute('aria-label') || '').replace(/ /g, ' ').trim();
+  const r = e.getBoundingClientRect();
   if (r.width < 2 || r.height < 2) continue;
-  const tx = [], w = document.createTreeWalker(v, NodeFilter.SHOW_TEXT);
-  while (w.nextNode()) { const t = w.currentNode.nodeValue.trim(); if (t) tx.push(t); }
-  const ar = [];
-  for (const e of v.querySelectorAll('[aria-label]')) { const a = e.getAttribute('aria-label').trim(); if (a && ar.indexOf(a) < 0) ar.push(a); }
-  out.push({x: r.x, y: r.y, w: r.width, h: r.height, t: tx.join(' | '), a: ar.slice(0, 6).join(' || ')});
+  if (/^kg\s*(dw|prod)\b/i.test(a)) out.tarjetas.push({a: a, x: r.x, y: r.y, w: r.width, h: r.height});
+  if (/\d/.test(a) && out.etiquetas.length < 400) out.etiquetas.push({a: a.slice(0, 200), x: Math.round(r.x), y: Math.round(r.y)});
+}
+const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+while (w.nextNode()) {
+  const t = w.currentNode.nodeValue.trim();
+  if (/^20\d\d$/.test(t)) { const r = w.currentNode.parentElement.getBoundingClientRect(); if (r.width > 1) out.titulos.push({t: t, x: r.x, y: r.y, w: r.width, h: r.height}); }
 }
 return out;
 """
-NUM = r"(\(En blanco\)|-?\d[\d.,]*\s*(?:mill|mil|k|m)?\b)"
+
+
+def en_todos_los_frames(driver, js, profundidad=2):
+    """Corre el JavaScript en la página y en cada iframe; devuelve el primer resultado que traiga tarjetas."""
+    driver.switch_to.default_content()
+    vistos = []
+    def correr(nivel):
+        try:
+            r = driver.execute_script(js)
+        except Exception:
+            r = None
+        if r:
+            vistos.append(r)
+            if r.get("tarjetas"):
+                return r
+        if nivel <= 0:
+            return None
+        for k in range(len(driver.find_elements(By.TAG_NAME, "iframe"))):
+            try:
+                driver.switch_to.frame(driver.find_elements(By.TAG_NAME, "iframe")[k])
+                r = correr(nivel - 1)
+                if r:
+                    return r
+                driver.switch_to.parent_frame()
+            except Exception:
+                driver.switch_to.default_content()
+        return None
+    r = correr(profundidad)
+    driver.switch_to.default_content()
+    return r or (vistos[0] if vistos else {"tarjetas": [], "titulos": [], "etiquetas": []})
 
 
 def a_numero(t):
@@ -246,41 +276,31 @@ def a_numero(t):
     return v * (1e6 if suf in ("mill", "m") else 1e3 if suf in ("mil", "k") else 1)
 
 
-def visuales(driver):
-    if buscar(driver, XPATH_HOJA, 20) is None:          # entra al iframe donde está la hoja
-        return []
-    return driver.execute_script(JS_VISUALES) or []
+def valor_tarjeta(a):
+    """«Kg dw, 30.922 tarjeta» → 30922.0 ; «Kg dw, (En blanco) tarjeta» → 0.0"""
+    resto = re.sub(r"^kg\s*(dw|prod)\s*[,:]?\s*", "", a, flags=re.I)
+    resto = re.sub(r"\s*tarjeta\s*$", "", resto, flags=re.I).strip()
+    return a_numero(resto)
 
 
 def kg_prod_2026(driver, anio):
-    vs = visuales(driver)
-    cx = lambda v: v["x"] + v["w"] / 2
-    cy = lambda v: v["y"] + v["h"] / 2
-    cab = {}
-    for a in (str(anio), str(anio - 1)):
-        c = [v for v in vs if v["t"].strip() == a]
-        if c:
-            cab[a] = min(c, key=lambda v: v["y"])       # el título «2026» de más arriba
-    def del_anio(v):                                    # ¿está del lado de 2026 (y no del de 2025)?
-        if str(anio) not in cab:
-            return True
-        d = abs(cx(v) - cx(cab[str(anio)]))
-        return str(anio - 1) not in cab or d < abs(cx(v) - cx(cab[str(anio - 1)]))
-    etq = [v for v in vs if ETIQUETA in norm(v["t"] + " " + v["a"]) and del_anio(v)]
-    if not etq:
+    d = en_todos_los_frames(driver, JS_TARJETAS)
+    tarjetas = [t for t in d["tarjetas"] if valor_tarjeta(t["a"]) is not None]
+    if not tarjetas:
         return None
-    if str(anio) in cab:
-        etq.sort(key=lambda v: abs(cx(v) - cx(cab[str(anio)])) + abs(cy(v) - cy(cab[str(anio)])) * 0.1)
-    for v in etq:
-        for campo in (v["t"], v["a"]):                  # 1) el número en el mismo cuadro: «Kg Prod: | 30.922»
-            m = re.search(r"Kg\s*Prod\.?\s*:?\s*(?:\|\s*)?" + NUM, campo, re.I)
-            if m:
-                return a_numero(m.group(1))
-        fila = [w for w in vs if w is not v and abs(cy(w) - cy(v)) < max(v["h"], w["h"]) / 2 + 8 and w["x"] >= v["x"] + v["w"] * 0.5
-                and re.fullmatch(r"\s*" + NUM + r"\s*", w["t"] or "", re.I) and del_anio(w)]
-        if fila:                                        # 2) el número en el cuadro de al lado
-            return a_numero(min(fila, key=lambda w: w["x"])["t"])
-    return None
+    cx = lambda v: v["x"] + v["w"] / 2
+    tit = {}
+    cerca = lambda t: min(abs(cx(t) - cx(c)) for c in tarjetas)
+    for t in d["titulos"]:                              # de cada año, el título más cercano a las tarjetas (no el de la tabla)
+        if t["t"] in (str(anio), str(anio - 1)) and (t["t"] not in tit or cerca(t) < cerca(tit[t["t"]])):
+            tit[t["t"]] = t
+    if str(anio) in tit:
+        x26 = cx(tit[str(anio)])
+        x25 = cx(tit[str(anio - 1)]) if str(anio - 1) in tit else None
+        lado = [t for t in tarjetas if x25 is None or abs(cx(t) - x26) < abs(cx(t) - x25)]
+        if lado:
+            return valor_tarjeta(min(lado, key=lambda t: abs(cx(t) - x26))["a"])
+    return valor_tarjeta(max(tarjetas, key=cx)["a"])  # sin títulos: la de más a la derecha (2026)
 
 
 def leer_estable(driver, anio, espera=25):
@@ -297,11 +317,17 @@ def leer_estable(driver, anio, espera=25):
 
 
 def diagnostico(driver):
-    vs = visuales(driver)
+    d = en_todos_los_frames(driver, JS_TARJETAS)
     with open(ARCHIVO_DIAG, "w", encoding="utf-8") as f:
-        f.write(f"{len(vs)} visuales — {datetime.now():%d/%m/%Y %H:%M}\n")
-        for v in sorted(vs, key=lambda v: (round(v["y"] / 20), v["x"])):
-            f.write(f"x={v['x']:.0f} y={v['y']:.0f} w={v['w']:.0f} h={v['h']:.0f}\n   texto: {v['t'][:300]}\n   aria:  {v['a'][:300]}\n")
+        f.write(f"{datetime.now():%d/%m/%Y %H:%M}\n\nTARJETAS Kg dw / Kg Prod ({len(d['tarjetas'])}):\n")
+        for t in d["tarjetas"]:
+            f.write(f"  x={t['x']:.0f} y={t['y']:.0f}  {t['a']}\n")
+        f.write(f"\nTÍTULOS DE AÑO ({len(d['titulos'])}):\n")
+        for t in d["titulos"]:
+            f.write(f"  x={t['x']:.0f} y={t['y']:.0f}  {t['t']}\n")
+        f.write(f"\nOTRAS ETIQUETAS CON NÚMEROS ({len(d['etiquetas'])}):\n")
+        for t in d["etiquetas"]:
+            f.write(f"  x={t['x']} y={t['y']}  {t['a']}\n")
     log(f"Diagnóstico guardado en {ARCHIVO_DIAG}")
 
 
