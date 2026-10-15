@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151320';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151400';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -58,7 +58,7 @@
     // kilos recepcionados (SQL)
     var rc = R.rec(), proy = R.PROYECTADO.kg;
     if (rc.hay) {
-      v['rec.proy'] = proy ? mill(proy) : '';
+      v['rec.proy'] = proy ? rc.proyVer || mill(proy) : '';
       v['rec.eje'] = mill(rc.eje);
       v['rec.sem'] = mill(rc.per);
       v['rec.avance'] = proy ? (rc.eje / proy * 100).toFixed(1) + ' %' : '';
@@ -67,6 +67,14 @@
         v['tz.' + (i + 1) + '.0'] = z.z; v['tz.' + (i + 1) + '.1'] = n2(z.kg); v['tz.' + (i + 1) + '.2'] = tot ? (z.kg / tot * 100).toFixed(2) + '%' : '';
       });
       v['tz.4.0'] = 'Total'; v['tz.4.1'] = n2(tot); v['tz.4.2'] = tot ? '100.00%' : '';
+    }
+    // kilos drenados (Power BI, por semana): ejecutados = semanas 1 a la de corte
+    var dr = R.dren ? R.dren() : { hay: false };
+    if (dr.hay) {
+      v['dren.proy'] = dr.proy ? dr.proyVer || mill(dr.proy) : '';
+      v['dren.eje'] = mill(dr.eje);
+      v['dren.sem'] = dr.per == null ? '' : mill(dr.per);
+      v['dren.avance'] = dr.proy ? (dr.eje / dr.proy * 100).toFixed(1) + ' %' : '';
     }
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {

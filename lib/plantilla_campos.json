@@ -2147,7 +2147,7 @@
 "font": "Century Gothic",
 "al": "left",
 "id": "F64",
-"t": ""
+"t": "{{dren.proy}}"
 }
 ]
 },
@@ -2181,7 +2181,7 @@
 "font": "Century Gothic",
 "al": "left",
 "id": "F65",
-"t": ""
+"t": "{{dren.eje}}"
 }
 ]
 },
@@ -2215,7 +2215,7 @@
 "font": "Century Gothic",
 "al": "left",
 "id": "F66",
-"t": ""
+"t": "{{dren.avance}}"
 }
 ]
 },
@@ -2249,7 +2249,7 @@
 "font": "Century Gothic",
 "al": "left",
 "id": "F67",
-"t": ""
+"t": "{{dren.sem}}"
 }
 ]
 },
