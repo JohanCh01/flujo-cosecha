@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151204';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151231';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {} };
 
@@ -33,13 +33,18 @@
   function ddmm(ymd) { var s = String(ymd); return s.slice(6, 8) + '/' + s.slice(4, 6); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-  // etiquetas de cada caja fitosanitaria, en el orden de tu PPT
+  // etiquetas de cada caja fitosanitaria (como en tu PPT) y colores de la barra (como en tu Power BI)
   var ETQ = {
-    elasmo: [['ROJO2', 'Rojo2'], ['ROJO 2', 'Rojo2'], ['ROJO', 'Rojo'], ['AMARILLO', 'Amarillo'], ['VERDE', 'Verde'], ['AZUL', 'Azul']],
-    posturas: [['[0.00 - 1.0]', '0 - 1'], ['[1.01 - 2.0]', '1.1 - 2'], ['[>2]', '> 2 ']],
-    larva: [['0% - 5%', '0 – 5% '], ['5.1% - 10%', '5.1 – 10%'], ['> 10%', '> 10%']],
-    prodi: [['0% - 5%', '0 – 5% '], ['5.1% - 10%', '5.1 – 10%'], ['> 10%', '> 10%']]
+    posturas: { '[0.00 - 1.0]': '0 - 1', '[1.01 - 2.0]': '1.1 - 2', '[>2]': '> 2 ' },
+    larva: { '0% - 5%': '0 – 5% ', '5.1% - 10%': '5.1 – 10%', '> 10%': '> 10%' },
+    prodi: { '0% - 5%': '0 – 5% ', '5.1% - 10%': '5.1 – 10%', '> 10%': '> 10%' }
   };
+  var HEX = { 'var(--c-azul)': '6D7FD1', 'var(--c-verde)': '9FD77C', 'var(--c-amarillo)': 'F3E675', 'var(--c-rojo)': 'F07B73', 'var(--c-rojo2)': 'D33A33', 'var(--c-naranja)': 'EAA73C', 'var(--c-otro)': 'B8C0B9' };
+  function etiqueta(id, k) {
+    if (id === 'elasmo') { var t = k.replace(/\s+/g, '').toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); }
+    return ETQ[id][k] || k;
+  }
+  var barras = {};                                  // 'z.ind' → segmentos de abajo hacia arriba [{v, c}]
 
   // ---------- valores de cada marca, con los filtros actuales
   function calcularValores() {
@@ -67,22 +72,21 @@
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
       R.fito(Z).forEach(function (f) {
-        var id = f.ind.id, res = f.res, lineas = [];
+        var id = f.ind.id, res = f.res, lineas = [], colores = [], segs = [];
         v['f.' + z + '.' + id + '.prom'] = pc(res.prom);
         v['f.' + z + '.' + id + '.max'] = pc(res.max);
         if (res.total && !f.falta) {
-          var usadas = {};
-          ETQ[id].forEach(function (e) {
-            var k = e[0], w = res.peso[k] || 0;
-            if (usadas[e[1]] || !w) return;
-            usadas[e[1]] = 1;
-            lineas.push(e[1] + ': ' + (w / res.total * 100).toFixed(1) + (id === 'elasmo' ? ' %' : '%'));
-          });
-          Object.keys(res.peso).forEach(function (k) {            // categorías que no estén en la lista (otro color)
-            if (!ETQ[id].some(function (e) { return e[0] === k; }) && res.peso[k]) lineas.push(k + ': ' + (res.peso[k] / res.total * 100).toFixed(1) + ' %');
+          // barra: de abajo hacia arriba en el orden de las categorías; las líneas van de arriba hacia abajo (igual que la barra)
+          f.cats.forEach(function (c) { var w = res.peso[c.k] || 0; if (w) segs.push({ v: w / res.total, c: HEX[c.css] || 'B8C0B9' }); });
+          f.cats.slice().reverse().forEach(function (c) {
+            var w = res.peso[c.k] || 0; if (!w) return;
+            lineas.push(etiqueta(id, c.k) + ': ' + (w / res.total * 100).toFixed(1) + (id === 'elasmo' ? ' %' : '%'));
+            colores.push(HEX[c.css] || 'B8C0B9');
           });
         }
         v['f.' + z + '.' + id + '.lineas'] = lineas.join('\n');
+        v['f.' + z + '.' + id + '.colores'] = colores;
+        barras[z + '.' + id] = segs;
       });
       var c = R.cal(Z);
       [['sm', 'sm'], ['lo', 'lo'], ['cr', 'cr']].forEach(function (q) {
@@ -113,8 +117,24 @@
       h += '<div class="cp' + (c.wrap === 'none' ? ' nw' : '') + '" data-c="' + ci + '" style="' + st + '">';
       c.p.forEach(function (p) {
         var f = fmt(p), txt = textoCampo(p), corto = txt.length <= 28 && txt.indexOf('\n') < 0;   // los textos cortos no se parten en dos líneas
+        var cuerpo = esc(txt);
+        if (p.lineas) {                            // cuadrito de color delante de cada línea (mismo color que la barra)
+          var cols = valores[p.lineas + '.colores'] || [];
+          cuerpo = txt.split('\n').map(function (l, k) { return (cols[k] ? '<span class="sw" contenteditable="false" style="background:#' + cols[k] + '"></span>' : '') + esc(l); }).join('\n');
+        }
         h += '<div class="pr' + (corto ? ' nw1' : '') + '" data-f="' + p.id + '"' + (editable ? ' contenteditable="true" spellcheck="false"' : '') + ' style="font-size:' + f.sz * PX / 72 + 'px;color:#' + p.c +
-          ';text-align:' + p.al + ';font-family:' + familia(f.font) + ';font-weight:' + (f.b ? 700 : 400) + ';font-style:' + (f.i ? 'italic' : 'normal') + ';' + (p.u ? 'text-decoration:underline;' : '') + '">' + esc(txt) + '</div>';
+          ';text-align:' + p.al + ';font-family:' + familia(f.font) + ';font-weight:' + (f.b ? 700 : 400) + ';font-style:' + (f.i ? 'italic' : 'normal') + ';' + (p.u ? 'text-decoration:underline;' : '') + '">' + cuerpo + '</div>';
+      });
+      h += '</div>';
+    });
+    (plantilla.barras || []).forEach(function (bb) {
+      if (bb.s !== n) return;
+      var segs = barras[bb.z + '.' + bb.ind] || [], b = bb.box, acc = 0;
+      h += '<div class="pbar" style="left:' + b[0] * PX + 'px;top:' + b[1] * PX + 'px;width:' + b[2] * PX + 'px;height:' + b[3] * PX + 'px">';
+      segs.forEach(function (sg) {
+        var hh = sg.v * b[3] * PX;
+        h += '<div style="bottom:' + acc + 'px;height:' + hh + 'px;background:#' + sg.c + '">' + (hh >= 15 ? (sg.v * 100).toFixed(1) + '%' : '') + '</div>';
+        acc += hh;
       });
       h += '</div>';
     });
@@ -157,6 +177,8 @@
     '.slide .cp{position:absolute;display:flex;flex-direction:column;box-sizing:border-box;overflow:visible}' +
     '.slide .pr{white-space:pre-wrap;line-height:1.2;min-height:1em}.slide .cp.nw .pr,.slide .pr.nw1{white-space:pre}' +
     '.slide.edit .cp.sel{outline:2px solid #e8912d;outline-offset:2px}' +
+    '.slide .sw{display:inline-block;width:.62em;height:.62em;margin-right:.35em;vertical-align:.02em;border-radius:1px}' +
+    '.slide .pbar{position:absolute}.slide .pbar>div{position:absolute;left:0;right:0;border-top:1px solid #fff;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 10.5px/1 Calibri,Carlito,Arial,sans-serif;color:#262626}' +
     '.slide .asa{position:absolute;width:26px;height:26px;margin:-30px 0 0 -30px;border-radius:6px;background:#e8912d;color:#fff;font:700 16px/26px Arial;text-align:center;cursor:move;user-select:none;touch-action:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}' +
     '.ppt-fmt{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}.sel.sm{height:30px;min-width:0;padding:0 24px 0 8px;font-size:12.5px}' +
 "@font-face{font-family:AbadiWeb;font-weight:400;src:url(lib/fuentes/encode-sans-semi-condensed-latin-200-normal.woff2) format('woff2')}" +
@@ -335,8 +357,48 @@
     });
     return xml;
   }
-  function llenarXml(xml, textos) {
+  function conColor(rpr, hex) {
+    var abre = rpr.match(/^<a:rPr\b[^>]*?\/?>/)[0], cierra = /\/>$/.test(abre), resto = cierra ? '' : rpr.slice(abre.length, rpr.length - '</a:rPr>'.length);
+    resto = resto.replace(/<a:solidFill>[\s\S]*?<\/a:solidFill>/, '');
+    return abre.replace(/\/>$/, '>') + '<a:solidFill><a:srgbClr val="' + hex + '"/></a:solidFill>' + resto + '</a:rPr>';
+  }
+  function barrasXml(n) {
+    var out = '', id = 5000;
+    (plantilla.barras || []).forEach(function (bb) {
+      if (bb.s !== n) return;
+      var segs = barras[bb.z + '.' + bb.ind] || [], b = bb.box, acc = 0, E = 914400;
+      segs.forEach(function (sg) {
+        var hh = sg.v * b[3], y = b[1] + b[3] - acc - hh;
+        out += '<p:sp><p:nvSpPr><p:cNvPr id="' + (id++) + '" name="Barra ' + bb.ind + '"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="' + Math.round(b[0] * E) + '" y="' + Math.round(y * E) + '"/><a:ext cx="' + Math.round(b[2] * E) + '" cy="' + Math.max(1, Math.round(hh * E)) + '"/></a:xfrm>' +
+          '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="' + sg.c + '"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln></p:spPr>' +
+          '<p:txBody><a:bodyPr lIns="0" tIns="0" rIns="0" bIns="0" anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/>' +
+          (hh >= 0.16 ? '<a:r><a:rPr lang="es-PE" sz="800" b="1"><a:solidFill><a:srgbClr val="262626"/></a:solidFill><a:latin typeface="Calibri"/></a:rPr><a:t>' + (sg.v * 100).toFixed(1) + '%</a:t></a:r>' : '') +
+          '<a:endParaRPr lang="es-PE" sz="800"/></a:p></p:txBody></p:sp>';
+        acc += hh;
+      });
+    });
+    return out;
+  }
+  function llenarXml(xml, textos, n) {
     xml = aplicarFormatos(xml);
+    // líneas con cuadrito de color: un párrafo por línea, con un primer run "■ " del color de la barra
+    plantilla.campos.forEach(function (c) {
+      c.p.forEach(function (p) {
+        if (!p.lineas || c.s !== n) return;
+        var tok = '{{#' + p.id + '}}', re = new RegExp('<a:p>(?:(?!<\\/a:p>)[\\s\\S])*?' + tok.replace(/[{}#]/g, '\\$&') + '[\\s\\S]*?<\\/a:p>');
+        var m = xml.match(re); if (!m) return;
+        var par = m[0], cols = valores[p.lineas + '.colores'] || [], lineas = (textos[p.id] || '').split('\n');
+        var nuevo = lineas.map(function (l, k) {
+          var q = par.replace(tok, xmlEsc(l));
+          if (!cols[k]) return q;
+          return q.replace(/<a:r>(<a:rPr\b[^>]*?\/>|<a:rPr\b[\s\S]*?<\/a:rPr>)?<a:t>/, function (all, rpr) {
+            return '<a:r>' + conColor(rpr || '<a:rPr lang="es-PE"/>', cols[k]) + '<a:t>■ </a:t></a:r><a:r>' + (rpr || '') + '<a:t>';
+          });
+        }).join('');
+        xml = xml.replace(par, nuevo);
+      });
+    });
+    var b = barrasXml(n); if (b) xml = xml.replace('</p:spTree>', b + '</p:spTree>');
     // primero los valores de varias líneas: se repite el párrafo una vez por línea
     xml = xml.replace(/<a:p>(?:(?!<\/a:p>)[\s\S])*?\{\{#(F\d+)\}\}[\s\S]*?<\/a:p>/g, function (par, id) {
       var t = textos[id] != null ? textos[id] : '';
@@ -351,8 +413,9 @@
     Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx?v=' + V).then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
       .then(function (res) { return window.JSZip.loadAsync(res[1]); })
       .then(function (zip) {
-        var nombres = Object.keys(zip.files).filter(function (f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
-        return Promise.all(nombres.map(function (f) { return zip.file(f).async('string').then(function (x) { zip.file(f, llenarXml(x, textos)); }); }))
+        var arch = plantilla.archivos || {}, nombres = Object.keys(zip.files).filter(function (f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
+        var num = {}; Object.keys(arch).forEach(function (k) { num[arch[k]] = Number(k); });
+        return Promise.all(nombres.map(function (f) { return zip.file(f).async('string').then(function (x) { zip.file(f, llenarXml(x, textos, num[f] || Number(f.match(/slide(\d+)/)[1]))); }); }))
           .then(function () { return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', compression: 'DEFLATE' }); });
       })
       .then(function (blob) {

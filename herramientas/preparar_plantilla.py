@@ -27,6 +27,7 @@ V = ""
 MAPA = {
     1: {3: ["REPORTE DIARIO ESPÁRRAGO ({{fecha}})", "AÑO {{anio}}"]},
     2: {2: ["AVANCE DE CAMPAÑA ESPÁRRAGO - {{anio}}"], 4: ["CORTE HASTA SEM. {{sem}}"]},
+    7: {2: ["INDICADORES DE\nLA\nSEMANA {{sem}}"]},
     3: {**{i: [V] for i in (52, 56, 69, 71, 29, 39, 7, 25, 60, 81, 83, 87, 91, 97, 99, 101, 105, 107, 113, 115)}},
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
         77: [V], 50: [V], 46: [V], 33: [V], 122: [V], 123: [V], 118: [V], 119: [V]},
@@ -50,7 +51,15 @@ for sl, pares in CAL.items():
         MAPA[sl][eje] = ["{{c.%s.%s.eje}}" % (z, k)]
 # líneas por categoría de cada caja fitosanitaria: se borran y se pone un solo cuadro con todas las líneas
 LINEAS = {9: [29, 26, 56, 58, 67, 69, 92, 94, 96], 10: [97, 76, 86, 56, 58, 61, 67, 69, 74, 92], 11: [29, 97, 26, 31, 76, 86, 56, 58, 61, 67, 69, 74, 92, 94, 96]}
-CAJAS = [("elasmo", 0.50, 2.42, 1.64, 1.05), ("posturas", 3.70, 2.15, 1.48, 1.25), ("larva", 6.64, 2.18, 1.66, 1.25), ("prodi", 9.59, 2.18, 1.78, 1.25)]
+# 4 cajas del mismo ancho: título arriba, barra apilada a la izquierda, líneas al costado y Prom./Máx. a la derecha
+CAJA_Y, CAJA_W, CAJA_H = 1.72, 3.02, 1.80
+CAJA_X = [0.43, 3.58, 6.73, 9.88]
+INDS = ["elasmo", "posturas", "larva", "prodi"]
+TITULOS = ["SEMAFORIZACIÓN ELASMOSPALPUS", "POSTURAS", "LEPIDOPTERA", "PRODIPLOSIS"]
+CAJAS = [(ind, x + 0.60, CAJA_Y + 0.42, 1.40, 1.30) for ind, x in zip(INDS, CAJA_X)]
+BARRAS = [(ind, x + 0.15, CAJA_Y + 0.44, 0.40, 1.24) for ind, x in zip(INDS, CAJA_X)]
+CAJAS_QUITAR = {9: [25, 36, 63, 88, 27, 40, 65, 90], 10: None, 11: None}     # recuadros y títulos viejos (se dibujan de nuevo)
+PROM_MAX = [(100, 102), (104, 106), (125, 127), (129, 131)]
 # imágenes con datos viejos (pantallazos de Power BI): se quitan
 QUITAR = {3: [119], 6: [7], 8: [26], 12: [8]}
 # textos fijos que traen la semana o la fecha del reporte del 12/10
@@ -167,13 +176,13 @@ def nuevo_cuadro(slide, modelo, x, y, w, h, texto, nid):
     xf = el.find(".//" + A + "xfrm")
     xf.find(A + "off").set("x", str(int(x * EMU))); xf.find(A + "off").set("y", str(int(y * EMU)))
     xf.find(A + "ext").set("cx", str(int(w * EMU))); xf.find(A + "ext").set("cy", str(int(h * EMU)))
-    bp = el.find(".//" + A + "bodyPr"); bp.set("wrap", "square")
+    bp = el.find(".//" + A + "bodyPr"); bp.set("wrap", "none")
     for t in bp: bp.remove(t)
     ps = parrafos(el)
     for p_ in ps[1:]: p_.getparent().remove(p_)
     poner_texto(ps[0], texto)
     rpr = ps[0].find(A + "r/" + A + "rPr")
-    if rpr is not None: rpr.set("sz", "1200")
+    if rpr is not None: rpr.set("sz", "1100")
     slide.shapes._spTree.append(el)
     return el
 
@@ -203,7 +212,7 @@ def tabla_xml(x, y, cols, alto, filas, nid):
 def main(origen, destino):
     prs = Presentation(origen)
     tema = leer_tema(prs)
-    campos, n = [], 0
+    campos, n, barras = [], 0, []
     fondo = Presentation(origen)          # copia para los fondos (se le quitan los textos que cambian)
 
     def marcar(sl_i, sh, textos):
@@ -241,6 +250,49 @@ def main(origen, destino):
                 sh = d.get(sid)
                 if sh is not None and sh._element.getparent() is not None:
                     sh._element.getparent().remove(sh._element)
+        # 1b) cajas fitosanitarias: se quitan los recuadros y títulos viejos y se dibujan 4 iguales
+        if i in ZONAS:
+            rect_modelo = copy.deepcopy(por_id[36]._element)
+            tit_modelo = copy.deepcopy(por_id[40]._element)
+            viejos = [sid for sid, sh in por_id.items() if sh.has_text_frame and sh.text_frame.text.strip() in TITULOS] + \
+                     [sid for sid, sh in por_id.items() if sh.name.startswith("Rectángulo: esquinas") and sh.top is not None and sh.top < 4 * EMU and sh.width > 2 * EMU] + \
+                     [sid for sid, sh in por_id.items() if sh.name.startswith("Rectángulo: esquinas") and sh.top is not None and abs(sh.width / EMU - 3.12) < 0.02]
+            for sid in set(viejos):
+                for d in (por_id, por_id_f):
+                    sh = d.get(sid)
+                    if sh is not None and sh._element.getparent() is not None:
+                        sh._element.getparent().remove(sh._element)
+            for k, x in enumerate(CAJA_X):
+                for presen in (sl, sf):
+                    r_ = copy.deepcopy(rect_modelo); r_.find(".//" + P + "cNvPr").set("id", str(800 + k))
+                    xf = r_.find(".//" + A + "xfrm")
+                    xf.find(A + "off").set("x", str(int(x * EMU))); xf.find(A + "off").set("y", str(int(CAJA_Y * EMU)))
+                    xf.find(A + "ext").set("cx", str(int(CAJA_W * EMU))); xf.find(A + "ext").set("cy", str(int(CAJA_H * EMU)))
+                    presen.shapes._spTree.append(r_)
+                t_ = copy.deepcopy(tit_modelo); t_.find(".//" + P + "cNvPr").set("id", str(810 + k))
+                xf = t_.find(".//" + A + "xfrm")
+                xf.find(A + "off").set("x", str(int((x + 0.05) * EMU))); xf.find(A + "off").set("y", str(int((CAJA_Y + 0.07) * EMU)))
+                xf.find(A + "ext").set("cx", str(int((CAJA_W - 0.10) * EMU))); xf.find(A + "ext").set("cy", str(int(0.30 * EMU)))
+                ps_ = parrafos(t_)
+                for p_ in ps_[1:]: p_.getparent().remove(p_)
+                poner_texto(ps_[0], TITULOS[k])
+                ppr = ps_[0].find(A + "pPr")
+                if ppr is None: ppr = etree.SubElement(ps_[0], A + "pPr"); ps_[0].insert(0, ppr)
+                ppr.set("algn", "ctr")
+                sl.shapes._spTree.append(t_)
+                sf.shapes._spTree.append(copy.deepcopy(t_))
+            # Prom./Máx. a la derecha de cada caja
+            for k, (ip, im) in enumerate(PROM_MAX):
+                for sid, dy in ((ip, 0.55), (im, 0.92)):
+                    for d in (por_id, por_id_f):
+                        xf = d[sid]._element.find(".//" + A + "xfrm")
+                        xf.find(A + "off").set("x", str(int((CAJA_X[k] + 1.98) * EMU))); xf.find(A + "off").set("y", str(int((CAJA_Y + dy) * EMU)))
+                        xf.find(A + "ext").set("cx", str(int(1.02 * EMU))); xf.find(A + "ext").set("cy", str(int(0.32 * EMU)))
+                        for r_ in d[sid]._element.iter(A + "rPr"):
+                            r_.set("sz", "1300")
+            por_id = {sh.shape_id: sh for sh in todas(sl.shapes)}
+            por_id_f = {sh.shape_id: sh for sh in todas(sf.shapes)}
+            barras.extend({"s": i, "z": ZONAS[i], "ind": ind, "box": [x, y, w, h]} for ind, x, y, w, h in BARRAS)
         # 2) valores mapeados
         for sid, textos in MAPA.get(i, {}).items():
             if sid in por_id and por_id[sid].has_text_frame:
@@ -272,7 +324,7 @@ def main(origen, destino):
                 n += 1
                 el = nuevo_cuadro(sl, modelo, x, y, w, h, "{{#F%d}}" % n, 900 + n)
                 p_ = parrafos(el)[0]
-                st = estilo(p_, tema); st.update({"id": "F%d" % n, "t": "{{f.%s.%s.lineas}}" % (ZONAS[i], ind), "sz": 12})
+                st = estilo(p_, tema); st.update({"id": "F%d" % n, "t": "{{f.%s.%s.lineas}}" % (ZONAS[i], ind), "sz": 11, "lineas": "f.%s.%s" % (ZONAS[i], ind)})
                 campos.append({"s": i, "box": [x, y, w, h], "anchor": "top", "ins": [0.1, 0.05, 0.1, 0.05], "wrap": "none", "k": [1, 1], "p": [st]})
         # 5) tabla de zonas en lugar del pantallazo (diapositiva 8)
         if i == 8:
@@ -293,7 +345,8 @@ def main(origen, destino):
                                "p": [{"id": fid, "t": "{{tz.%d.%d}}" % (r, c), "sz": 10, "b": ult, "i": False, "u": False, "c": "262626", "font": tema["minor"], "al": "right" if c else "left"}]})
     destino.mkdir(parents=True, exist_ok=True)
     prs.save(destino / "plantilla_reporte.pptx")
-    (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "campos": campos}, ensure_ascii=False, indent=0), encoding="utf-8")
+    (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "campos": campos, "barras": barras,
+                                                       "archivos": {str(k): sl.part.partname.lstrip("/") for k, sl in enumerate(prs.slides, 1)}}, ensure_ascii=False, indent=0), encoding="utf-8")
 
     # fondos: la copia sin los textos que cambian → PDF (LibreOffice) → JPG
     tmp = Path(tempfile.mkdtemp())

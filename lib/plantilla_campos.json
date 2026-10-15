@@ -4731,7 +4731,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F140",
-"t": "INDICADORES DE LA SEMANA {{sem}}"
+"t": "INDICADORES DE\nLA\nSEMANA {{sem}}"
 }
 ]
 },
@@ -5430,10 +5430,10 @@
 {
 "s": 9,
 "box": [
-2.1548,
-2.3888,
-1.2337,
-0.3366
+2.41,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5444,12 +5444,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000026,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5464,10 +5464,10 @@
 {
 "s": 9,
 "box": [
-2.1635,
-2.6852,
-1.1539,
-0.3366
+2.41,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5478,12 +5478,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000028,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5498,10 +5498,10 @@
 {
 "s": 9,
 "box": [
-5.1863,
-2.3765,
-1.1232,
-0.3366
+5.56,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5512,12 +5512,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5532,10 +5532,10 @@
 {
 "s": 9,
 "box": [
-5.195,
-2.6729,
-1.0434,
-0.3366
+5.56,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5546,12 +5546,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999977,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5566,10 +5566,10 @@
 {
 "s": 9,
 "box": [
-8.3057,
-2.3947,
-1.1232,
-0.3366
+8.71,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5580,12 +5580,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5600,10 +5600,10 @@
 {
 "s": 9,
 "box": [
-8.3144,
-2.6911,
-1.0434,
-0.3366
+8.71,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5614,12 +5614,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999977,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5634,10 +5634,10 @@
 {
 "s": 9,
 "box": [
-11.3753,
-2.4479,
-1.1232,
-0.3366
+11.86,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5648,12 +5648,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5668,10 +5668,10 @@
 {
 "s": 9,
 "box": [
-11.384,
-2.7443,
-1.1539,
-0.3366
+11.86,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -5682,12 +5682,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000028,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -5940,40 +5940,6 @@
 {
 "s": 9,
 "box": [
-0.4861,
-1.9225,
-2.8705,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.993236,
-0.740939
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
-"id": "F176",
-"t": "SEMAFORIZACIÓN ELASMOSPALPUS"
-}
-]
-},
-{
-"s": 9,
-"box": [
 0.1835,
 1.2473,
 12.9866,
@@ -6000,7 +5966,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F177",
+"id": "F176",
 "t": "FITOSANITARIOS"
 }
 ]
@@ -6034,7 +6000,7 @@
 "c": "525252",
 "font": "Calibri",
 "al": "left",
-"id": "F178",
+"id": "F177",
 "t": "*Información de avance de campaña: semana de {{sem}}"
 }
 ]
@@ -6068,7 +6034,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F179",
+"id": "F178",
 "t": "CALIDADES Y CALIBRES"
 }
 ]
@@ -6102,110 +6068,8 @@
 "c": "525252",
 "font": "Calibri",
 "al": "left",
-"id": "F180",
+"id": "F179",
 "t": "*Información de avance de campaña hasta corte semana de {{sem}}"
-}
-]
-},
-{
-"s": 9,
-"box": [
-3.6834,
-1.8643,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F181",
-"t": "POSTURAS"
-}
-]
-},
-{
-"s": 9,
-"box": [
-6.6576,
-1.8648,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F182",
-"t": "LEPIDOPTERA"
-}
-]
-},
-{
-"s": 9,
-"box": [
-9.6148,
-1.8646,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F183",
-"t": "PRODIPLOSIS"
 }
 ]
 },
@@ -6238,7 +6102,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F184",
+"id": "F180",
 "t": "SMALL"
 }
 ]
@@ -6272,7 +6136,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F185",
+"id": "F181",
 "t": "Long >30"
 }
 ]
@@ -6306,7 +6170,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F186",
+"id": "F182",
 "t": "C- Y Ramas"
 }
 ]
@@ -6340,7 +6204,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F187",
+"id": "F183",
 "t": "Acumulado:"
 }
 ]
@@ -6374,7 +6238,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F188",
+"id": "F184",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -6408,7 +6272,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F189",
+"id": "F185",
 "t": "Acumulado:"
 }
 ]
@@ -6442,7 +6306,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F190",
+"id": "F186",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -6476,7 +6340,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F191",
+"id": "F187",
 "t": "Acumulado:"
 }
 ]
@@ -6510,7 +6374,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F192",
+"id": "F188",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -6518,10 +6382,146 @@
 {
 "s": 9,
 "box": [
-0.5,
-2.42,
-1.64,
-1.05
+0.48,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F189",
+"t": "SEMAFORIZACIÓN ELASMOSPALPUS"
+}
+]
+},
+{
+"s": 9,
+"box": [
+3.63,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F190",
+"t": "POSTURAS"
+}
+]
+},
+{
+"s": 9,
+"box": [
+6.78,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F191",
+"t": "LEPIDOPTERA"
+}
+]
+},
+{
+"s": 9,
+"box": [
+9.93,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F192",
+"t": "PRODIPLOSIS"
+}
+]
+},
+{
+"s": 9,
+"box": [
+1.03,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -6537,7 +6537,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -6545,17 +6545,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F193",
-"t": "{{f.compositan.elasmo.lineas}}"
+"t": "{{f.compositan.elasmo.lineas}}",
+"lineas": "f.compositan.elasmo"
 }
 ]
 },
 {
 "s": 9,
 "box": [
-3.7,
-2.15,
-1.48,
-1.25
+4.18,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -6571,7 +6572,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -6579,17 +6580,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F194",
-"t": "{{f.compositan.posturas.lineas}}"
+"t": "{{f.compositan.posturas.lineas}}",
+"lineas": "f.compositan.posturas"
 }
 ]
 },
 {
 "s": 9,
 "box": [
-6.64,
-2.18,
-1.66,
-1.25
+7.33,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -6605,7 +6607,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -6613,17 +6615,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F195",
-"t": "{{f.compositan.larva.lineas}}"
+"t": "{{f.compositan.larva.lineas}}",
+"lineas": "f.compositan.larva"
 }
 ]
 },
 {
 "s": 9,
 "box": [
-9.59,
-2.18,
-1.78,
-1.25
+10.48,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -6639,7 +6642,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -6647,17 +6650,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F196",
-"t": "{{f.compositan.prodi.lineas}}"
+"t": "{{f.compositan.prodi.lineas}}",
+"lineas": "f.compositan.prodi"
 }
 ]
 },
 {
 "s": 10,
 "box": [
-2.1548,
-2.3888,
-1.1232,
-0.3366
+2.41,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6668,12 +6672,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6688,10 +6692,10 @@
 {
 "s": 10,
 "box": [
-2.1635,
-2.6852,
-1.0434,
-0.3366
+2.41,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6702,12 +6706,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999977,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6722,10 +6726,10 @@
 {
 "s": 10,
 "box": [
-5.1863,
-2.3765,
-1.1232,
-0.3366
+5.56,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6736,12 +6740,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6756,10 +6760,10 @@
 {
 "s": 10,
 "box": [
-5.195,
-2.6729,
-1.0434,
-0.3366
+5.56,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6770,12 +6774,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999977,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6790,10 +6794,10 @@
 {
 "s": 10,
 "box": [
-8.3057,
-2.3947,
-1.1232,
-0.3366
+8.71,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6804,12 +6808,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6824,10 +6828,10 @@
 {
 "s": 10,
 "box": [
-8.3144,
-2.6911,
-1.1539,
-0.3366
+8.71,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6838,12 +6842,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000028,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6858,10 +6862,10 @@
 {
 "s": 10,
 "box": [
-11.3753,
-2.4479,
-1.1232,
-0.3366
+11.86,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6872,12 +6876,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -6892,10 +6896,10 @@
 {
 "s": 10,
 "box": [
-11.384,
-2.7443,
-1.0434,
-0.3366
+11.86,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -6906,12 +6910,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999977,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -7164,40 +7168,6 @@
 {
 "s": 10,
 "box": [
-0.4861,
-1.9225,
-2.8705,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.993236,
-0.740939
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
-"id": "F212",
-"t": "SEMAFORIZACIÓN ELASMOSPALPUS"
-}
-]
-},
-{
-"s": 10,
-"box": [
 0.1835,
 1.2473,
 12.9866,
@@ -7224,7 +7194,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F213",
+"id": "F212",
 "t": "FITOSANITARIOS"
 }
 ]
@@ -7258,7 +7228,7 @@
 "c": "525252",
 "font": "Calibri",
 "al": "left",
-"id": "F214",
+"id": "F213",
 "t": "*Información de avance de campaña: semana de {{sem}}"
 }
 ]
@@ -7292,7 +7262,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F215",
+"id": "F214",
 "t": "CALIDADES Y CALIBRES"
 }
 ]
@@ -7326,110 +7296,8 @@
 "c": "525252",
 "font": "Calibri",
 "al": "left",
-"id": "F216",
+"id": "F215",
 "t": "*Información de avance de campaña hasta corte semana de {{sem}}"
-}
-]
-},
-{
-"s": 10,
-"box": [
-3.6834,
-1.8643,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F217",
-"t": "POSTURAS"
-}
-]
-},
-{
-"s": 10,
-"box": [
-6.6576,
-1.8648,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F218",
-"t": "LEPIDOPTERA"
-}
-]
-},
-{
-"s": 10,
-"box": [
-9.6148,
-1.8646,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F219",
-"t": "PRODIPLOSIS"
 }
 ]
 },
@@ -7462,7 +7330,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F220",
+"id": "F216",
 "t": "SMALL"
 }
 ]
@@ -7496,7 +7364,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F221",
+"id": "F217",
 "t": "Long >30"
 }
 ]
@@ -7530,7 +7398,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F222",
+"id": "F218",
 "t": "C- Y Ramas"
 }
 ]
@@ -7564,7 +7432,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F223",
+"id": "F219",
 "t": "Acumulado:"
 }
 ]
@@ -7598,7 +7466,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F224",
+"id": "F220",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -7632,7 +7500,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F225",
+"id": "F221",
 "t": "Acumulado:"
 }
 ]
@@ -7666,7 +7534,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F226",
+"id": "F222",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -7700,7 +7568,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F227",
+"id": "F223",
 "t": "Acumulado:"
 }
 ]
@@ -7734,7 +7602,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F228",
+"id": "F224",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -7742,10 +7610,146 @@
 {
 "s": 10,
 "box": [
-0.5,
-2.42,
-1.64,
-1.05
+0.48,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F225",
+"t": "SEMAFORIZACIÓN ELASMOSPALPUS"
+}
+]
+},
+{
+"s": 10,
+"box": [
+3.63,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F226",
+"t": "POSTURAS"
+}
+]
+},
+{
+"s": 10,
+"box": [
+6.78,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F227",
+"t": "LEPIDOPTERA"
+}
+]
+},
+{
+"s": 10,
+"box": [
+9.93,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F228",
+"t": "PRODIPLOSIS"
+}
+]
+},
+{
+"s": 10,
+"box": [
+1.03,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -7761,7 +7765,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -7769,17 +7773,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F229",
-"t": "{{f.olmos.elasmo.lineas}}"
+"t": "{{f.olmos.elasmo.lineas}}",
+"lineas": "f.olmos.elasmo"
 }
 ]
 },
 {
 "s": 10,
 "box": [
-3.7,
-2.15,
-1.48,
-1.25
+4.18,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -7795,7 +7800,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -7803,17 +7808,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F230",
-"t": "{{f.olmos.posturas.lineas}}"
+"t": "{{f.olmos.posturas.lineas}}",
+"lineas": "f.olmos.posturas"
 }
 ]
 },
 {
 "s": 10,
 "box": [
-6.64,
-2.18,
-1.66,
-1.25
+7.33,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -7829,7 +7835,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -7837,17 +7843,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F231",
-"t": "{{f.olmos.larva.lineas}}"
+"t": "{{f.olmos.larva.lineas}}",
+"lineas": "f.olmos.larva"
 }
 ]
 },
 {
 "s": 10,
 "box": [
-9.59,
-2.18,
-1.78,
-1.25
+10.48,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -7863,7 +7870,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -7871,17 +7878,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F232",
-"t": "{{f.olmos.prodi.lineas}}"
+"t": "{{f.olmos.prodi.lineas}}",
+"lineas": "f.olmos.prodi"
 }
 ]
 },
 {
 "s": 11,
 "box": [
-2.1548,
-2.3888,
-1.1232,
-0.3366
+2.41,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -7892,12 +7900,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -7912,10 +7920,10 @@
 {
 "s": 11,
 "box": [
-2.1635,
-2.6852,
-1.1539,
-0.3366
+2.41,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -7926,12 +7934,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000028,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -7946,10 +7954,10 @@
 {
 "s": 11,
 "box": [
-5.1863,
-2.3765,
-1.1232,
-0.3366
+5.56,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -7960,12 +7968,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -7980,10 +7988,10 @@
 {
 "s": 11,
 "box": [
-5.195,
-2.6729,
-1.1539,
-0.3366
+5.56,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -7994,12 +8002,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000028,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -8014,10 +8022,10 @@
 {
 "s": 11,
 "box": [
-8.3057,
-2.3947,
-1.1232,
-0.3366
+8.71,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -8028,12 +8036,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999979,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -8048,10 +8056,10 @@
 {
 "s": 11,
 "box": [
-8.3144,
-2.6911,
-1.1539,
-0.3366
+8.71,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -8062,12 +8070,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000028,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -8082,10 +8090,10 @@
 {
 "s": 11,
 "box": [
-11.3753,
-2.4479,
-1.2337,
-0.3366
+11.86,
+2.27,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -8096,12 +8104,12 @@
 ],
 "wrap": "none",
 "k": [
-1.000026,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -8116,10 +8124,10 @@
 {
 "s": 11,
 "box": [
-11.384,
-2.7443,
-1.0434,
-0.3366
+11.86,
+2.64,
+1.02,
+0.32
 ],
 "anchor": "top",
 "ins": [
@@ -8130,12 +8138,12 @@
 ],
 "wrap": "none",
 "k": [
-0.999977,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 13.0,
 "b": true,
 "i": false,
 "u": false,
@@ -8388,40 +8396,6 @@
 {
 "s": 11,
 "box": [
-0.4895,
-1.8971,
-2.8705,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.993236,
-0.740939
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
-"id": "F248",
-"t": "SEMAFORIZACIÓN ELASMOSPALPUS"
-}
-]
-},
-{
-"s": 11,
-"box": [
 0.1869,
 1.2219,
 12.9866,
@@ -8448,7 +8422,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F249",
+"id": "F248",
 "t": "FITOSANITARIOS"
 }
 ]
@@ -8482,7 +8456,7 @@
 "c": "525252",
 "font": "Calibri",
 "al": "left",
-"id": "F250",
+"id": "F249",
 "t": "*Información de avance de campaña: semana de {{sem}}"
 }
 ]
@@ -8516,7 +8490,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F251",
+"id": "F250",
 "t": "CALIDADES Y CALIBRES"
 }
 ]
@@ -8550,110 +8524,8 @@
 "c": "525252",
 "font": "Calibri",
 "al": "left",
-"id": "F252",
+"id": "F251",
 "t": "*Información de avance de campaña hasta corte semana de {{sem}}"
-}
-]
-},
-{
-"s": 11,
-"box": [
-3.6834,
-1.8643,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F253",
-"t": "POSTURAS"
-}
-]
-},
-{
-"s": 11,
-"box": [
-6.6576,
-1.8648,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F254",
-"t": "LEPIDOPTERA"
-}
-]
-},
-{
-"s": 11,
-"box": [
-9.6148,
-1.8646,
-2.4774,
-0.2861
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.999985,
-0.999999
-],
-"p": [
-{
-"sz": 11.0,
-"b": true,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "center",
-"id": "F255",
-"t": "PRODIPLOSIS"
 }
 ]
 },
@@ -8686,7 +8558,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F256",
+"id": "F252",
 "t": "SMALL"
 }
 ]
@@ -8720,7 +8592,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F257",
+"id": "F253",
 "t": "Long >30"
 }
 ]
@@ -8754,7 +8626,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F258",
+"id": "F254",
 "t": "C- Y Ramas"
 }
 ]
@@ -8788,7 +8660,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F259",
+"id": "F255",
 "t": "Acumulado:"
 }
 ]
@@ -8822,7 +8694,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F260",
+"id": "F256",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -8856,7 +8728,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F261",
+"id": "F257",
 "t": "Acumulado:"
 }
 ]
@@ -8890,7 +8762,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F262",
+"id": "F258",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -8924,7 +8796,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F263",
+"id": "F259",
 "t": "Acumulado:"
 }
 ]
@@ -8958,7 +8830,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F264",
+"id": "F260",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -8966,10 +8838,146 @@
 {
 "s": 11,
 "box": [
-0.5,
-2.42,
-1.64,
-1.05
+0.48,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F261",
+"t": "SEMAFORIZACIÓN ELASMOSPALPUS"
+}
+]
+},
+{
+"s": 11,
+"box": [
+3.63,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F262",
+"t": "POSTURAS"
+}
+]
+},
+{
+"s": 11,
+"box": [
+6.78,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F263",
+"t": "LEPIDOPTERA"
+}
+]
+},
+{
+"s": 11,
+"box": [
+9.93,
+1.79,
+2.92,
+0.3
+],
+"anchor": "top",
+"ins": [
+0.1,
+0.05,
+0.1,
+0.05
+],
+"wrap": "square",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 11.0,
+"b": true,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F264",
+"t": "PRODIPLOSIS"
+}
+]
+},
+{
+"s": 11,
+"box": [
+1.03,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -8985,7 +8993,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -8993,17 +9001,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F265",
-"t": "{{f.terceros.elasmo.lineas}}"
+"t": "{{f.terceros.elasmo.lineas}}",
+"lineas": "f.terceros.elasmo"
 }
 ]
 },
 {
 "s": 11,
 "box": [
-3.7,
-2.15,
-1.48,
-1.25
+4.18,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -9019,7 +9028,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -9027,17 +9036,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F266",
-"t": "{{f.terceros.posturas.lineas}}"
+"t": "{{f.terceros.posturas.lineas}}",
+"lineas": "f.terceros.posturas"
 }
 ]
 },
 {
 "s": 11,
 "box": [
-6.64,
-2.18,
-1.66,
-1.25
+7.33,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -9053,7 +9063,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -9061,17 +9071,18 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F267",
-"t": "{{f.terceros.larva.lineas}}"
+"t": "{{f.terceros.larva.lineas}}",
+"lineas": "f.terceros.larva"
 }
 ]
 },
 {
 "s": 11,
 "box": [
-9.59,
-2.18,
-1.78,
-1.25
+10.48,
+2.14,
+1.4,
+1.3
 ],
 "anchor": "top",
 "ins": [
@@ -9087,7 +9098,7 @@
 ],
 "p": [
 {
-"sz": 12,
+"sz": 11,
 "b": true,
 "i": false,
 "u": false,
@@ -9095,7 +9106,8 @@
 "font": "Abadi ExtraLight",
 "al": "left",
 "id": "F268",
-"t": "{{f.terceros.prodi.lineas}}"
+"t": "{{f.terceros.prodi.lineas}}",
+"lineas": "f.terceros.prodi"
 }
 ]
 },
@@ -9303,5 +9315,154 @@
 }
 ]
 }
+],
+"barras": [
+{
+"s": 9,
+"z": "compositan",
+"ind": "elasmo",
+"box": [
+0.58,
+2.16,
+0.4,
+1.24
 ]
+},
+{
+"s": 9,
+"z": "compositan",
+"ind": "posturas",
+"box": [
+3.73,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 9,
+"z": "compositan",
+"ind": "larva",
+"box": [
+6.880000000000001,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 9,
+"z": "compositan",
+"ind": "prodi",
+"box": [
+10.030000000000001,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 10,
+"z": "olmos",
+"ind": "elasmo",
+"box": [
+0.58,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 10,
+"z": "olmos",
+"ind": "posturas",
+"box": [
+3.73,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 10,
+"z": "olmos",
+"ind": "larva",
+"box": [
+6.880000000000001,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 10,
+"z": "olmos",
+"ind": "prodi",
+"box": [
+10.030000000000001,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 11,
+"z": "terceros",
+"ind": "elasmo",
+"box": [
+0.58,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 11,
+"z": "terceros",
+"ind": "posturas",
+"box": [
+3.73,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 11,
+"z": "terceros",
+"ind": "larva",
+"box": [
+6.880000000000001,
+2.16,
+0.4,
+1.24
+]
+},
+{
+"s": 11,
+"z": "terceros",
+"ind": "prodi",
+"box": [
+10.030000000000001,
+2.16,
+0.4,
+1.24
+]
+}
+],
+"archivos": {
+"1": "ppt/slides/slide1.xml",
+"2": "ppt/slides/slide2.xml",
+"3": "ppt/slides/slide3.xml",
+"4": "ppt/slides/slide4.xml",
+"5": "ppt/slides/slide5.xml",
+"6": "ppt/slides/slide6.xml",
+"7": "ppt/slides/slide7.xml",
+"8": "ppt/slides/slide8.xml",
+"9": "ppt/slides/slide9.xml",
+"10": "ppt/slides/slide10.xml",
+"11": "ppt/slides/slide11.xml",
+"12": "ppt/slides/slide12.xml",
+"13": "ppt/slides/slide13.xml"
+}
 }
