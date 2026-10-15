@@ -170,6 +170,15 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .kpi .big.azul { color: var(--band-ink); }
 .kpi .big.rojo { color: #c0392b; }
 .recl-img { grid-column: 1 / -1; } .recl-img img { display: block; max-width: 100%; height: auto; margin: 6px auto 0; border-radius: 6px; background: #fff; }
+.soltar { display: block; margin: 10px 0; padding: 18px; border: 2px dashed var(--line); border-radius: 10px; text-align: center; cursor: pointer; color: var(--ink, inherit); }
+.soltar:hover, .soltar.encima { border-color: var(--accent); background: var(--accent-soft); }
+.soltar small { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.desp-tablas { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+table.desp { border-collapse: collapse; min-width: 300px; font-size: 14px; font-variant-numeric: tabular-nums; background: var(--surface); }
+table.desp th, table.desp td { border: 1px solid #333; padding: 5px 12px; }
+table.desp th { background: var(--band, #f2f0eb); font-weight: 600; }
+table.desp td.n { text-align: right; } table.desp td.g { text-align: center; font-weight: 600; }
+table.desp tr.tot td { background: #f2f2f2; font-weight: 600; }
 .kpi.obs { background: color-mix(in srgb, #c76b86 9%, var(--surface)); }
 .kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
 .proy-in { width: 100%; box-sizing: border-box; margin-top: 6px; height: 46px; padding: 0 10px; font: 600 26px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
@@ -278,6 +287,18 @@ html.locked .ppt { display: none !important; }
     <div class="band">RATIO DE RECLAMOS PENALIZADOS</div>
     <p class="aviso" id="avisoRecl" hidden></p>
     <div class="kpis rec" id="gridRecl"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="t-desp">
+    <div class="sec-h"><h2 id="t-desp">Despachos · Mercado</h2><p id="despNota"></p></div>
+    <div class="band">MERCADO (N° FCLS · AÉREO POR MERCADO · MARÍTIMO POR CLIENTE)</div>
+    <label class="soltar" id="despSoltar" for="despArchivo">
+      <input type="file" id="despArchivo" accept=".xlsx,.xlsm,.xls" hidden>
+      <b>Arrastra aquí el Excel de ventas</b> o haz clic para elegirlo
+      <small>Hoja «Data» · Año Embarque = año del reporte · Grupo Artículo = ESPÁRRAGO VERDE · suma de Fcls. Se procesa en este navegador (no se sube a ningún lado) y sirve para todas las semanas hasta que subas otro.</small>
+    </label>
+    <p class="aviso" id="despMsg" hidden></p>
+    <div class="desp-tablas" id="despTablas"></div>
   </section>
 
   <section class="sec" aria-labelledby="t-pend">
@@ -537,7 +558,7 @@ html.locked .ppt { display: none !important; }
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl();
+    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp();
     if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
@@ -828,6 +849,96 @@ html.locked .ppt { display: none !important; }
     renderRecl(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
   });
 
+  // ---------- Despachos · Mercado (diapositiva 5): del Excel de ventas que subes aquí (hoja «Data»), igual que tus tablas dinámicas:
+  //   Año Embarque = año del reporte · Grupo Artículo = ESPÁRRAGO VERDE · suma de Fcls (en número entero)
+  //   ENV  = Tipo Envio, con «MU» → «AE»          (=SI(BG2="MU";"AE";BG2))
+  //   MERC = América del Norte/Sur → USA · Asia · Cen.America&el Carib → LATAM · Europa
+  //   Aéreo (AE) por MERC; Marítimo (MA) por Cliente Danper. Se guarda en este navegador (independiente de la semana).
+  var MERC_ORDEN = ['Asia', 'Europa', 'LATAM', 'USA'];
+  function sinTilde(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase(); }
+  function mercDe(m) {
+    var n = sinTilde(m);
+    if (n.indexOf('NORTE') >= 0 || n.indexOf('SUR') >= 0) return 'USA';
+    if (n.indexOf('ASIA') >= 0) return 'Asia';
+    if (n.indexOf('CEN') === 0 || n.indexOf('CARIB') >= 0) return 'LATAM';
+    if (n.indexOf('EUROPA') >= 0) return 'Europa';
+    return '';
+  }
+  function leerDesp() { try { return JSON.parse(localStorage.getItem('rpt.desp') || 'null'); } catch (e) { return null; } }
+  function desp() {
+    var D = leerDesp(); if (!D || !D.anios) return { hay: false };
+    var A = D.anios[String(state.anio)]; if (!A) return { hay: false, archivo: D.archivo, fecha: D.fecha, otroAnio: true };
+    var ae = MERC_ORDEN.map(function (m) { return { k: m, v: A.ae[m] || 0 }; });
+    var ma = Object.keys(A.ma).sort().map(function (c) { return { k: c, v: A.ma[c] }; });
+    var tot = function (l) { return l.reduce(function (s, x) { return s + x.v; }, 0); };
+    return { hay: true, archivo: D.archivo, fecha: D.fecha, ae: ae, ma: ma, aeTot: tot(ae), maTot: tot(ma) };
+  }
+  function procesarVentas(wb) {
+    var hoja = wb.Sheets.Data || wb.Sheets[wb.SheetNames.filter(function (n) { return sinTilde(n) === 'DATA'; })[0]];
+    if (!hoja) throw new Error('no encontré la hoja «Data»');
+    var filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: '' });
+    var enc = (filas[0] || []).map(function (h) { return sinTilde(h).replace(/[^A-Z0-9]/g, ''); });
+    var col = function (nombres) { for (var i = 0; i < nombres.length; i++) { var k = enc.indexOf(nombres[i]); if (k >= 0) return k; } return -1; };
+    var cA = col(['ANOEMBARQUE']), cG = col(['GRUPOARTICULO']), cE = col(['TIPOENVIO']), cM = col(['MERCADO']), cC = col(['CLIENTEDANPER']), cF = col(['FCLS']);
+    var falta = [['Año Embarque', cA], ['Grupo Artículo', cG], ['Tipo Envio', cE], ['Mercado', cM], ['Cliente Danper', cC], ['Fcls', cF]].filter(function (x) { return x[1] < 0; }).map(function (x) { return x[0]; });
+    if (falta.length) throw new Error('faltan columnas: ' + falta.join(', '));
+    var anios = {};
+    for (var r = 1; r < filas.length; r++) {
+      var f = filas[r]; if (sinTilde(f[cG]) !== 'ESPARRAGO VERDE') continue;
+      var an = String(f[cA]).trim(); if (!/^\d{4}$/.test(an)) continue;
+      var env = String(f[cE]).trim().toUpperCase(); if (env === 'MU') env = 'AE';
+      var fc = parseFloat(String(f[cF]).replace(',', '.')) || 0;
+      var o = anios[an] || (anios[an] = { ae: {}, ma: {}, aeRaw: {}, maRaw: {} });
+      if (env === 'AE') { var m = mercDe(f[cM]); if (m) o.aeRaw[m] = (o.aeRaw[m] || 0) + fc; }
+      else if (env === 'MA') { var c = String(f[cC]).trim() || '(sin cliente)'; o.maRaw[c] = (o.maRaw[c] || 0) + fc; }
+    }
+    Object.keys(anios).forEach(function (an) {     // número entero (como tu tabla dinámica); el total = suma redondeada
+      var o = anios[an];
+      Object.keys(o.aeRaw).forEach(function (k) { o.ae[k] = Math.round(o.aeRaw[k]); });
+      Object.keys(o.maRaw).forEach(function (k) { o.ma[k] = Math.round(o.maRaw[k]); });
+      o.aeTot = Math.round(Object.keys(o.aeRaw).reduce(function (s, k) { return s + o.aeRaw[k]; }, 0));
+      o.maTot = Math.round(Object.keys(o.maRaw).reduce(function (s, k) { return s + o.maRaw[k]; }, 0));
+      delete o.aeRaw; delete o.maRaw;
+    });
+    return anios;
+  }
+  function cargarXlsx() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise(function (ok, mal) { var sc = document.createElement('script'); sc.src = 'lib/xlsx.full.min.js'; sc.onload = ok; sc.onerror = function () { mal(new Error('no se pudo cargar el lector de Excel')); }; document.head.appendChild(sc); });
+  }
+  function subirVentas(archivo) {
+    var m = $('despMsg'); m.hidden = false; m.textContent = 'Leyendo «' + archivo.name + '»… (puede tardar unos segundos)';
+    cargarXlsx().then(function () { return archivo.arrayBuffer(); })
+      .then(function (buf) {
+        var wb = XLSX.read(new Uint8Array(buf), { type: 'array', dense: true, sheets: ['Data'] });
+        var anios = procesarVentas(wb);
+        if (!Object.keys(anios).length) throw new Error('no hay filas de ESPÁRRAGO VERDE');
+        var D = { archivo: archivo.name, fecha: new Date().toISOString().slice(0, 16), anios: anios };
+        try { localStorage.setItem('rpt.desp', JSON.stringify(D)); } catch (e) { throw new Error('este navegador no deja guardar (modo privado)'); }
+        m.textContent = 'Listo: «' + archivo.name + '» procesado.'; renderDesp(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+      })
+      .catch(function (e) { m.textContent = 'No se pudo leer el Excel: ' + e.message; });
+  }
+  (function () {
+    var z = $('despSoltar'), inp = $('despArchivo');
+    inp.addEventListener('change', function () { if (inp.files[0]) subirVentas(inp.files[0]); inp.value = ''; });
+    ['dragenter', 'dragover'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.add('encima'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('encima'); }); });
+    z.addEventListener('drop', function (e) { var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) subirVentas(f); });
+  })();
+  function renderDesp() {
+    var d = desp();
+    $('despNota').textContent = d.archivo ? '«' + d.archivo + '» · procesado el ' + d.fecha.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d)/, '$3/$2 $4') : '';
+    if (!d.hay) { $('despTablas').innerHTML = d.otroAnio ? '<p class="aviso">Ese Excel no tiene embarques de ' + state.anio + '.</p>' : ''; return; }
+    function tabla(tit, col, filas, total) {
+      return '<table class="desp"><tr><th rowspan="1"></th><th>' + col + '</th><th>N° Fcls</th></tr>' +
+        filas.map(function (x, i) { return '<tr>' + (i === 0 ? '<td class="g" rowspan="' + filas.length + '">' + tit + '</td>' : '') + '<td>' + esc(x.k) + '</td><td class="n">' + x.v + '</td></tr>'; }).join('') +
+        '<tr class="tot"><td>Total</td><td colspan="2" class="n">' + total + '</td></tr></table>';
+    }
+    var A = leerDesp().anios[String(state.anio)];
+    $('despTablas').innerHTML = tabla('AÉREO', 'Mercado', d.ae, A.aeTot) + tabla('Marítimo', 'Cliente', d.ma, A.maTot);
+  }
+
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
   window.RPT = {
     state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
@@ -840,6 +951,7 @@ html.locked .ppt { display: none !important; }
     dren: dren,
     mo: mo,
     recl: recl,
+    desp: function () { var d = desp(); if (d.hay) { var A = leerDesp().anios[String(state.anio)]; d.aeTot = A.aeTot; d.maTot = A.maTot; } return d; },
     rec: function () {
       var R = state.rec || [];
       function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
@@ -940,6 +1052,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610151800"></script>
+<script src="reporte_ppt.js?v=202610151830"></script>
 </body>
 </html>

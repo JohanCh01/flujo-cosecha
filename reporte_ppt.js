@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151800';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151830';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -169,6 +169,59 @@
     return (plantilla.imagenes || []).filter(function (im) { return im.s === n && fuentes[im.nombre]; })
       .map(function (im) { var f = fuentes[im.nombre]; return { s: im.s, box: im.box, nombre: im.nombre, src: f.src, w: f.w, h: f.h }; });
   }
+  // ---------- diapositiva 5: «MERCADO» con las dos tablas (Aéreo por mercado, Marítimo por cliente) del Excel de ventas
+  var DESP_S = 5, DESP_COLS = [1.30, 1.40, 1.15], DESP_HUECO = 0.55, DESP_ALTO = 2.30, DESP_Y = 4.66;
+  var DESP_ANCHO = DESP_COLS[0] + DESP_COLS[1] + DESP_COLS[2], DESP_X0 = (13.333 - 2 * DESP_ANCHO - DESP_HUECO) / 2;
+  var DESP_X = [DESP_X0, DESP_X0 + DESP_ANCHO + DESP_HUECO], DESP_BANDA = [DESP_X0, 4.06, 2 * DESP_ANCHO + DESP_HUECO, 0.42];
+  function despTablas() {
+    var d = R.desp ? R.desp() : { hay: false };
+    if (!d.hay) return null;
+    return [{ tit: 'AÉREO', col: 'Mercado', filas: d.ae, tot: d.aeTot, x: DESP_X[0] }, { tit: 'Marítimo', col: 'Cliente', filas: d.ma, tot: d.maTot, x: DESP_X[1] }];
+  }
+  function despAlto(t) { return Math.min(0.38, DESP_ALTO / (t.filas.length + 2)); }
+  function despHtml(n) {
+    if (n !== DESP_S) return '';
+    var ts = despTablas(); if (!ts) return '';
+    var b = DESP_BANDA, f = "font-family:Calibri,Carlito,Arial,sans-serif;color:#000;";
+    var h = '<div style="position:absolute;left:' + b[0] * PX + 'px;top:' + b[1] * PX + 'px;width:' + b[2] * PX + 'px;height:' + b[3] * PX + 'px;background:#F2F0EB;display:flex;align-items:center;justify-content:center;' + f + 'font-weight:700;font-size:' + 16 * PX / 72 + 'px">MERCADO</div>';
+    ts.forEach(function (t) {
+      var ra = despAlto(t), fs = Math.min(14, ra * 72 * 0.5) * PX / 72, td = 'border:1px solid #000;padding:0 ' + 0.08 * PX + 'px;height:' + ra * PX + 'px;box-sizing:border-box;';
+      h += '<table style="position:absolute;left:' + t.x * PX + 'px;top:' + DESP_Y * PX + 'px;border-collapse:collapse;table-layout:fixed;width:' + (DESP_COLS[0] + DESP_COLS[1] + DESP_COLS[2]) * PX + 'px;' + f + 'font-size:' + fs + 'px">' +
+        '<colgroup>' + DESP_COLS.map(function (c) { return '<col style="width:' + c * PX + 'px">'; }).join('') + '</colgroup>' +
+        '<tr><td style="' + td + '"></td><td style="' + td + 'font-weight:700;background:#F2F0EB">' + esc(t.col) + '</td><td style="' + td + 'font-weight:700;background:#F2F0EB;text-align:center">N° Fcls</td></tr>' +
+        t.filas.map(function (x, i) { return '<tr>' + (i === 0 ? '<td rowspan="' + t.filas.length + '" style="' + td + 'text-align:center">' + esc(t.tit) + '</td>' : '') + '<td style="' + td + '">' + esc(x.k) + '</td><td style="' + td + 'text-align:center">' + x.v + '</td></tr>'; }).join('') +
+        '<tr style="background:#F2F2F2"><td style="' + td + 'text-align:center">Total</td><td colspan="2" style="' + td + 'text-align:center">' + t.tot + '</td></tr></table>';
+    });
+    return h;
+  }
+  function despXml(n) {
+    if (n !== DESP_S) return '';
+    var ts = despTablas(); if (!ts) return '';
+    var E = 914400, b = DESP_BANDA, out = '';
+    var run = function (txt, sz, neg) { return '<a:r><a:rPr lang="es-PE" sz="' + Math.round(sz * 100) + '" b="' + (neg ? 1 : 0) + '"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Calibri"/></a:rPr><a:t>' + xmlEsc(txt) + '</a:t></a:r>'; };
+    out += '<p:sp><p:nvSpPr><p:cNvPr id="8100" name="Banda MERCADO"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="' + Math.round(b[0] * E) + '" y="' + Math.round(b[1] * E) + '"/><a:ext cx="' + Math.round(b[2] * E) + '" cy="' + Math.round(b[3] * E) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="F2F0EB"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr>' +
+      '<p:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/>' + run('MERCADO', 16, true) + '</a:p></p:txBody></p:sp>';
+    ts.forEach(function (t, k) {
+      var ra = despAlto(t), sz = Math.min(14, ra * 72 * 0.5), ln = ['lnL', 'lnR', 'lnT', 'lnB'].map(function (l) { return '<a:' + l + ' w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:' + l + '>'; }).join('');
+      var celda = function (txt, opc) {
+        opc = opc || {};
+        var at = (opc.rowSpan ? ' rowSpan="' + opc.rowSpan + '"' : '') + (opc.gridSpan ? ' gridSpan="' + opc.gridSpan + '"' : '') + (opc.vMerge ? ' vMerge="1"' : '') + (opc.hMerge ? ' hMerge="1"' : '');
+        return '<a:tc' + at + '><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn="' + (opc.al || 'l') + '"/>' + (txt !== '' ? run(String(txt), sz, opc.b) : '<a:endParaRPr lang="es-PE" sz="' + Math.round(sz * 100) + '"/>') + '</a:p></a:txBody>' +
+          '<a:tcPr marL="73152" marR="73152" marT="0" marB="0" anchor="ctr">' + ln + (opc.fill ? '<a:solidFill><a:srgbClr val="' + opc.fill + '"/></a:solidFill>' : '') + '</a:tcPr></a:tc>';
+      };
+      var fila = function (celdas) { return '<a:tr h="' + Math.round(ra * E) + '">' + celdas.join('') + '</a:tr>'; };
+      var filas = [fila([celda(''), celda(t.col, { b: true, fill: 'F2F0EB' }), celda('N° Fcls', { b: true, fill: 'F2F0EB', al: 'ctr' })])];
+      t.filas.forEach(function (x, i) { filas.push(fila([i === 0 ? celda(t.tit, { rowSpan: t.filas.length, al: 'ctr' }) : celda('', { vMerge: true }), celda(x.k), celda(x.v, { al: 'ctr' })])); });
+      filas.push(fila([celda('Total', { al: 'ctr', fill: 'F2F2F2' }), celda(t.tot, { gridSpan: 2, al: 'ctr', fill: 'F2F2F2' }), celda('', { hMerge: true, fill: 'F2F2F2' })]));
+      var ancho = DESP_COLS.reduce(function (a2, c) { return a2 + c; }, 0), alto = ra * (t.filas.length + 2);
+      out += '<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="' + (8110 + k) + '" name="Tabla ' + t.tit + '"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp="1"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr>' +
+        '<p:xfrm><a:off x="' + Math.round(t.x * E) + '" y="' + Math.round(DESP_Y * E) + '"/><a:ext cx="' + Math.round(ancho * E) + '" cy="' + Math.round(alto * E) + '"/></p:xfrm>' +
+        '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="0" bandRow="0"/><a:tblGrid>' +
+        DESP_COLS.map(function (c) { return '<a:gridCol w="' + Math.round(c * E) + '"/>'; }).join('') + '</a:tblGrid>' + filas.join('') + '</a:tbl></a:graphicData></a:graphic></p:graphicFrame>';
+    });
+    return out;
+  }
+
   // ---------- dibujo de una diapositiva (fondo de tu PPT + todos los textos encima)
   function htmlSlide(n, editable) {
     var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg?v=' + V + '">';
@@ -190,6 +243,7 @@
       });
       h += '</div>';
     });
+    h += despHtml(n);
     imagenesDe(n).forEach(function (im) {           // capturas del Power BI en lugar de los recuadros «Imagen N»
       var b = im.box;
       h += '<img class="pimg" alt="' + esc(im.nombre) + '" src="' + im.src + '" style="left:' + (b[0] * PX - 4) + 'px;top:' + (b[1] * PX - 4) + 'px;width:' + (b[2] * PX + 8) + 'px;height:' + (b[3] * PX + 8) + 'px;padding:4px;box-sizing:border-box">';
@@ -514,7 +568,7 @@
         xml = xml.replace(par, nuevo);
       });
     });
-    var b = barrasXml(n) + extrasXml(n, textos); if (b) xml = xml.replace('</p:spTree>', b + '</p:spTree>');
+    var b = barrasXml(n) + extrasXml(n, textos) + despXml(n); if (b) xml = xml.replace('</p:spTree>', b + '</p:spTree>');
     // primero los valores de varias líneas: se repite el párrafo una vez por línea
     xml = xml.replace(/<a:p>(?:(?!<\/a:p>)[\s\S])*?\{\{#(F\d+)\}\}[\s\S]*?<\/a:p>/g, function (par, id) {
       var t = textos[id] != null ? textos[id] : '';
