@@ -207,19 +207,30 @@ def main(origen, destino):
     fondo = Presentation(origen)          # copia para los fondos (se le quitan los textos que cambian)
 
     def marcar(sl_i, sh, textos):
+        """Cada párrafo pasa a ser un campo editable {{#Fnn}}. textos[k] = None → párrafo vacío que se deja tal cual."""
         nonlocal n
         ps = parrafos(sh._element)
         anchor, ins = body(sh)
-        reg = {"s": sl_i, "box": abs_xfrm(sh), "anchor": anchor, "ins": [round(v, 4) for v in ins], "p": []}
-        for k, p_ in enumerate(ps):
-            if k >= len(textos):
+        box = abs_xfrm(sh)
+        bp = sh._element.find(".//" + A + "bodyPr")
+        wrap = "none" if bp is not None and bp.get("wrap") == "none" else "square"
+        k = [round(box[2] / max(1e-6, sh.width / EMU), 6), round(box[3] / max(1e-6, sh.height / EMU), 6)] if sh.width and sh.height else [1, 1]
+        titulo = sh.is_placeholder and "TITLE" in str(sh.placeholder_format.type)
+        reg = {"s": sl_i, "box": box, "anchor": anchor, "ins": [round(v, 4) for v in ins], "wrap": wrap, "k": k, "p": []}
+        for j, p_ in enumerate(ps):
+            if j >= len(textos):
                 p_.getparent().remove(p_); continue
+            if textos[j] is None:
+                continue
             n += 1
             st = estilo(p_, tema)
-            st.update({"id": "F%d" % n, "t": textos[k]})
+            if titulo and st["font"] == tema["minor"]:
+                st["font"] = tema["major"]
+            st.update({"id": "F%d" % n, "t": textos[j]})
             reg["p"].append(st)
             poner_texto(p_, "{{#F%d}}" % n)
-        campos.append(reg)
+        if reg["p"]:
+            campos.append(reg)
 
     for i, (sl, sf) in enumerate(zip(prs.slides, fondo.slides), 1):
         por_id = {sh.shape_id: sh for sh in todas(sl.shapes)}
@@ -236,7 +247,8 @@ def main(origen, destino):
                 marcar(i, por_id[sid], textos)
                 for p_ in parrafos(por_id_f[sid]._element):
                     poner_texto(p_, "")
-        # 3) textos fijos con semana o fecha
+        # 3) TODOS los demás textos también pasan a ser campos (editables, se pueden mover y cambiar de letra);
+        #    los que traen la semana o la fecha del reporte se actualizan solos
         for sid, sh in list(por_id.items()):
             if not sh.has_text_frame or sid in MAPA.get(i, {}) or sh._element.getparent() is None:
                 continue
@@ -244,10 +256,12 @@ def main(origen, destino):
             textos = ["".join(t.text or "" for t in p_.iter(A + "t")) for p_ in ps]
             nuevos = []
             for t in textos:
-                for pat, rep in REEMPLAZOS:
-                    t = re.sub(pat, rep, t)
+                if not t.strip():
+                    nuevos.append(None); continue
+                for pat, rep_ in REEMPLAZOS:
+                    t = re.sub(pat, rep_, t)
                 nuevos.append(t)
-            if nuevos != textos:
+            if any(x is not None for x in nuevos):
                 marcar(i, sh, nuevos)
                 for p_ in parrafos(por_id_f[sid]._element):
                     poner_texto(p_, "")
@@ -259,7 +273,7 @@ def main(origen, destino):
                 el = nuevo_cuadro(sl, modelo, x, y, w, h, "{{#F%d}}" % n, 900 + n)
                 p_ = parrafos(el)[0]
                 st = estilo(p_, tema); st.update({"id": "F%d" % n, "t": "{{f.%s.%s.lineas}}" % (ZONAS[i], ind), "sz": 12})
-                campos.append({"s": i, "box": [x, y, w, h], "anchor": "top", "ins": [0.1, 0.05, 0.1, 0.05], "p": [st]})
+                campos.append({"s": i, "box": [x, y, w, h], "anchor": "top", "ins": [0.1, 0.05, 0.1, 0.05], "wrap": "none", "k": [1, 1], "p": [st]})
         # 5) tabla de zonas en lugar del pantallazo (diapositiva 8)
         if i == 8:
             x, y, cols, alto = 1.51, 3.62, [1.25, 1.5, 0.98], 0.27
@@ -275,7 +289,7 @@ def main(origen, destino):
             for r, c, fid in regs:
                 cx = x + sum(cols[:c])
                 ult = r == 4
-                campos.append({"s": 8, "box": [cx, y + alto * r, cols[c], alto], "anchor": "middle", "ins": [0.066, 0.02, 0.066, 0.02],
+                campos.append({"s": 8, "box": [cx, y + alto * r, cols[c], alto], "anchor": "middle", "ins": [0.066, 0.02, 0.066, 0.02], "wrap": "none", "k": [1, 1], "tabla": True,
                                "p": [{"id": fid, "t": "{{tz.%d.%d}}" % (r, c), "sz": 10, "b": ult, "i": False, "u": False, "c": "262626", "font": tema["minor"], "al": "right" if c else "left"}]})
     destino.mkdir(parents=True, exist_ok=True)
     prs.save(destino / "plantilla_reporte.pptx")
