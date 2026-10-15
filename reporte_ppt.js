@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151231';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610151241';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {} };
 
@@ -88,13 +88,21 @@
         v['f.' + z + '.' + id + '.colores'] = colores;
         barras[z + '.' + id] = segs;
       });
-      var c = R.cal(Z);
+      var c = R.cal(Z), kgRec = (rc.zonas || []).filter(function (x) { return x.z === Z; }).reduce(function (a, x) { return a + x.kg; }, 0);
+      v['hay.' + z] = kgRec > 0 || (c.per && c.per.kg > 0) || R.fito(Z).some(function (f) { return f.res && f.res.n > 0; });
       [['sm', 'sm'], ['lo', 'lo'], ['cr', 'cr']].forEach(function (q) {
         v['c.' + z + '.' + q[0] + '.acu'] = pc(c.acu[q[1]], true);
         v['c.' + z + '.' + q[0] + '.eje'] = c.per[q[1]] == null ? '' : ' ' + pc(c.per[q[1]]);
       });
     });
     return v;
+  }
+  // diapositivas que van: si una zona (Compositan, Olmos, Terceros) no tiene datos en el periodo, su diapositiva no se incluye
+  function zonaDeSlide(n) { var b = (plantilla.barras || []).filter(function (x) { return x.s === n; })[0]; return b ? b.z : null; }
+  function activas() {
+    var out = [];
+    for (var i = 1; i <= plantilla.n; i++) { var z = zonaDeSlide(i); if (!z || valores['hay.' + z]) out.push(i); }
+    return out;
   }
   function textoCampo(p) {
     if (ed.t[p.id] != null) return ed.t[p.id];
@@ -203,17 +211,20 @@
   }
   function miniaturas() {
     var h = '';
-    for (var i = 1; i <= plantilla.n; i++) h += '<button class="ppt-th" type="button" data-i="' + i + '"' + (i === actual ? ' aria-current="true"' : '') + ' aria-label="Diapositiva ' + i + '">' + htmlSlide(i, false) + '<span>' + i + '</span></button>';
+    activas().forEach(function (i, k) { h += '<button class="ppt-th" type="button" data-i="' + i + '"' + (i === actual ? ' aria-current="true"' : '') + ' aria-label="Diapositiva ' + (k + 1) + '">' + htmlSlide(i, false) + '<span>' + (k + 1) + '</span></button>'; });
     $('pptThumbs').innerHTML = h; escalar();
   }
   function pintar() {
     if (!abierto || !plantilla) return;
-    actual = Math.max(1, Math.min(actual || 1, plantilla.n));
+    var lista = activas();
+    if (lista.indexOf(actual) < 0) actual = lista.filter(function (x) { return x <= (actual || 1); }).pop() || lista[0];
+    var pos = lista.indexOf(actual);
     $('pptView').innerHTML = htmlSlide(actual, editando);
     if (selC != null && plantilla.campos[selC] && plantilla.campos[selC].s !== actual) { selP = null; selC = null; }
     setTimeout(marcarSel, 0);
-    $('pptN').textContent = actual + ' / ' + plantilla.n + ' · corte SEM ' + R.state.sem + ' · reporte del ' + valores.fecha;
-    $('pptPrev').disabled = actual === 1; $('pptNext').disabled = actual === plantilla.n;
+    var omitidas = plantilla.n - lista.length;
+    $('pptN').textContent = (pos + 1) + ' / ' + lista.length + ' · corte SEM ' + R.state.sem + ' · reporte del ' + valores.fecha + (omitidas ? ' · ' + omitidas + ' zona(s) sin datos no se incluyen' : '');
+    $('pptPrev').disabled = pos === 0; $('pptNext').disabled = pos === lista.length - 1;
     miniaturas();
   }
   function refrescar() { if (!abierto || !plantilla) return; ed = leerEd(); valores = calcularValores(); pintar(); }
@@ -233,13 +244,14 @@
   }
   btn.addEventListener('click', function () { abrir(!abierto); });
   $('pptCerrar').onclick = function () { abrir(false); };
-  $('pptPrev').onclick = function () { if (actual > 1) { actual--; pintar(); } };
-  $('pptNext').onclick = function () { if (actual < plantilla.n) { actual++; pintar(); } };
+  function paso(d) { var l = activas(), k = l.indexOf(actual) + d; if (k >= 0 && k < l.length) { actual = l[k]; pintar(); } }
+  $('pptPrev').onclick = function () { paso(-1); };
+  $('pptNext').onclick = function () { paso(1); };
   $('pptThumbs').addEventListener('click', function (e) { var b = e.target.closest('.ppt-th'); if (b) { actual = Number(b.getAttribute('data-i')); pintar(); } });
   document.addEventListener('keydown', function (e) {
     if (!abierto || editando || !plantilla || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || '')) return;
-    if (e.key === 'ArrowRight' && actual < plantilla.n) { actual++; pintar(); }
-    if (e.key === 'ArrowLeft' && actual > 1) { actual--; pintar(); }
+    if (e.key === 'ArrowRight') paso(1);
+    if (e.key === 'ArrowLeft') paso(-1);
   });
   window.addEventListener('resize', escalar);
 
@@ -406,6 +418,24 @@
     });
     return xml.replace(/\{\{#(F\d+)\}\}/g, function (_, id) { return xmlEsc(textos[id] != null ? textos[id] : ''); });
   }
+  // quita del PowerPoint las diapositivas que no van (zona sin datos): de la lista, de las relaciones y sus archivos
+  function quitarSlides(zip, lista) {
+    var arch = plantilla.archivos || {}, fuera = [];
+    for (var i = 1; i <= plantilla.n; i++) if (lista.indexOf(i) < 0 && arch[i]) fuera.push(arch[i]);
+    if (!fuera.length) return Promise.resolve();
+    return Promise.all([zip.file('ppt/_rels/presentation.xml.rels').async('string'), zip.file('ppt/presentation.xml').async('string'), zip.file('[Content_Types].xml').async('string')])
+      .then(function (r) {
+        var rels = r[0], pres = r[1], tipos = r[2];
+        fuera.forEach(function (f) {
+          var dest = f.replace(/^ppt\//, ''), m = rels.match(new RegExp('<Relationship[^>]*Id="([^"]+)"[^>]*Target="' + dest.replace(/[.]/g, '\\.') + '"[^>]*/>'))
+            || rels.match(new RegExp('<Relationship[^>]*Target="' + dest.replace(/[.]/g, '\\.') + '"[^>]*Id="([^"]+)"[^>]*/>'));
+          if (m) { rels = rels.replace(m[0], ''); pres = pres.replace(new RegExp('<p:sldId\\b[^>]*r:id="' + m[1] + '"[^>]*/>'), ''); }
+          tipos = tipos.replace(new RegExp('<Override[^>]*PartName="/' + f.replace(/[.]/g, '\\.') + '"[^>]*/>'), '');
+          zip.remove(f); zip.remove(f.replace(/slides\/(slide\d+\.xml)$/, 'slides/_rels/$1.rels'));
+        });
+        zip.file('ppt/_rels/presentation.xml.rels', rels); zip.file('ppt/presentation.xml', pres); zip.file('[Content_Types].xml', tipos);
+      });
+  }
   $('pptPptx').onclick = function () {
     var b = this; b.disabled = true; b.textContent = 'Generando…';
     var textos = {};
@@ -416,6 +446,7 @@
         var arch = plantilla.archivos || {}, nombres = Object.keys(zip.files).filter(function (f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
         var num = {}; Object.keys(arch).forEach(function (k) { num[arch[k]] = Number(k); });
         return Promise.all(nombres.map(function (f) { return zip.file(f).async('string').then(function (x) { zip.file(f, llenarXml(x, textos, num[f] || Number(f.match(/slide(\d+)/)[1]))); }); }))
+          .then(function () { return quitarSlides(zip, activas()); })
           .then(function () { return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', compression: 'DEFLATE' }); });
       })
       .then(function (blob) {
@@ -432,17 +463,17 @@
     caja.style.cssText = 'position:fixed;left:-20000px;top:0;width:1280px;height:720px;';
     document.body.appendChild(caja);
     Promise.all([cargar('lib/html2canvas.min.js'), cargar('lib/jspdf.umd.min.js')]).then(function () {
-      var W = plantilla.w, H = plantilla.h, pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'in', format: [W, H] }), cadena = Promise.resolve();
-      for (var i = 1; i <= plantilla.n; i++) (function (i) {
+      var W = plantilla.w, H = plantilla.h, pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'in', format: [W, H] }), cadena = Promise.resolve(), lista = activas();
+      lista.forEach(function (i, k) {
         cadena = cadena.then(function () {
           caja.innerHTML = htmlSlide(i, false);
-          msg('Generando PDF… ' + i + ' de ' + plantilla.n);
+          msg('Generando PDF… ' + (k + 1) + ' de ' + lista.length);
           var img = caja.querySelector('img');
           return (img.complete ? Promise.resolve() : new Promise(function (ok) { img.onload = img.onerror = ok; }))
             .then(function () { return window.html2canvas(caja.firstChild, { scale: 1.5, backgroundColor: '#ffffff', logging: false, useCORS: true }); })
-            .then(function (cv) { if (i > 1) pdf.addPage([W, H], 'landscape'); pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, W, H); });
+            .then(function (cv) { if (k > 0) pdf.addPage([W, H], 'landscape'); pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, W, H); });
         });
-      })(i);
+      });
       return cadena.then(function () { pdf.save(nombreArchivo('pdf')); });
     }).then(function () { msg('PDF descargado.'); })
       .catch(function (e) { msg('No se pudo generar el PDF: ' + e.message); })

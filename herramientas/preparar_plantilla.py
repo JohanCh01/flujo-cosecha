@@ -170,6 +170,28 @@ def body(sh):
     return anchor, [g("lIns", 0.1), g("tIns", 0.05), g("rIns", 0.1), g("bIns", 0.05)]
 
 
+def estilo_nota(parrafo):
+    """Notas que empiezan con '*': negro, Arial 13, sin negrita ni cursiva (en el PPT)."""
+    for r in parrafo.findall(A + "r"):
+        rpr = r.find(A + "rPr")
+        if rpr is None:
+            rpr = etree.Element(A + "rPr"); r.insert(0, rpr)
+        rpr.set("sz", "1300"); rpr.set("b", "0"); rpr.set("i", "0")
+        if "u" in rpr.attrib: del rpr.attrib["u"]
+        for t in list(rpr):
+            if etree.QName(t).localname in ("solidFill", "gradFill", "noFill", "latin"):
+                rpr.remove(t)
+        fill = etree.Element(A + "solidFill"); etree.SubElement(fill, A + "srgbClr").set("val", "000000")
+        rpr.insert(0, fill)
+        pos = next((k for k, t in enumerate(rpr) if etree.QName(t).localname in ("ea", "cs", "sym", "hlinkClick", "rtl", "extLst")), len(rpr))
+        etree.Element(A + "latin")
+        lat = etree.Element(A + "latin"); lat.set("typeface", "Arial"); rpr.insert(pos, lat)
+
+
+# Etiquetas de la diapositiva 8 que se centran en su recuadro: id → (x, ancho)
+CENTRAR = {8: {23: (1.51, 3.73), 31: (8.36, 3.73), 15: (1.51, 3.73), 30: (8.36, 3.73)}}
+
+
 def nuevo_cuadro(slide, modelo, x, y, w, h, texto, nid):
     el = copy.deepcopy(modelo._element)
     nv = el.find(".//" + P + "cNvPr"); nv.set("id", str(nid)); nv.set("name", "Lineas %d" % nid)
@@ -225,6 +247,9 @@ def main(origen, destino):
         wrap = "none" if bp is not None and bp.get("wrap") == "none" else "square"
         k = [round(box[2] / max(1e-6, sh.width / EMU), 6), round(box[3] / max(1e-6, sh.height / EMU), 6)] if sh.width and sh.height else [1, 1]
         titulo = sh.is_placeholder and "TITLE" in str(sh.placeholder_format.type)
+        cen = CENTRAR.get(sl_i, {}).get(sh.shape_id)
+        if cen:
+            box = [cen[0], box[1], cen[1], box[3]]
         reg = {"s": sl_i, "box": box, "anchor": anchor, "ins": [round(v, 4) for v in ins], "wrap": wrap, "k": k, "p": []}
         for j, p_ in enumerate(ps):
             if j >= len(textos):
@@ -236,8 +261,18 @@ def main(origen, destino):
             if titulo and st["font"] == tema["minor"]:
                 st["font"] = tema["major"]
             st.update({"id": "F%d" % n, "t": textos[j]})
-            reg["p"].append(st)
             poner_texto(p_, "{{#F%d}}" % n)
+            if textos[j].lstrip().startswith("*"):
+                st.update({"c": "000000", "b": False, "i": False, "u": False, "font": "Arial", "sz": 13})
+                estilo_nota(p_)
+            cen = CENTRAR.get(sl_i, {}).get(sh.shape_id)
+            if cen:
+                st["al"] = "center"
+                ppr = p_.find(A + "pPr")
+                if ppr is None:
+                    ppr = etree.Element(A + "pPr"); p_.insert(0, ppr)
+                ppr.set("algn", "ctr")
+            reg["p"].append(st)
         if reg["p"]:
             campos.append(reg)
 
