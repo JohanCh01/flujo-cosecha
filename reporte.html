@@ -434,6 +434,8 @@ html.locked .ppt { display: none !important; }
     state.mo = P.mo && P.mo.anios ? P.mo.anios : {}; state.moGen = P.mo ? P.mo.gen : '';
     // Ratio de reclamos penalizados: del Power BI de reclamos (bloque «recl» que sube reclamos_pbi.py desde la laptop)
     state.recl = P.recl || null;
+    // Despachos · Mercado: filas del Excel de ventas (bloque «desp» que sube ventas_excel.py desde la laptop)
+    state.desp = P.desp || null;
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -875,7 +877,7 @@ html.locked .ppt { display: none !important; }
   //   Año Embarque = año del reporte · Grupo Artículo = ESPÁRRAGO VERDE · suma de Fcls (en número entero)
   //   ENV  = Tipo Envio, con «MU» → «AE»          (=SI(BG2="MU";"AE";BG2))
   //   MERC = América del Norte/Sur → USA · Asia · Cen.America&el Carib → LATAM · Europa
-  //   Aéreo (AE) por MERC; Marítimo (MA) por Cliente Danper. Se guarda en este navegador (independiente de la semana).
+  //   Aéreo (AE) por MERC; Marítimo (MA) por Cliente Danper. Independiente de la semana.
   var MERC_ORDEN = ['Asia', 'Europa', 'LATAM', 'USA'];
   function sinTilde(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase(); }
   function mercDe(m) {
@@ -886,43 +888,51 @@ html.locked .ppt { display: none !important; }
     if (n.indexOf('EUROPA') >= 0) return 'Europa';
     return '';
   }
-  function leerDesp() { try { return JSON.parse(localStorage.getItem('rpt.desp') || 'null'); } catch (e) { return null; } }
-  function desp() {
-    var D = leerDesp(); if (!D || !D.anios) return { hay: false };
-    var A = D.anios[String(state.anio)]; if (!A) return { hay: false, archivo: D.archivo, fecha: D.fecha, otroAnio: true };
-    var ae = MERC_ORDEN.map(function (m) { return { k: m, v: A.ae[m] || 0 }; });
-    var ma = Object.keys(A.ma).sort().map(function (c) { return { k: c, v: A.ma[c] }; });
-    var tot = function (l) { return l.reduce(function (s, x) { return s + x.v; }, 0); };
-    return { hay: true, archivo: D.archivo, fecha: D.fecha, ae: ae, ma: ma, aeTot: tot(ae), maTot: tot(ma) };
+  // datos: los que subió ventas_excel.py (para todos) o, si arrastras un Excel más nuevo aquí, ese (solo en este navegador)
+  function despActivo() {
+    var srv = state.desp && state.desp.filas ? { archivo: state.desp.archivo, fecha: state.desp.gen, filas: state.desp.filas, origen: 'pagina' } : null;
+    var loc = lsGet('rpt.desp2');
+    if (loc && loc.filas && (!srv || String(loc.fecha) > String(srv.fecha))) { loc.origen = 'navegador'; return loc; }
+    return srv;
   }
+  function agregar(filas, anio) {
+    var ae = {}, ma = {}, tae = 0, tma = 0;
+    Object.keys(filas).forEach(function (k) {
+      var f = filas[k]; if (+f[0] !== anio) return;
+      if (f[1] === 'AE') { ae[f[2]] = (ae[f[2]] || 0) + f[3]; tae += f[3]; } else { ma[f[2]] = (ma[f[2]] || 0) + f[3]; tma += f[3]; }
+    });
+    return { ae: ae, ma: ma, aeTot: Math.round(tae), maTot: Math.round(tma), hay: Object.keys(ae).length + Object.keys(ma).length > 0 };
+  }
+  function desp() {
+    var D = despActivo(); if (!D) return { hay: false };
+    var A = agregar(D.filas, state.anio);
+    if (!A.hay) return { hay: false, archivo: D.archivo, fecha: D.fecha, origen: D.origen, otroAnio: true };
+    return { hay: true, archivo: D.archivo, fecha: D.fecha, origen: D.origen, aeTot: A.aeTot, maTot: A.maTot,
+      ae: MERC_ORDEN.map(function (m) { return { k: m, v: Math.round(A.ae[m] || 0) }; }),
+      ma: Object.keys(A.ma).sort().map(function (c) { return { k: c, v: Math.round(A.ma[c]) }; }) };
+  }
+  function textoCelda(v) { if (typeof v === 'number' && Math.floor(v) === v) return String(v); return String(v == null ? '' : v).trim(); }
   function procesarVentas(wb) {
     var hoja = wb.Sheets.Data || wb.Sheets[wb.SheetNames.filter(function (n) { return sinTilde(n) === 'DATA'; })[0]];
     if (!hoja) throw new Error('no encontré la hoja «Data»');
     var filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: '' });
     var enc = (filas[0] || []).map(function (h) { return sinTilde(h).replace(/[^A-Z0-9]/g, ''); });
-    var col = function (nombres) { for (var i = 0; i < nombres.length; i++) { var k = enc.indexOf(nombres[i]); if (k >= 0) return k; } return -1; };
-    var cA = col(['ANOEMBARQUE']), cG = col(['GRUPOARTICULO']), cE = col(['TIPOENVIO']), cM = col(['MERCADO']), cC = col(['CLIENTEDANPER']), cF = col(['FCLS']);
+    var col = function (n) { return enc.indexOf(n); };
+    var cA = col('ANOEMBARQUE'), cG = col('GRUPOARTICULO'), cE = col('TIPOENVIO'), cM = col('MERCADO'), cC = col('CLIENTEDANPER'), cF = col('FCLS');
+    var LL = ['CONTRATO', 'POSICIONCONTRATO', 'PLANENTREGA', 'POSICIONPLANENTREGA', 'PEDIDOVTA', 'POSICIONPEDVTA'].map(col);
     var falta = [['Año Embarque', cA], ['Grupo Artículo', cG], ['Tipo Envio', cE], ['Mercado', cM], ['Cliente Danper', cC], ['Fcls', cF]].filter(function (x) { return x[1] < 0; }).map(function (x) { return x[0]; });
-    if (falta.length) throw new Error('faltan columnas: ' + falta.join(', '));
-    var anios = {};
+    if (falta.length || LL.indexOf(-1) >= 0) throw new Error('faltan columnas: ' + (falta.join(', ') || 'las de contrato / pedido'));
+    var out = {};
     for (var r = 1; r < filas.length; r++) {
       var f = filas[r]; if (sinTilde(f[cG]) !== 'ESPARRAGO VERDE') continue;
-      var an = String(f[cA]).trim(); if (!/^\d{4}$/.test(an)) continue;
-      var env = String(f[cE]).trim().toUpperCase(); if (env === 'MU') env = 'AE';
+      var an = textoCelda(f[cA]); if (!/^\d{4}$/.test(an)) continue;
+      var env = textoCelda(f[cE]).toUpperCase(); if (env === 'MU') env = 'AE'; if (env !== 'AE' && env !== 'MA') continue;
+      var g = env === 'AE' ? mercDe(f[cM]) : (textoCelda(f[cC]) || '(sin cliente)'); if (!g) continue;
       var fc = parseFloat(String(f[cF]).replace(',', '.')) || 0;
-      var o = anios[an] || (anios[an] = { ae: {}, ma: {}, aeRaw: {}, maRaw: {} });
-      if (env === 'AE') { var m = mercDe(f[cM]); if (m) o.aeRaw[m] = (o.aeRaw[m] || 0) + fc; }
-      else if (env === 'MA') { var c = String(f[cC]).trim() || '(sin cliente)'; o.maRaw[c] = (o.maRaw[c] || 0) + fc; }
+      var k = LL.map(function (c) { return textoCelda(f[c]); }).join('|');
+      if (out[k]) out[k][3] = Math.round((out[k][3] + fc) * 1e6) / 1e6; else out[k] = [+an, env, g, Math.round(fc * 1e6) / 1e6];
     }
-    Object.keys(anios).forEach(function (an) {     // número entero (como tu tabla dinámica); el total = suma redondeada
-      var o = anios[an];
-      Object.keys(o.aeRaw).forEach(function (k) { o.ae[k] = Math.round(o.aeRaw[k]); });
-      Object.keys(o.maRaw).forEach(function (k) { o.ma[k] = Math.round(o.maRaw[k]); });
-      o.aeTot = Math.round(Object.keys(o.aeRaw).reduce(function (s, k) { return s + o.aeRaw[k]; }, 0));
-      o.maTot = Math.round(Object.keys(o.maRaw).reduce(function (s, k) { return s + o.maRaw[k]; }, 0));
-      delete o.aeRaw; delete o.maRaw;
-    });
-    return anios;
+    return out;
   }
   function cargarXlsx() {
     if (window.XLSX) return Promise.resolve();
@@ -933,11 +943,21 @@ html.locked .ppt { display: none !important; }
     cargarXlsx().then(function () { return archivo.arrayBuffer(); })
       .then(function (buf) {
         var wb = XLSX.read(new Uint8Array(buf), { type: 'array', dense: true, sheets: ['Data'] });
-        var anios = procesarVentas(wb);
-        if (!Object.keys(anios).length) throw new Error('no hay filas de ESPÁRRAGO VERDE');
-        var D = { archivo: archivo.name, fecha: new Date().toISOString().slice(0, 16), anios: anios };
-        try { localStorage.setItem('rpt.desp', JSON.stringify(D)); } catch (e) { throw new Error('este navegador no deja guardar (modo privado)'); }
-        m.textContent = 'Listo: «' + archivo.name + '» procesado.'; renderDesp(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+        var filas = procesarVentas(wb);
+        if (!Object.keys(filas).length) throw new Error('no hay filas de ESPÁRRAGO VERDE');
+        var antes = despActivo(), cmp = '';
+        if (antes) {
+          var V = antes.filas, nu = 0, ca = 0, fu = 0;
+          Object.keys(filas).forEach(function (k) { if (!V[k]) nu++; else if (JSON.stringify(V[k]) !== JSON.stringify(filas[k])) ca++; });
+          Object.keys(V).forEach(function (k) { if (!filas[k]) fu++; });
+          var pl = function (n, uno, varios) { return n + ' ' + (n === 1 ? uno : varios); };
+          cmp = ' Comparado con lo que estaba cargado: ' + pl(nu, 'fila nueva', 'filas nuevas') + ', ' + pl(ca, 'cambiada', 'cambiadas') + ', ' + pl(fu, 'que ya no está', 'que ya no están') + '.';
+        }
+        var D = { archivo: archivo.name, fecha: new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 16), filas: filas };
+        if (!lsSet('rpt.desp2', D)) throw new Error('este navegador no deja guardar (modo privado)');
+        try { localStorage.removeItem('rpt.desp'); } catch (e) { /* nada */ }
+        m.textContent = 'Listo: «' + archivo.name + '» actualizado.' + cmp + ' Esto queda en este navegador; para que lo vean todos, corre en tu laptop: python ventas_excel.py "' + archivo.name + '"';
+        renderDesp(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
       })
       .catch(function (e) { m.textContent = 'No se pudo leer el Excel: ' + e.message; });
   }
@@ -950,15 +970,14 @@ html.locked .ppt { display: none !important; }
   })();
   function renderDesp() {
     var d = desp();
-    $('despNota').textContent = d.archivo ? '«' + d.archivo + '» · procesado el ' + d.fecha.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d)/, '$3/$2 $4') : '';
+    $('despNota').textContent = d.archivo ? '«' + d.archivo + '» · ' + (d.origen === 'navegador' ? 'subido en este navegador' : 'cargado') + ' el ' + String(d.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
     if (!d.hay) { $('despTablas').innerHTML = d.otroAnio ? '<p class="aviso">Ese Excel no tiene embarques de ' + state.anio + '.</p>' : ''; return; }
     function tabla(tit, col, filas, total) {
       return '<table class="desp"><tr><th rowspan="1"></th><th>' + col + '</th><th>N° Fcls</th></tr>' +
         filas.map(function (x, i) { return '<tr>' + (i === 0 ? '<td class="g" rowspan="' + filas.length + '">' + tit + '</td>' : '') + '<td>' + esc(x.k) + '</td><td class="n">' + x.v + '</td></tr>'; }).join('') +
         '<tr class="tot"><td>Total</td><td colspan="2" class="n">' + total + '</td></tr></table>';
     }
-    var A = leerDesp().anios[String(state.anio)];
-    $('despTablas').innerHTML = tabla('AÉREO', 'Mercado', d.ae, A.aeTot) + tabla('Marítimo', 'Cliente', d.ma, A.maTot);
+    $('despTablas').innerHTML = tabla('AÉREO', 'Mercado', d.ae, d.aeTot) + tabla('Marítimo', 'Cliente', d.ma, d.maTot);
   }
 
   // ---------- Indicadores de Producción (diapositiva 2): por ahora se escriben aquí (avance, semana y objetivo de cada uno);
@@ -1055,7 +1074,7 @@ html.locked .ppt { display: none !important; }
     mo: mo,
     recl: recl,
     prod: prod, difProd: difProd,
-    desp: function () { var d = desp(); if (d.hay) { var A = leerDesp().anios[String(state.anio)]; d.aeTot = A.aeTot; d.maTot = A.maTot; } return d; },
+    desp: desp,
     rec: function () {
       var R = state.rec || [];
       function suma(z, f) { var t = 0; R.forEach(function (r) { if (f(r) && (z === 'TODAS' || r.zona === z)) t += r.v[0]; }); return t; }
