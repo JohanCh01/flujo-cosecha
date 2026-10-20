@@ -509,12 +509,12 @@ html.locked .ppt { display: none !important; }
           if (!r || t > r.t) { pend[k] = 1; if (!M[k]) metaPon(k, Date.now()); }
         }
         Object.keys(M).forEach(function (k) { if (COMPARTIDO.test(k) && localStorage.getItem(k) == null && remoto[k] && remoto[k].v != null && M[k] > remoto[k].t) pend[k] = 1; });
-        if (Object.keys(pend).length) { if (!reintentando) { clearTimeout(timer); timer = setTimeout(subir, 800); } } else estado('ok', hora());
+        if (Object.keys(pend).length) { if (!reintentando) { clearTimeout(timer); timer = setTimeout(subir, 800); } } else estado('ok', ultimoGuardado);   // revisar no es guardar: la hora no cambia
         if (cambiado && alCambiar) alCambiar();
       });
     }
     function hora() { var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
-    var subiendo = false, reintentando = false;
+    var subiendo = false, reintentando = false, ultimoGuardado = '';
     function subir(intento) {
       reintentando = !!intento;
       if (!cfg || subiendo) { if (cfg) { clearTimeout(timer); timer = setTimeout(subir, 1500); } return; }
@@ -532,7 +532,7 @@ html.locked .ppt { display: none !important; }
       });
       // GitHub no acepta dos guardados a la vez: se mandan UNO POR UNO
       pasos.reduce(function (pr, paso) { return pr.then(paso); }, Promise.resolve())
-        .then(function () { subiendo = false; estado('ok', hora()); if (Object.keys(pend).length) subir(); })
+        .then(function () { subiendo = false; ultimoGuardado = hora(); estado('ok', ultimoGuardado); if (Object.keys(pend).length) subir(); })
         .catch(function (e) {
           subiendo = false; ks.forEach(function (k) { pend[k] = 1; });
           var n = intento || 0;
