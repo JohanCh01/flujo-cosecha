@@ -6,7 +6,7 @@ Corre en TU LAPTOP (mismo perfil de Edge que drenados_pbi.py). Qué hace:
   1. Abre el reporte. Filtros:
        AÑO       si ya está en el año actual no se toca; si no, se deja solo ese año
        PRODUCTO  solo ESPÁRRAGO VERDE
-       MES       no se toca (se deja como esté en el reporte)
+       MES       sin filtro: si hay algún mes marcado, se borra (queda «Todas»)
   2. Lee: % Penalidad (el indicador) y su objetivo, Penalizado $ y Venta $.
   3. Saca la captura del gráfico «Penalidad ($) por clasificación de reclamo» (va en lugar de «Imagen 2»).
   4. Lo guarda dentro de fito.json (cifrado, también la imagen) y lo sube a GitHub.
@@ -346,9 +346,18 @@ def main():
         else:
             log(f"PRODUCTO → solo {PRODUCTO}")
             ajustar(driver, "PRODUCTO", lambda t: norm(t) == norm(PRODUCTO))
-        # MES: no se toca (se deja como esté en el reporte)
+        # MES: sin filtro. Si hay algún mes marcado, se borra la selección (queda «Todas»)
         meses = []
-        log("MES: no lo toco; se deja como está en el reporte.")
+        mes_txt = restatement(driver, "MES")
+        if norm(mes_txt) in ("", "TODAS", "TODOS", "ALL"):
+            log(f"MES ya está sin filtro ({mes_txt or 'Todas'}).")
+        else:
+            log(f"MES tenía «{mes_txt}»: borro ese filtro.")
+            dp.limpiar(driver, "MES")                      # botón «Borrar selecciones» del filtro
+            time.sleep(2)
+            if norm(restatement(driver, "MES")) not in ("", "TODAS", "TODOS", "ALL"):
+                ajustar(driver, "MES", lambda t: False)    # si no hay botón: desmarca todos los meses
+            log(f"MES ahora: «{restatement(driver, 'MES') or 'Todas'}».")
 
         v = leer_estable(driver)
         if not v or v["pct"] is None:
