@@ -30,7 +30,7 @@ MAPA = {
     7: {2: ["INDICADORES DE\nLA\nSEMANA {{sem}}"]},
     # indicadores de producción (por ahora se escriben en la página): eg = Eficiencia Global, ef = Eficiencia,
     # mo = Mano de Obra – Producción, ap = Aprovechamiento, re = Rendimiento · acu = avance de campaña, sem = semana
-    3: {52: ["{{p.mo.acu}}"], 56: ["{{p.mo.acu.dif}}"], 69: ["{{p.mo.sem}}"], 71: ["{{p.mo.sem.dif}}"],
+    3: {68: ["SEMANA {{sem}}"], 21: ["*Corte semana {{sem}}"], 52: ["{{p.mo.acu}}"], 56: ["{{p.mo.acu.dif}}"], 69: ["{{p.mo.sem}}"], 71: ["{{p.mo.sem.dif}}"],
         29: ["{{p.eg.acu.dif}}"], 39: ["{{p.eg.sem.dif}}"], 7: ["{{p.ap.acu}}"], 25: ["{{p.ap.acu.dif}}"],
         60: ["{{p.ap.sem}}"], 81: ["{{p.ap.sem.dif}}"], 83: ["{{p.re.sem}}"], 87: ["{{p.re.sem.dif}}"],
         91: ["{{p.re.acu}}"], 97: ["{{p.re.acu.dif}}"], 99: ["{{p.eg.acu}}"], 101: ["{{p.ef.acu}}"],
@@ -67,6 +67,9 @@ CAJAS = [(ind, x + 0.60, CAJA_Y + 0.42, 1.40, 1.30) for ind, x in zip(INDS, CAJA
 BARRAS = [(ind, x + 0.15, CAJA_Y + 0.44, 0.40, 1.24) for ind, x in zip(INDS, CAJA_X)]
 CAJAS_QUITAR = {9: [25, 36, 63, 88, 27, 40, 65, 90], 10: None, 11: None}     # recuadros y títulos viejos (se dibujan de nuevo)
 PROM_MAX = [(100, 102), (104, 106), (125, 127), (129, 131)]
+# diapositiva 3, fila de arriba (Eficiencia Global, Eficiencia, Mano de Obra – Producción):
+# (recuadro, valor, objetivo, diferencia) → dentro de cada recuadro: valor (Aptos Light 36, sin negrita), objetivo (16) y diferencia (16), centrados
+FILA3 = [(16, 99, 27, 29), (20, 115, 35, 39), (18, 101, 103, 105), (22, 107, 109, 113), (61, 52, 54, 56), (67, 69, 70, 71)]
 # imágenes con datos viejos (pantallazos de Power BI): se quitan
 QUITAR = {3: [119], 6: [7], 8: [26], 12: [8]}
 # donde estaba el pantallazo va un recuadro punteado gris "Imagen N" (ahí irá una imagen)
@@ -236,6 +239,59 @@ def recuadro_imagen(x, y, w, h, texto, nid):
         % (NS["p"], NS["a"], nid, texto, x * EMU, y * EMU, w * EMU, h * EMU, texto))
 
 
+def poner_en(sh, box, sz=None, font=None, negrita=None, centro=True):
+    """Pone la forma en la caja absoluta box (pulgadas), aunque esté dentro de un grupo, y ajusta su letra."""
+    cur = abs_xfrm(sh)
+    if not sh.width or not sh.height:
+        return
+    sx, sy = cur[2] / (sh.width / EMU), cur[3] / (sh.height / EMU)
+    xf = sh._element.find(".//" + A + "xfrm")
+    off, ext = xf.find(A + "off"), xf.find(A + "ext")
+    off.set("x", str(int(int(off.get("x")) + (box[0] - cur[0]) / sx * EMU)))
+    off.set("y", str(int(int(off.get("y")) + (box[1] - cur[1]) / sy * EMU)))
+    ext.set("cx", str(int(box[2] / sx * EMU))); ext.set("cy", str(int(box[3] / sy * EMU)))
+    bp = sh._element.find(".//" + A + "bodyPr")
+    if bp is not None:
+        bp.set("wrap", "none"); bp.set("anchor", "ctr")
+        for k in ("lIns", "rIns", "tIns", "bIns"):
+            bp.set(k, "0")
+        for hijo in list(bp):
+            if hijo.tag in (A + "spAutoFit", A + "normAutofit", A + "noAutofit"):
+                bp.remove(hijo)
+    for p_ in parrafos(sh._element):
+        if centro:
+            ppr = p_.find(A + "pPr")
+            if ppr is None:
+                ppr = etree.Element(A + "pPr"); p_.insert(0, ppr)
+            ppr.set("algn", "ctr")
+        for r_ in p_.iter(A + "rPr"):
+            if sz:
+                r_.set("sz", str(int(sz * 100)))
+            if negrita is not None:
+                r_.set("b", "1" if negrita else "0")
+            if font:
+                for v in r_.findall(A + "latin"):
+                    r_.remove(v)
+                lat = etree.SubElement(r_, A + "latin"); lat.set("typeface", font)
+                # el <a:latin> va antes de ea/cs/sym/hlink…
+                hermanos = [h for h in r_ if h.tag in (A + "ea", A + "cs", A + "sym", A + "hlinkClick", A + "hlinkMouseOver", A + "rtl", A + "extLst")]
+                if hermanos:
+                    r_.remove(lat); hermanos[0].addprevious(lat)
+
+
+def acomodar_fila3(d):
+    """d = {id de forma: forma}. Valor, objetivo y diferencia dentro de su recuadro, sin encimarse."""
+    for caja, val, obj, dif in FILA3:
+        if caja not in d:
+            continue
+        x, y, w, h = abs_xfrm(d[caja])
+        for sid, (dy, alto, sz, font, neg) in ((val, (0.37, 0.56, 36, "Aptos Light", False)),
+                                                (obj, (0.93, 0.26, 16, None, None)),
+                                                (dif, (1.17, 0.24, 16, None, None))):
+            if sid in d:
+                poner_en(d[sid], [x + 0.04, y + dy, w - 0.08, alto], sz=sz, font=font, negrita=neg)
+
+
 def tabla_xml(x, y, cols, alto, filas, nid):
     """Tabla nativa (Zona | Kg | %) en lugar del pantallazo."""
     w = sum(cols)
@@ -290,13 +346,13 @@ def main(origen, destino):
             st.update({"id": "F%d" % n, "t": textos[j]})
             poner_texto(p_, "{{#F%d}}" % n)
             if sl_i == 3 and textos[j].lstrip().startswith("Objetivo") and box[1] < 3.6:
-                # objetivos de Eficiencia Global, Eficiencia y Mano de Obra: 17 pt
-                st["sz"] = 17
+                # objetivos de Eficiencia Global, Eficiencia y Mano de Obra: 16 pt
+                st["sz"] = 16
                 for r_ in p_.findall(A + "r"):
                     rpr = r_.find(A + "rPr")
                     if rpr is None:
                         rpr = etree.Element(A + "rPr"); r_.insert(0, rpr)
-                    rpr.set("sz", "1700")
+                    rpr.set("sz", "1600")
             if textos[j].lstrip().startswith("*"):
                 st.update({"c": "000000", "b": False, "i": False, "u": False, "font": "Arial", "sz": 13})
                 estilo_nota(p_)
@@ -380,6 +436,8 @@ def main(origen, destino):
             por_id = {sh.shape_id: sh for sh in todas(sl.shapes)}
             por_id_f = {sh.shape_id: sh for sh in todas(sf.shapes)}
             barras.extend({"s": i, "z": ZONAS[i], "ind": ind, "box": [x, y, w, h]} for ind, x, y, w, h in BARRAS)
+        if i == 3:
+            acomodar_fila3(por_id); acomodar_fila3(por_id_f)
         # 2) valores mapeados
         for sid, textos in MAPA.get(i, {}).items():
             if sid in por_id and por_id[sid].has_text_frame:

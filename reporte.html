@@ -1033,13 +1033,13 @@ html.locked .ppt { display: none !important; }
     var P = prod(), sem = state.sem;
     var h = '<tr><th>Indicador</th><th>Avance de campaña</th><th>Semana ' + sem + '</th><th>Objetivo</th></tr>';
     PROD.forEach(function (d) {
-      var p = P[d.k], semLbl = d.k === 'mo' ? 'semana ' + (sem - 1) : 'semana ' + sem;
+      var p = P[d.k], semLbl = 'semana ' + sem;
       var celda = function (q) {
         var df = difProd(p[q], p.obj, d.pct), ok = df && (d.mas ? df.d >= 0 : df.d <= 0);
         return '<td><input data-prod="' + d.k + '.' + q + '" inputmode="decimal" value="' + esc(p.txt[q]) + '" placeholder="" aria-label="' + esc(d.t) + ' · ' + (q === 'acu' ? 'avance de campaña' : semLbl) + '">' +
           (df ? '<div class="dif ' + (ok ? 'ok' : 'mal') + '">' + df.txt + '</div>' : '') + '</td>';
       };
-      h += '<tr><td><b>' + esc(d.t) + '</b>' + (d.k === 'mo' ? '<div class="dif">la semana es la ' + (sem - 1) + '</div>' : '') + '</td>' + celda('acu') + celda('sem') +
+      h += '<tr><td><b>' + esc(d.t) + '</b>' + '' + '</td>' + celda('acu') + celda('sem') +
         '<td><input data-prodobj="' + d.k + '" inputmode="decimal" value="' + esc(p.txt.obj) + '" placeholder="' + (d.pct ? d.obj.toFixed(1) + ' %' : d.obj.toFixed(3)) + '" aria-label="Objetivo de ' + esc(d.t) + '"></td></tr>';
     });
     $('prodTabla').innerHTML = h;
@@ -1234,6 +1234,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610201030"></script>
+<script src="reporte_ppt.js?v=202610201100"></script>
 </body>
 </html>
