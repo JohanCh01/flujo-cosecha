@@ -821,8 +821,7 @@ html.locked .ppt { display: none !important; }
   }  function dren() {
     var d = drenAuto();
     d.av = d.proy > 0 && d.eje != null ? d.eje / d.proy : null;
-    d = aplicarDovr(d);
-    if (!d.ovr.av) d.av = d.proy > 0 && d.eje != null ? d.eje / d.proy : null;   // si cambiaste «Ejecutados», el avance se recalcula
+    d.auto = { eje: d.eje, per: d.per, obsAcu: d.obsAcu, obsSem: d.obsSem, av: d.av }; d.ovr = {};   // solo el proyectado se escribe
     return d;
   }
 
@@ -858,9 +857,8 @@ html.locked .ppt { display: none !important; }
     var kgPlano = function (x) { return x == null ? '' : x >= 1e6 ? (x / 1e6).toFixed(1) + ' mill' : x >= 1e3 ? (x / 1e3).toFixed(1) + ' mil' : String(Math.round(x)); };
     var pcPlano = function (x, dec) { return x == null ? '' : (x * 100).toFixed(dec) + '%'; };
     // valor grande que se puede cambiar: muestra el del Power BI; si lo cambias, aparece ↺ para volver al automático
-    var editable = function (k, txt, autoTxt, clase) {
-      return '<div class="big-ed"><input class="big-in ' + (clase || '') + '" data-dovr="' + k + '" data-auto="' + esc(autoTxt) + '" value="' + esc(txt) + '" aria-label="Cambiar valor">' +
-        (d.ovr[k] ? '<button type="button" class="ico-img" data-dovr-reset="' + k + '" title="Volver al valor del Power BI" aria-label="Volver al valor del Power BI">↺</button>' : '') + '</div>';
+    var editable = function (k, txt, autoTxt, clase) {          // valores del Power BI: solo se muestran (no se editan)
+      return '<div class="big ' + (clase || '') + '">' + (txt ? esc(txt) : '—') + '</div>';
     };
     html += '<article class="card kpi"><h3>Ejecutados hasta S.' + state.sem + '</h3>' + editable('eje', kgPlano(d.eje), kgPlano(d.auto.eje)) + '<div class="lbl">kilos</div></article>';
     html += '<article class="card kpi"><h3>Avance de campaña</h3>' + editable('av', conProy || d.ovr.av ? pcPlano(d.av, 1) : '', conProy ? pcPlano(d.auto.av, 1) : '') + '<div class="lbl">ejecutado ÷ proyectado</div></article>';
