@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610201105';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610201115';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -123,6 +123,7 @@
     });
     // seguimiento del inspector de calidad (diapositiva 12): N° de inspectores del día (se escribe en la página)
     var IN = R.insp ? R.insp() : {}; v['insp.n'] = IN.n || '';
+    var ST = R.stock ? R.stock() : {}; v['stock.n'] = ST.ver || '';
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
@@ -184,6 +185,7 @@
     var rl = R.recl ? R.recl() : {}, pr = R.prod ? R.prod() : {}, fuentes = { 'Imagen 2': rl.img ? { src: rl.img, w: rl.imgW, h: rl.imgH } : null,
       'Imagen 1': pr.img1 ? { src: pr.img1.src, w: pr.img1.w, h: pr.img1.h } : null, 'Imagen 3': null };
     var ins = R.insp ? R.insp() : {}; if (ins.img3) fuentes['Imagen 3'] = { src: ins.img3.src, w: ins.img3.w, h: ins.img3.h };
+    var st = R.stock ? R.stock() : {}; if (st.img4) fuentes['Imagen 4'] = { src: st.img4.src, w: st.img4.w, h: st.img4.h };
     return (plantilla.imagenes || []).filter(function (im) { return im.s === n && fuentes[im.nombre]; })
       .map(function (im) { var f = fuentes[im.nombre]; return { s: im.s, box: im.box, nombre: im.nombre, src: f.src, w: f.w, h: f.h }; });
   }

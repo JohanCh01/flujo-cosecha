@@ -338,6 +338,19 @@ html.locked .ppt { display: none !important; }
     <div class="desp-tablas" id="despTablas"></div>
   </section>
 
+  <section class="sec" aria-labelledby="t-stock">
+    <div class="sec-h"><h2 id="t-stock">Kilos en stock</h2></div>
+    <div class="band" id="stockBanda">KILOS EN STOCK</div>
+    <div class="prod-wrap insp-wrap">
+      <div class="card kpi"><h3>Kilos en stock</h3><input class="proy-in" id="stockIn" type="text" inputmode="decimal" autocomplete="off" aria-label="Kilos en stock del día"><div class="lbl" id="stockLbl"></div></div>
+      <div class="soltar img" id="img4Soltar" tabindex="0" role="button" aria-label="Pegar imagen de kilos en stock">
+        <input type="file" id="img4Archivo" accept="image/*" hidden>
+        <span id="img4Ver"><b>Pegar imagen</b></span>
+      </div>
+    </div>
+    <p class="aviso" id="stockMsg" hidden></p>
+  </section>
+
   <section class="sec" aria-labelledby="t-insp">
     <div class="sec-h"><h2 id="t-insp">Seguimiento del Inspector de Calidad</h2><p id="inspNota"></p></div>
     <div class="band" id="inspBanda">INSPECTORES EN EL DÍA</div>
@@ -610,7 +623,7 @@ html.locked .ppt { display: none !important; }
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp(); renderProd(); renderInsp();
+    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp(); renderProd(); renderInsp(); renderStock();
     if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
@@ -1160,6 +1173,28 @@ html.locked .ppt { display: none !important; }
   });
   zonaImagen('img3Soltar', 'img3Archivo', 'rpt.img3', 'inspMsg', function () { renderInsp(); });
 
+  // ---------- Kilos en stock (diapositiva 8): valor del día del reporte (hoy) e imagen debajo del recuadro
+  function claveStock() { return 'rpt.stock.' + hoyYmdPag(); }
+  function stock() {
+    var t = null; try { t = localStorage.getItem(claveStock()); } catch (e) { t = null; }
+    var kg = t ? leerKg(t) : null;
+    var ver = !t ? '' : kg == null ? t : /[a-z]/i.test(t) ? t.trim().replace(/\s*(millones|millón|millon|mill|mll|mm|m)\.?$/i, ' mill').replace(/\s*(mil|k)\.?$/i, kg >= 1e6 ? ' mill' : ' mil') :
+      kg >= 1e6 ? (kg / 1e6).toFixed(1) + ' mill' : kg >= 1e3 ? (kg / 1e3).toFixed(1) + ' mil' : String(Math.round(kg));
+    return { txt: t, kg: kg, ver: ver, img4: lsGet('rpt.img4') };
+  }
+  function renderStock() {
+    var d = stock(), h = hoyYmdPag();
+    $('stockBanda').textContent = 'KILOS EN STOCK – ' + String(h).slice(6, 8) + '/' + String(h).slice(4, 6);
+    var inp = $('stockIn'); if (document.activeElement !== inp) inp.value = d.txt || '';
+    $('stockLbl').textContent = d.kg != null ? '= ' + Math.round(d.kg).toLocaleString('es-PE') + ' kg' : '';
+    $('img4Ver').innerHTML = d.img4 ? '<img alt="Imagen de kilos en stock" src="' + d.img4.src + '"><span class="img-acc"><button type="button" class="ico-img" data-recortar="rpt.img4" title="Recortar imagen" aria-label="Recortar imagen"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></button><button type="button" class="quitar-img" data-quitar="rpt.img4">Borrar imagen</button></span>' : '<b>Pegar imagen</b>';
+  }
+  $('stockIn').addEventListener('change', function () {
+    try { var v = this.value.trim(); if (v) localStorage.setItem(claveStock(), v); else localStorage.removeItem(claveStock()); } catch (e) { /* sin almacenamiento */ }
+    renderStock(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+  });
+  zonaImagen('img4Soltar', 'img4Archivo', 'rpt.img4', 'stockMsg', function () { renderStock(); });
+
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
   window.RPT = {
     state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
@@ -1174,6 +1209,7 @@ html.locked .ppt { display: none !important; }
     recl: recl,
     prod: prod, difProd: difProd,
     insp: insp,
+    stock: stock,
     desp: desp,
     rec: function () {
       var R = state.rec || [];
@@ -1275,6 +1311,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610201105"></script>
+<script src="reporte_ppt.js?v=202610201115"></script>
 </body>
 </html>

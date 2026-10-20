@@ -40,7 +40,7 @@ MAPA = {
     5: {49: [V], 39: [V], 31: [V], 9: [V]},
     6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: ["{{recl.pct}}"], 56: ["{{recl.dif}}"], 16: ["{{recl.pen}}"], 20: ["{{recl.venta}}"],
         49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"], 54: ["Objetivo: {{recl.obj}}"]},
-    8: {15: ["{{rec.sem}}"], 30: [V], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
+    8: {15: ["{{rec.sem}}"], 30: ["{{stock.n}}"], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
     12: {14: ["{{insp.n}}"], 13: ["INSPECTORES EN EL DÍA – {{dia}} {{ddmm}}"]},
 }
 ZONAS = {9: "compositan", 10: "olmos", 11: "terceros"}
@@ -74,6 +74,8 @@ FILA3 = [(16, 99, 27, 29), (20, 115, 35, 39), (18, 101, 103, 105), (22, 107, 109
 QUITAR = {3: [119], 6: [7], 8: [26], 12: [8]}
 # donde estaba el pantallazo va un recuadro punteado gris "Imagen N" (ahí irá una imagen)
 IMAGENES = {3: (119, "Imagen 1"), 6: (7, "Imagen 2"), 12: (8, "Imagen 3")}
+# lugares para imágenes que se pegan en la página, SIN recuadro dibujado (si no hay imagen, no se ve nada)
+HUECOS_LIBRES = [{"s": 8, "box": [7.6, 3.6, 5.25, 3.2], "nombre": "Imagen 4"}]     # debajo de «KILOS EN STOCK»
 # nota al pie de la diapositiva 3: se parte en dos líneas y se sube para que no se salga
 PIE = {3: (40, 6.44, 0.52, 1300)}
 # textos fijos que traen la semana o la fecha del reporte del 12/10
@@ -510,7 +512,7 @@ def main(origen, destino):
     destino.mkdir(parents=True, exist_ok=True)
     prs.save(destino / "plantilla_reporte.pptx")
     (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "ver": hashlib.sha1(json.dumps([[c["s"]] + [(q["id"], q["t"]) for q in c["p"]] for c in campos], ensure_ascii=False).encode()).hexdigest()[:8],
-                                                       "campos": campos, "barras": barras, "imagenes": huecos,
+                                                       "campos": campos, "barras": barras, "imagenes": huecos + HUECOS_LIBRES,
                                                        "archivos": {str(k): sl.part.partname.lstrip("/") for k, sl in enumerate(prs.slides, 1)}}, ensure_ascii=False, indent=0), encoding="utf-8")
 
     # fondos: la copia sin los textos que cambian → PDF (LibreOffice) → JPG

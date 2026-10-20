@@ -20,7 +20,7 @@
 "major": "Arial",
 "minor": "Arial"
 },
-"ver": "7985ec79",
+"ver": "625e28ea",
 "campos": [
 {
 "s": 1,
@@ -4834,7 +4834,7 @@
 "font": "Arial",
 "al": "center",
 "id": "F143",
-"t": ""
+"t": "{{stock.n}}"
 }
 ]
 },
@@ -9481,6 +9481,16 @@
 2.3545
 ],
 "nombre": "Imagen 3"
+},
+{
+"s": 8,
+"box": [
+7.6,
+3.6,
+5.25,
+3.2
+],
+"nombre": "Imagen 4"
 }
 ],
 "archivos": {
