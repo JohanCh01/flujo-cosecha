@@ -10,7 +10,7 @@ Genera en lib/:
   - fondos/sNN.jpg           cada diapositiva sin esos valores (fondo de la vista previa y del PDF)
 Necesita python-pptx y LibreOffice (soffice) + pdftoppm para los fondos.
 """
-import copy, json, re, shutil, subprocess, sys, tempfile
+import copy, hashlib, json, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 from lxml import etree
 from pptx import Presentation
@@ -285,9 +285,9 @@ def acomodar_fila3(d):
         if caja not in d:
             continue
         x, y, w, h = abs_xfrm(d[caja])
-        for sid, (dy, alto, sz, font, neg) in ((val, (0.37, 0.56, 36, "Aptos Light", False)),
-                                                (obj, (0.93, 0.26, 16, None, None)),
-                                                (dif, (1.17, 0.24, 16, None, None))):
+        for sid, (dy, alto, sz, font, neg) in ((val, (0.34, 0.54, 36, "Aptos Light", False)),
+                                                (obj, (0.87, 0.25, 16, None, None)),
+                                                (dif, (1.09, 0.24, 16, None, None))):
             if sid in d:
                 poner_en(d[sid], [x + 0.04, y + dy, w - 0.08, alto], sz=sz, font=font, negrita=neg)
 
@@ -490,7 +490,8 @@ def main(origen, destino):
                                "p": [{"id": fid, "t": "{{tz.%d.%d}}" % (r, c), "sz": 10, "b": ult, "i": False, "u": False, "c": "262626", "font": tema["minor"], "al": "right" if c else "left"}]})
     destino.mkdir(parents=True, exist_ok=True)
     prs.save(destino / "plantilla_reporte.pptx")
-    (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "campos": campos, "barras": barras, "imagenes": huecos,
+    (destino / "plantilla_campos.json").write_text(json.dumps({"w": prs.slide_width / EMU, "h": prs.slide_height / EMU, "n": len(prs.slides), "tema": tema, "ver": hashlib.sha1(json.dumps([[c["s"]] + [(q["id"], q["t"]) for q in c["p"]] for c in campos], ensure_ascii=False).encode()).hexdigest()[:8],
+                                                       "campos": campos, "barras": barras, "imagenes": huecos,
                                                        "archivos": {str(k): sl.part.partname.lstrip("/") for k, sl in enumerate(prs.slides, 1)}}, ensure_ascii=False, indent=0), encoding="utf-8")
 
     # fondos: la copia sin los textos que cambian → PDF (LibreOffice) → JPG

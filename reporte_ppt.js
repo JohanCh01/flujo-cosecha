@@ -12,12 +12,13 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610201100';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610201110';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
   // ---------- ediciones guardadas en este navegador (por semana de corte y fecha)
-  function claveGuardado() { var s = R.state; return 'rpt.ppt3.' + s.anio + '.' + s.sem + '.' + (s.fecha || 'sem') + '.' + hoyYmd(); }
+  // la clave lleva la versión de la plantilla: si la plantilla cambia (cuadros con otro número), las ediciones viejas no caen en otros cuadros
+  function claveGuardado() { var s = R.state; return 'rpt.ppt3.' + s.anio + '.' + s.sem + '.' + (s.fecha || 'sem') + '.' + hoyYmd() + '.' + ((plantilla && plantilla.ver) || ''); }
   // ed.t = textos cambiados, ed.f = formato por párrafo {sz, b, i, font}, ed.m = cuánto se movió cada cuadro [dx, dy] en pulgadas
   function leerEd() {
     var o = {}; try { o = JSON.parse(localStorage.getItem(claveGuardado()) || '{}') || {}; } catch (e) { o = {}; }
