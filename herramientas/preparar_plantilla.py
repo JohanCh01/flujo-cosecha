@@ -41,7 +41,7 @@ MAPA = {
     6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: ["{{recl.pct}}"], 56: ["{{recl.dif}}"], 16: ["{{recl.pen}}"], 20: ["{{recl.venta}}"],
         49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"], 54: ["Objetivo: {{recl.obj}}"]},
     8: {15: ["{{rec.sem}}"], 30: [V], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
-    12: {14: [V], 13: ["INSPECTORES EN EL DÍA – {{dia}} {{ddmm}}"]},
+    12: {14: ["{{insp.n}}"], 13: ["INSPECTORES EN EL DÍA – {{dia}} {{ddmm}}"]},
 }
 ZONAS = {9: "compositan", 10: "olmos", 11: "terceros"}
 for sl, z in ZONAS.items():

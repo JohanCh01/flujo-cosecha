@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610151900';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610201030';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -120,6 +120,8 @@
         if (df) v['p.' + k + '.' + q + '.c'] = (p.mas ? df.d >= 0 : df.d <= 0) ? '00B050' : 'FF0000';
       });
     });
+    // seguimiento del inspector de calidad (diapositiva 12): N° de inspectores del día (se escribe en la página)
+    var IN = R.insp ? R.insp() : {}; v['insp.n'] = IN.n || '';
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
@@ -179,7 +181,8 @@
   // imágenes que llegan de los datos: «Imagen 2» = gráfico de penalidad del Power BI de reclamos
   function imagenesDe(n) {
     var rl = R.recl ? R.recl() : {}, pr = R.prod ? R.prod() : {}, fuentes = { 'Imagen 2': rl.img ? { src: rl.img, w: rl.imgW, h: rl.imgH } : null,
-      'Imagen 1': pr.img1 ? { src: pr.img1.src, w: pr.img1.w, h: pr.img1.h } : null };
+      'Imagen 1': pr.img1 ? { src: pr.img1.src, w: pr.img1.w, h: pr.img1.h } : null, 'Imagen 3': null };
+    var ins = R.insp ? R.insp() : {}; if (ins.img3) fuentes['Imagen 3'] = { src: ins.img3.src, w: ins.img3.w, h: ins.img3.h };
     return (plantilla.imagenes || []).filter(function (im) { return im.s === n && fuentes[im.nombre]; })
       .map(function (im) { var f = fuentes[im.nombre]; return { s: im.s, box: im.box, nombre: im.nombre, src: f.src, w: f.w, h: f.h }; });
   }
@@ -603,7 +606,7 @@
           var xml = r[0], rx = r[1], ct = r[2], E = 914400, b = im.box, x = b[0], y = b[1], w = b[2], hh = b[3];
           if (im.w && im.h) { var esc_ = Math.min(w / im.w, hh / im.h); var w2 = im.w * esc_, h2 = im.h * esc_; x += (w - w2) / 2; y += (hh - h2) / 2; w = w2; hh = h2; }
           xml = xml.replace(new RegExp('<p:sp>(?:(?!<\\/p:sp>)[\\s\\S])*?name="' + im.nombre + '"[\\s\\S]*?<\\/p:sp>'), '');
-          var pic = '<p:pic><p:nvPicPr><p:cNvPr id="' + (7000 + im.s) + '" name="' + im.nombre + ' (Power BI)"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>' +
+          var pic = '<p:pic><p:nvPicPr><p:cNvPr id="' + (7000 + im.s) + '" name="' + im.nombre + '"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>' +
             '<p:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="' + Math.round(x * E) + '" y="' + Math.round(y * E) + '"/><a:ext cx="' + Math.round(w * E) + '" cy="' + Math.round(hh * E) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>';
           xml = xml.replace('</p:spTree>', pic + '</p:spTree>');
           if (xml.indexOf('xmlns:r=') < 0) xml = xml.replace('<p:sld ', '<p:sld xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
