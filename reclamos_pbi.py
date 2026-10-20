@@ -6,7 +6,7 @@ Corre en TU LAPTOP (mismo perfil de Edge que drenados_pbi.py). Qué hace:
   1. Abre el reporte. Filtros:
        AÑO       si ya está en el año actual no se toca; si no, se deja solo ese año
        PRODUCTO  solo ESPÁRRAGO VERDE
-       MES       de enero hasta el mes actual, SIN febrero ni marzo (lo que sobre se desmarca, lo que falte se marca)
+       MES       no se toca (se deja como esté en el reporte)
   2. Lee: % Penalidad (el indicador) y su objetivo, Penalizado $ y Venta $.
   3. Saca la captura del gráfico «Penalidad ($) por clasificación de reclamo» (va en lugar de «Imagen 2»).
   4. Lo guarda dentro de fito.json (cifrado, también la imagen) y lo sube a GitHub.
@@ -346,11 +346,9 @@ def main():
         else:
             log(f"PRODUCTO → solo {PRODUCTO}")
             ajustar(driver, "PRODUCTO", lambda t: norm(t) == norm(PRODUCTO))
-        # MES: de enero al mes actual, sin febrero ni marzo
-        log(f"MES → enero a {NOMBRE_MES[a.hasta_mes - 1].lower()}, sin febrero ni marzo")
-        marcados = ajustar(driver, "MES", quiero_mes)
-        meses = [num_mes(t) for t in marcados or [] if num_mes(t)]
-        log(f"Meses marcados: {', '.join(NOMBRE_MES[m - 1] for m in sorted(meses)) or '(ninguno)'}")
+        # MES: no se toca (se deja como esté en el reporte)
+        meses = []
+        log("MES: no lo toco; se deja como está en el reporte.")
 
         v = leer_estable(driver)
         if not v or v["pct"] is None:
@@ -370,7 +368,7 @@ def main():
 
     if a.sin_subir:
         return
-    paquete = {"anio": a.anio, "meses": sorted(meses), "mesesTxt": meses_texto(meses) if meses else "",
+    paquete = {"anio": a.anio, "meses": sorted(meses), "mesesTxt": meses_texto(meses) if meses else f"la campaña {a.anio}",
                "pct": v["pct"] / 100, "obj": v["obj"] / 100 if v["obj"] is not None else None, "pen": v["pen"], "venta": v["venta"],
                "gen": datetime.now().strftime("%Y-%m-%dT%H:%M"), "fuente": "Power BI Reclamos penalizados (1.3 Informe Gerencial Reclamo de Clientes)"}
     if img:
