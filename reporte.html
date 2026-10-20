@@ -467,7 +467,11 @@ html.locked .ppt { display: none !important; }
         });
       });
     }
+    var envios = [];                                   // freno: como mucho 8 guardados por minuto desde esta página
     function escribirArchivo(nombre, txt, mensaje) {
+      var ahora = Date.now(); envios = envios.filter(function (t) { return ahora - t < 60000; });
+      if (envios.length >= 8) { var e0 = new Error('demasiados guardados seguidos; espera un minuto'); e0.freno = true; return Promise.reject(e0); }
+      envios.push(ahora);
       var cuerpo = { message: mensaje, content: b64(new TextEncoder().encode(txt)) };
       if (sha[nombre]) cuerpo.sha = sha[nombre];
       return api(nombre, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) }).then(function (r) {
@@ -532,6 +536,7 @@ html.locked .ppt { display: none !important; }
         .catch(function (e) {
           subiendo = false; ks.forEach(function (k) { pend[k] = 1; });
           var n = intento || 0;
+          if (e.freno) { estado('error', e.message); clearTimeout(timer); timer = setTimeout(subir, 60000); return; }
           if (e.conflicto && n < 5) {                    // otro guardó justo antes: se espera un poco, se mezcla y se reintenta
             estado('guardando');
             setTimeout(function () { bajar().then(function () { subir(n + 1); }).catch(function () { subir(n + 1); }); }, 1500 + n * 1500);
