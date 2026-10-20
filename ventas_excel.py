@@ -11,8 +11,9 @@ Reglas (iguales a tus columnas):
   MERC = América del Norte / América del Sur → USA · Asia · Cen.America&el Carib → LATAM · Europa
   Cada fila se reconoce por: Contrato + Posición Contrato + Plan Entrega + Posición Plan Entrega + Pedido Vta. + Posición Ped.Vta
 
-Uso (en Git Bash, dentro de la carpeta flujo-cosecha; pon la ruta de tu Excel entre comillas):
-    python ventas_excel.py "C:/Users/jchinguel/Downloads/vetnas_15.10.xlsx"
+Uso (en Git Bash, dentro de la carpeta flujo-cosecha):
+    python ventas_excel.py                      (usa el Excel de ventas más reciente de Descargas/Escritorio/Documentos)
+    python ventas_excel.py "C:/Users/jchinguel/Downloads/vetnas_15.10.xlsx"   (o uno en particular, entre comillas)
     python ventas_excel.py "…xlsx" --sin-subir      (solo muestra las tablas y las diferencias; no sube nada)
 Necesita: pip install python-calamine   (si no lo tienes, usa openpyxl, más lento)
 """
@@ -148,15 +149,35 @@ def comparar(viejas, nuevas):
     return nuevas_k, cambiadas, fuera
 
 
+def buscar_excel():
+    """El .xlsx más reciente cuyo nombre diga «venta» o «vetna» en Descargas, Escritorio o Documentos (y OneDrive)."""
+    casa = Path.home()
+    carpetas = [casa / n for n in ("Downloads", "Descargas", "Desktop", "Escritorio", "Documents", "Documentos")]
+    carpetas += [d / n for d in casa.glob("OneDrive*") for n in ("Desktop", "Escritorio", "Documents", "Documentos")]
+    hallados = []
+    for c in carpetas:
+        if c.is_dir():
+            for f in c.glob("*.xls*"):
+                n = f.name.lower()
+                if ("venta" in n or "vetna" in n) and not n.startswith("~$"):
+                    hallados.append(f)
+    return max(hallados, key=lambda f: f.stat().st_mtime) if hallados else None
+
+
 def main():
     ap = argparse.ArgumentParser(description="Carga en la página el Excel de ventas (Despachos · Mercado)")
-    ap.add_argument("excel")
+    ap.add_argument("excel", nargs="?", help="ruta del Excel; si no la pones, busca el más reciente en Descargas, Escritorio y Documentos")
     ap.add_argument("--anio", type=int, default=datetime.now().year)
     ap.add_argument("--sin-subir", action="store_true")
     a = ap.parse_args()
-    ruta = Path(a.excel)
+    ruta = Path(a.excel) if a.excel else buscar_excel()
+    if ruta is None:
+        sys.exit("No encontré ningún Excel de ventas en Descargas, Escritorio ni Documentos.\n"
+                 'Ponle la ruta entre comillas, por ejemplo:  python ventas_excel.py "C:/Users/jchinguel/Downloads/vetnas_15.10_1.xlsx"')
     if not ruta.exists():
         sys.exit(f"No encuentro el archivo: {ruta}")
+    if not a.excel:
+        log(f"Uso el Excel de ventas más reciente que encontré: {ruta}")
 
     log(f"Leyendo {ruta.name}…")
     filas = leer_filas(ruta)
