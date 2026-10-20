@@ -184,6 +184,9 @@ table.prod input:focus { outline: 2px solid var(--accent); border-style: solid; 
 table.prod .dif { font-size: 12px; margin-top: 2px; } .dif.ok { color: #1e8e3e; } .dif.mal { color: #c0392b; }
 .soltar.img { min-height: 150px; display: flex; align-items: center; justify-content: center; margin: 0; }
 .soltar.img:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.soltar.img { position: relative; flex-direction: column; gap: 8px; }
+.quitar-img { height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: #c0392b; font: inherit; font-size: 12.5px; cursor: pointer; }
+.quitar-img:hover { border-color: #c0392b; }
 .soltar.img img { max-width: 100%; max-height: 260px; display: block; }
 .desp-tablas { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
 table.desp { border-collapse: collapse; min-width: 300px; font-size: 14px; font-variant-numeric: tabular-nums; background: var(--surface); }
@@ -261,9 +264,9 @@ html.locked .ppt { display: none !important; }
     <div class="band">INDICADORES DE PRODUCCIÓN</div>
     <div class="prod-wrap">
       <table class="prod" id="prodTabla"></table>
-      <div class="soltar img" id="img1Soltar" tabindex="0" role="button" aria-label="Imagen 1: pega con Ctrl+V, arrastra o haz clic">
+      <div class="soltar img" id="img1Soltar" tabindex="0" role="button" aria-label="Pegar imagen 1">
         <input type="file" id="img1Archivo" accept="image/*" hidden>
-        <span id="img1Ver"><b>Pega aquí la imagen (Ctrl+V)</b>, arrástrala o haz clic para elegirla</span>
+        <span id="img1Ver"><b>Pegar imagen</b></span>
       </div>
     </div>
     <p class="aviso" id="prodMsg" hidden></p>
@@ -330,9 +333,9 @@ html.locked .ppt { display: none !important; }
     <div class="band" id="inspBanda">INSPECTORES EN EL DÍA</div>
     <div class="prod-wrap insp-wrap">
       <div class="card kpi"><h3>N° de inspectores</h3><input class="proy-in" id="inspIn" type="text" inputmode="numeric" autocomplete="off" aria-label="Número de inspectores en el día"></div>
-      <div class="soltar img" id="img3Soltar" tabindex="0" role="button" aria-label="Imagen 3: pega con Ctrl+V, arrastra o haz clic">
+      <div class="soltar img" id="img3Soltar" tabindex="0" role="button" aria-label="Pegar imagen 3">
         <input type="file" id="img3Archivo" accept="image/*" hidden>
-        <span id="img3Ver"><b>Pega aquí la imagen (Ctrl+V)</b>, arrástrala o haz clic para elegirla</span>
+        <span id="img3Ver"><b>Pegar imagen</b></span>
       </div>
     </div>
     <p class="aviso" id="inspMsg" hidden></p>
@@ -1040,7 +1043,7 @@ html.locked .ppt { display: none !important; }
         '<td><input data-prodobj="' + d.k + '" inputmode="decimal" value="' + esc(p.txt.obj) + '" placeholder="' + (d.pct ? d.obj.toFixed(1) + ' %' : d.obj.toFixed(3)) + '" aria-label="Objetivo de ' + esc(d.t) + '"></td></tr>';
     });
     $('prodTabla').innerHTML = h;
-    $('img1Ver').innerHTML = P.img1 ? '<img alt="Imagen 1 de los indicadores de producción" src="' + P.img1.src + '">' : '<b>Pega aquí la imagen (Ctrl+V)</b>, arrástrala o haz clic para elegirla';
+    $('img1Ver').innerHTML = P.img1 ? '<img alt="Imagen 1 de los indicadores de producción" src="' + P.img1.src + '"><button type="button" class="quitar-img" data-quitar="rpt.img1">Borrar imagen</button>' : '<b>Pegar imagen</b>';
   }
   document.addEventListener('change', function (e) {
     var k = e.target.getAttribute && e.target.getAttribute('data-prod'), ko = e.target.getAttribute && e.target.getAttribute('data-prodobj');
@@ -1071,7 +1074,13 @@ html.locked .ppt { display: none !important; }
   var zonaActiva = null;                              // el recuadro sobre el que está el mouse o que tiene el foco
   function zonaImagen(zonaId, inputId, clave, msgId, despues) {
     var z = $(zonaId), inp = $(inputId), subir = function (f) { subirImagen(f, clave, msgId, despues); };
-    z.addEventListener('click', function () { z.focus(); inp.click(); });
+    z.addEventListener('click', function (e) {
+      if (e.target.closest('[data-quitar]')) {               // «Borrar imagen»: se quita la imagen pegada
+        try { localStorage.removeItem(clave); } catch (er) { /* sin almacenamiento */ }
+        despues(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); return;
+      }
+      z.focus(); inp.click();
+    });
     z.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
     inp.addEventListener('click', function (e) { e.stopPropagation(); });
     inp.addEventListener('change', function () { if (inp.files[0]) subir(inp.files[0]); inp.value = ''; });
@@ -1102,7 +1111,7 @@ html.locked .ppt { display: none !important; }
     var d = insp(), h = hoyYmdPag(), dd = String(h).slice(6, 8) + '/' + String(h).slice(4, 6);
     $('inspBanda').textContent = 'INSPECTORES EN EL DÍA – ' + DIAS[new Date(utc(h)).getUTCDay()] + '. ' + dd;
     var inp = $('inspIn'); if (document.activeElement !== inp) inp.value = d.n || '';
-    $('img3Ver').innerHTML = d.img3 ? '<img alt="Imagen 3 del seguimiento del inspector de calidad" src="' + d.img3.src + '">' : '<b>Pega aquí la imagen (Ctrl+V)</b>, arrástrala o haz clic para elegirla';
+    $('img3Ver').innerHTML = d.img3 ? '<img alt="Imagen 3 del seguimiento del inspector de calidad" src="' + d.img3.src + '"><button type="button" class="quitar-img" data-quitar="rpt.img3">Borrar imagen</button>' : '<b>Pegar imagen</b>';
   }
   $('inspIn').addEventListener('change', function () {
     try { var v = this.value.trim(); if (v) localStorage.setItem(claveInsp(), v); else localStorage.removeItem(claveInsp()); } catch (e) { /* sin almacenamiento */ }
