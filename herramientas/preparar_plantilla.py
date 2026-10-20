@@ -37,7 +37,7 @@ MAPA = {
         105: ["{{p.ef.acu.dif}}"], 107: ["{{p.ef.sem}}"], 113: ["{{p.ef.sem.dif}}"], 115: ["{{p.eg.sem}}"]},
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
         77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: ["{{obs.acu}}"], 123: ["{{obs.acu.dif}}"], 118: ["{{obs.sem}}"], 119: ["{{obs.sem.dif}}"]},
-    5: {49: [V], 39: [V], 31: [V], 9: [V]},
+    5: {49: ["{{desp.proy}}"], 39: ["{{desp.ae}}"], 31: ["{{desp.av}}"], 9: ["{{desp.ma}}"]},
     6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: ["{{recl.pct}}"], 56: ["{{recl.dif}}"], 16: ["{{recl.pen}}"], 20: ["{{recl.venta}}"],
         49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"], 54: ["Objetivo: {{recl.obj}}"]},
     8: {15: ["{{rec.sem}}"], 30: ["{{stock.n}}"], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},

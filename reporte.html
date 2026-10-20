@@ -169,6 +169,10 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .kpis.rec { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .kpi .big.azul { color: var(--band-ink); }
 .kpi .big.rojo { color: #c0392b; }
+.big-ed { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+.big-in { width: 100%; min-width: 0; box-sizing: border-box; text-align: center; font-family: inherit; font-size: 38px; font-weight: 600; line-height: 1.1; color: var(--accent); background: transparent; border: 1px dashed transparent; border-radius: 8px; padding: 2px 4px; font-variant-numeric: tabular-nums; }
+.big-in:hover { border-color: var(--line); } .big-in:focus { outline: 2px solid var(--accent); border-color: transparent; background: var(--surface); }
+.big-in.rojo { color: #c0392b; }
 .recl-img { grid-column: 1 / -1; } .recl-img img { display: block; max-width: 100%; height: auto; margin: 6px auto 0; border-radius: 6px; background: #fff; }
 .soltar { display: block; margin: 10px 0; padding: 18px; border: 2px dashed var(--line); border-radius: 10px; text-align: center; cursor: pointer; color: var(--ink, inherit); }
 .soltar:hover, .soltar.encima { border-color: var(--accent); background: var(--accent-soft); }
@@ -329,6 +333,8 @@ html.locked .ppt { display: none !important; }
 
   <section class="sec" aria-labelledby="t-desp">
     <div class="sec-h"><h2 id="t-desp">Despachos · Mercado</h2><p id="despNota"></p></div>
+    <div class="band">DESPACHOS</div>
+    <div class="kpis rec" id="gridDespk"></div>
     <div class="band">MERCADO (N° FCLS · AÉREO POR MERCADO · MARÍTIMO POR CLIENTE)</div>
     <label class="soltar" id="despSoltar" for="despArchivo">
       <input type="file" id="despArchivo" accept=".xlsx,.xlsm,.xls" hidden>
@@ -342,7 +348,7 @@ html.locked .ppt { display: none !important; }
     <div class="sec-h"><h2 id="t-stock">Kilos en stock</h2></div>
     <div class="band" id="stockBanda">KILOS EN STOCK</div>
     <div class="prod-wrap insp-wrap">
-      <div class="card kpi"><h3>Kilos en stock</h3><input class="proy-in" id="stockIn" type="text" inputmode="decimal" autocomplete="off" aria-label="Kilos en stock del día"><div class="lbl" id="stockLbl"></div></div>
+      <div class="card kpi"><h3>Kilos en stock</h3><input class="proy-in" id="stockIn" type="text" inputmode="decimal" autocomplete="off" aria-label="Kilos en stock del día"></div>
       <div class="soltar img" id="img4Soltar" tabindex="0" role="button" aria-label="Pegar imagen de kilos en stock">
         <input type="file" id="img4Archivo" accept="image/*" hidden>
         <span id="img4Ver"><b>Pegar imagen</b></span>
@@ -623,7 +629,7 @@ html.locked .ppt { display: none !important; }
     var multi = zonas.length > 1;
     $('gridFito').className = 'grid' + (multi ? ' zonas' : '');
 
-    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp(); renderProd(); renderInsp(); renderStock();
+    renderCal(zonas); renderRec(zonas); renderDren(zonas); renderMo(); renderRecl(); renderDesp(); renderProd(); renderInsp(); renderStock(); renderDespk();
     if (window.RPT_PPT) window.RPT_PPT.refrescar();       // la vista PPT sigue los mismos filtros
     var avisos = [];
     if (state.sinInd) avisos.push('Los datos publicados todavía no traen KILOS, COLOR ni los picados: se llenan en la próxima actualización automática con el nuevo actualizar_fito.py.');
@@ -790,7 +796,7 @@ html.locked .ppt { display: none !important; }
 
   // ---------- Kilos drenados (diapositiva 4): Kg Prod del Power BI por semana; ejecutados = semanas 1 a la elegida
   function drenSemanas() { return (state.dren || {})[String(state.anio)] || {}; }
-  function dren() {
+  function drenAuto() {
     var S = drenSemanas(), ks = Object.keys(S).map(Number), eje = 0, per = S[String(state.sem)];
     ks.forEach(function (k) { if (k <= state.sem) eje += S[k]; });
     var p = proy('dren');
@@ -812,7 +818,35 @@ html.locked .ppt { display: none !important; }
     return { hay: ks.length > 0 || !!A, eje: eje, per: per == null ? null : per, proy: p.kg, proyVer: p.ver, ult: ks.length ? Math.max.apply(null, ks) : 0,
       obsAcu: hayObs && tp ? to / tp : null, obsSem: os != null && ps ? os / ps : (PC[state.sem] != null ? PC[state.sem] : null),
       kgObsAcu: hayObs ? to : null, kgObsSem: os, obj: state.drenObj != null ? state.drenObj : 0.035 };
+  }  function dren() {
+    var d = drenAuto();
+    d.av = d.proy > 0 && d.eje != null ? d.eje / d.proy : null;
+    d = aplicarDovr(d);
+    if (!d.ovr.av) d.av = d.proy > 0 && d.eje != null ? d.eje / d.proy : null;   // si cambiaste «Ejecutados», el avance se recalcula
+    return d;
   }
+
+  // valores de drenados que se cambian a mano (por año y semana); vacío = el del Power BI
+  function claveDovr() { return 'rpt.dren.ovr.' + state.anio + '.' + state.sem; }
+  function leerDovr() { return lsGet(claveDovr()) || {}; }
+  function numPct(t) { var x = parseFloat(String(t).replace('%', '').replace(',', '.')); return isNaN(x) ? null : x / 100; }
+  function aplicarDovr(d) {
+    var O = leerDovr(); d.auto = { eje: d.eje, per: d.per, obsAcu: d.obsAcu, obsSem: d.obsSem, av: d.av }; d.ovr = {};
+    [['eje', leerKg], ['per', leerKg], ['obsAcu', numPct], ['obsSem', numPct], ['av', numPct]].forEach(function (q) {
+      if (O[q[0]] == null || O[q[0]] === '') return; var v = q[1](O[q[0]]); if (v == null) return; d[q[0]] = v; d.ovr[q[0]] = true;
+    });
+    return d;
+  }
+  document.addEventListener('change', function (e) {
+    var k = e.target.getAttribute && e.target.getAttribute('data-dovr'); if (!k) return;
+    var O = leerDovr(), v = e.target.value.trim();
+    if (!v || v === e.target.getAttribute('data-auto')) delete O[k]; else O[k] = v;
+    lsSet(claveDovr(), O); render();
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-dovr-reset]'); if (!b) return;
+    var O = leerDovr(); delete O[b.getAttribute('data-dovr-reset')]; lsSet(claveDovr(), O); render();
+  });
   function renderDren(zonas) {
     var d = dren(), conProy = d.proy > 0 && zonas.length === 1 && zonas[0] === 'TODAS';
     $('avisoDren').hidden = d.hay;
@@ -821,16 +855,26 @@ html.locked .ppt { display: none !important; }
     $('drenNota').textContent = d.hay ? 'Power BI 5.07 Evaluaciones de PT NV05 · Kg Prod y Kg Obs' + (g ? ' · subido el ' + g : '') + (state.fecha ? ' · va por semana (no por día)' : '') : '';
     if (!d.hay) { $('gridDren').innerHTML = ''; return; }
     var html = tarjetaProy('dren');
-    html += '<article class="card kpi"><h3>Ejecutados hasta S.' + state.sem + '</h3><div class="big">' + (d.eje == null ? '—' : kgTxt(d.eje)) + '</div><div class="lbl">' + (d.eje == null ? 'falta: python drenados_pbi.py --semanas ' + state.sem : 'kilos · semanas 1 a ' + state.sem) + '</div></article>';
-    html += '<article class="card kpi"><h3>Avance de campaña</h3><div class="big">' + (conProy && d.eje != null ? pct(d.eje / d.proy) : '—') + '</div><div class="lbl">' + (d.proy ? 'ejecutado ÷ proyectado' : 'escribe el proyectado') + '</div></article>';
-    html += '<article class="card kpi"><h3>Solo semana ' + state.sem + '</h3><div class="big">' + (d.per == null ? '—' : kgTxt(d.per)) + '</div><div class="lbl">' + (d.per == null ? 'sin dato de esa semana' : 'kilos') + '</div></article>';
+    var kgPlano = function (x) { return x == null ? '' : x >= 1e6 ? (x / 1e6).toFixed(1) + ' mill' : x >= 1e3 ? (x / 1e3).toFixed(1) + ' mil' : String(Math.round(x)); };
+    var pcPlano = function (x, dec) { return x == null ? '' : (x * 100).toFixed(dec) + '%'; };
+    // valor grande que se puede cambiar: muestra el del Power BI; si lo cambias, aparece ↺ para volver al automático
+    var editable = function (k, txt, autoTxt, clase) {
+      return '<div class="big-ed"><input class="big-in ' + (clase || '') + '" data-dovr="' + k + '" data-auto="' + esc(autoTxt) + '" value="' + esc(txt) + '" aria-label="Cambiar valor">' +
+        (d.ovr[k] ? '<button type="button" class="ico-img" data-dovr-reset="' + k + '" title="Volver al valor del Power BI" aria-label="Volver al valor del Power BI">↺</button>' : '') + '</div>';
+    };
+    html += '<article class="card kpi"><h3>Ejecutados hasta S.' + state.sem + '</h3>' + editable('eje', kgPlano(d.eje), kgPlano(d.auto.eje)) + '<div class="lbl">kilos</div></article>';
+    html += '<article class="card kpi"><h3>Avance de campaña</h3>' + editable('av', conProy || d.ovr.av ? pcPlano(d.av, 1) : '', conProy ? pcPlano(d.auto.av, 1) : '') + '<div class="lbl">ejecutado ÷ proyectado</div></article>';
+    html += '<article class="card kpi"><h3>Solo semana ' + state.sem + '</h3>' + editable('per', kgPlano(d.per), kgPlano(d.auto.per)) + '<div class="lbl">kilos</div></article>';
     // producto terminado observado
-    var ob = function (x, dec, o) { if (x == null) return '<div class="big">—</div><div class="lbl">sin dato</div>'; var dd = (x - o) * 100;
-      return '<div class="big ' + (x <= o ? '' : 'rojo') + '">' + (x * 100).toFixed(dec) + '%</div><div class="lbl">objetivo ' + (o * 100).toFixed(2) + '% · ' + (dd >= 0 ? '+' : '−') + Math.abs(dd).toFixed(dec) + ' pts</div>'; };
-    html += '<article class="card kpi obs"><h3>P.T. observado · avance de campaña</h3>' + ob(d.obsAcu, 1, d.obj) +
-      (d.kgObsAcu != null && d.eje != null ? '<p class="foot">' + Math.round(d.kgObsAcu).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.eje).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
-    html += '<article class="card kpi obs"><h3>P.T. observado · semana ' + state.sem + '</h3>' + ob(d.obsSem, 2, d.obj) +
-      (d.kgObsSem != null && d.per ? '<p class="foot">' + Math.round(d.kgObsSem).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.per).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
+    var ob = function (k, x, dec, o) {
+      var dd = x == null ? null : (x - o) * 100;
+      return editable(k, pcPlano(x, dec), pcPlano(d.auto[k], dec), x != null && x > o ? 'rojo' : '') +
+        '<div class="lbl">objetivo ' + (o * 100).toFixed(2) + '%' + (dd == null ? '' : ' · ' + (dd >= 0 ? '+' : '−') + Math.abs(dd).toFixed(dec) + ' pts') + '</div>';
+    };
+    html += '<article class="card kpi obs"><h3>P.T. observado · avance de campaña</h3>' + ob('obsAcu', d.obsAcu, 1, d.obj) +
+      (!d.ovr.obsAcu && !d.ovr.eje && d.kgObsAcu != null && d.eje != null ? '<p class="foot">' + Math.round(d.kgObsAcu).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.eje).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
+    html += '<article class="card kpi obs"><h3>P.T. observado · semana ' + state.sem + '</h3>' + ob('obsSem', d.obsSem, 2, d.obj) +
+      (!d.ovr.obsSem && !d.ovr.per && d.kgObsSem != null && d.per ? '<p class="foot">' + Math.round(d.kgObsSem).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.per).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
     $('gridDren').innerHTML = html;
   }
 
@@ -1008,6 +1052,21 @@ html.locked .ppt { display: none !important; }
     ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('encima'); }); });
     z.addEventListener('drop', function (e) { var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) subirVentas(f); });
   })();
+  // despachos (diapositiva 4): por ahora se escriben aquí, por semana de corte
+  var DESPK = [{ k: 'proy', t: 'Proyectados', u: '#FCL' }, { k: 'ae', t: 'Ejecutados AE', u: '# AWB' }, { k: 'ma', t: 'Ejecutados MA', u: '# FCL' }, { k: 'av', t: 'Avance de campaña', u: '%' }];
+  function claveDespk() { return 'rpt.despk.' + state.anio + '.' + state.sem; }
+  function despk() { return lsGet(claveDespk()) || {}; }
+  function renderDespk() {
+    var V = despk();
+    $('gridDespk').innerHTML = DESPK.map(function (d) {
+      return '<article class="card kpi"><h3>' + d.t + '</h3><input class="proy-in" data-despk="' + d.k + '" type="text" inputmode="decimal" autocomplete="off" value="' + esc(V[d.k] || '') + '" aria-label="' + d.t + '"><div class="lbl">' + d.u + '</div></article>';
+    }).join('');
+  }
+  document.addEventListener('change', function (e) {
+    var k = e.target.getAttribute && e.target.getAttribute('data-despk'); if (!k) return;
+    var V = despk(), v = e.target.value.trim(); if (v) V[k] = v; else delete V[k]; lsSet(claveDespk(), V);
+    if (window.RPT_PPT) window.RPT_PPT.refrescar();
+  });
   function renderDesp() {
     var d = desp();
     $('despNota').textContent = d.archivo ? '«' + d.archivo + '» · ' + (d.origen === 'navegador' ? 'subido en este navegador' : 'cargado') + ' el ' + String(d.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
@@ -1186,7 +1245,7 @@ html.locked .ppt { display: none !important; }
     var d = stock(), h = hoyYmdPag();
     $('stockBanda').textContent = 'KILOS EN STOCK – ' + String(h).slice(6, 8) + '/' + String(h).slice(4, 6);
     var inp = $('stockIn'); if (document.activeElement !== inp) inp.value = d.txt || '';
-    $('stockLbl').textContent = d.kg != null ? '= ' + Math.round(d.kg).toLocaleString('es-PE') + ' kg' : '';
+
     $('img4Ver').innerHTML = d.img4 ? '<img alt="Imagen de kilos en stock" src="' + d.img4.src + '"><span class="img-acc"><button type="button" class="ico-img" data-recortar="rpt.img4" title="Recortar imagen" aria-label="Recortar imagen"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></button><button type="button" class="quitar-img" data-quitar="rpt.img4">Borrar imagen</button></span>' : '<b>Pegar imagen</b>';
   }
   $('stockIn').addEventListener('change', function () {
@@ -1210,6 +1269,7 @@ html.locked .ppt { display: none !important; }
     prod: prod, difProd: difProd,
     insp: insp,
     stock: stock,
+    despk: despk,
     desp: desp,
     rec: function () {
       var R = state.rec || [];
@@ -1311,6 +1371,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610201115"></script>
+<script src="reporte_ppt.js?v=202610201130"></script>
 </body>
 </html>

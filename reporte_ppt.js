@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610201115';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610201130';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -75,7 +75,7 @@
       v['dren.proy'] = dr.proy ? dr.proyVer || mill(dr.proy) : '';
       v['dren.eje'] = dr.eje == null ? '' : mill(dr.eje);
       v['dren.sem'] = dr.per == null ? '' : mill(dr.per);
-      v['dren.avance'] = dr.proy && dr.eje != null ? (dr.eje / dr.proy * 100).toFixed(1) + ' %' : '';
+      v['dren.avance'] = dr.av != null ? (dr.av * 100).toFixed(1) + ' %' : '';
     }
     // producto terminado observado (mismo Power BI): avance = Kg Obs ÷ Kg Prod de las semanas 1 a la de corte
     var dif = function (x, o) { var d = (x - o) * 100; return '(' + (d >= 0 ? '+' : '-') + Math.abs(d).toFixed(arguments[2] || 1) + ')'; };
@@ -124,6 +124,10 @@
     // seguimiento del inspector de calidad (diapositiva 12): N° de inspectores del día (se escribe en la página)
     var IN = R.insp ? R.insp() : {}; v['insp.n'] = IN.n || '';
     var ST = R.stock ? R.stock() : {}; v['stock.n'] = ST.ver || '';
+    // despachos (diapositiva 4): lo que se escribe en la página
+    var DK = R.despk ? R.despk() : {};
+    v['desp.proy'] = DK.proy || ''; v['desp.ae'] = DK.ae || ''; v['desp.ma'] = DK.ma || '';
+    v['desp.av'] = DK.av ? (/%/.test(DK.av) ? DK.av : DK.av + '%') : '';
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
       var z = Z.toLowerCase();
