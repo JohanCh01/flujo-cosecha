@@ -185,6 +185,16 @@ table.prod .dif { font-size: 12px; margin-top: 2px; } .dif.ok { color: #1e8e3e; 
 .soltar.img { min-height: 150px; display: flex; align-items: center; justify-content: center; margin: 0; }
 .soltar.img:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 .soltar.img { position: relative; flex-direction: column; gap: 8px; }
+.img-acc { display: inline-flex; gap: 8px; align-items: center; }
+.ico-img { width: 32px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink, #333); cursor: pointer; }
+.ico-img:hover { border-color: var(--accent); color: var(--accent); }
+.recorte { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.recorte-caja { background: var(--surface, #fff); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; max-width: 100%; }
+.recorte-img { position: relative; cursor: crosshair; touch-action: none; user-select: none; line-height: 0; overflow: hidden; }
+.recorte-img img { max-width: min(90vw, 1400px); max-height: 75vh; display: block; pointer-events: none; }
+.recorte-sel { position: absolute; display: none; border: 2px dashed #fff; outline: 1px solid #000; box-shadow: 0 0 0 9999px rgba(0,0,0,.45); pointer-events: none; }
+.recorte-bot { display: flex; gap: 10px; justify-content: flex-end; }
+.ico-img.ok { color: #1e8e3e; } .ico-img.no { color: #c0392b; }
 .quitar-img { height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: #c0392b; font: inherit; font-size: 12.5px; cursor: pointer; }
 .quitar-img:hover { border-color: #c0392b; }
 .soltar.img img { max-width: 100%; max-height: 260px; display: block; }
@@ -1043,7 +1053,7 @@ html.locked .ppt { display: none !important; }
         '<td><input data-prodobj="' + d.k + '" inputmode="decimal" value="' + esc(p.txt.obj) + '" placeholder="' + (d.pct ? d.obj.toFixed(1) + ' %' : d.obj.toFixed(3)) + '" aria-label="Objetivo de ' + esc(d.t) + '"></td></tr>';
     });
     $('prodTabla').innerHTML = h;
-    $('img1Ver').innerHTML = P.img1 ? '<img alt="Imagen 1 de los indicadores de producción" src="' + P.img1.src + '"><button type="button" class="quitar-img" data-quitar="rpt.img1">Borrar imagen</button>' : '<b>Pegar imagen</b>';
+    $('img1Ver').innerHTML = P.img1 ? '<img alt="Imagen 1 de los indicadores de producción" src="' + P.img1.src + '"><span class="img-acc"><button type="button" class="ico-img" data-recortar="rpt.img1" title="Recortar imagen" aria-label="Recortar imagen"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></button><button type="button" class="quitar-img" data-quitar="rpt.img1">Borrar imagen</button></span>' : '<b>Pegar imagen</b>';
   }
   document.addEventListener('change', function (e) {
     var k = e.target.getAttribute && e.target.getAttribute('data-prod'), ko = e.target.getAttribute && e.target.getAttribute('data-prodobj');
@@ -1075,6 +1085,7 @@ html.locked .ppt { display: none !important; }
   function zonaImagen(zonaId, inputId, clave, msgId, despues) {
     var z = $(zonaId), inp = $(inputId), subir = function (f) { subirImagen(f, clave, msgId, despues); };
     z.addEventListener('click', function (e) {
+      if (e.target.closest('[data-recortar]')) { recortar(clave, despues); return; }   // ícono de recorte
       if (e.target.closest('[data-quitar]')) {               // «Borrar imagen»: se quita la imagen pegada
         try { localStorage.removeItem(clave); } catch (er) { /* sin almacenamiento */ }
         despues(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); return;
@@ -1098,6 +1109,36 @@ html.locked .ppt { display: none !important; }
       e.preventDefault(); zonaActiva.subir(items[i].getAsFile()); return;
     }
   });
+  // recorte: se marca con el mouse la parte que se quiere y se guarda solo eso
+  function recortar(clave, despues) {
+    var dato = lsGet(clave); if (!dato) return;
+    var fondo = document.createElement('div'); fondo.className = 'recorte'; fondo.setAttribute('role', 'dialog'); fondo.setAttribute('aria-label', 'Recortar imagen');
+    fondo.innerHTML = '<div class="recorte-caja"><div class="recorte-img"><img alt="" src="' + dato.src + '"><div class="recorte-sel"></div></div>' +
+      '<div class="recorte-bot"><button type="button" class="ico-img ok" title="Aplicar recorte" aria-label="Aplicar recorte"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></button>' +
+      '<button type="button" class="ico-img no" title="Cancelar" aria-label="Cancelar"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>';
+    document.body.appendChild(fondo);
+    var zona = fondo.querySelector('.recorte-img'), img = zona.querySelector('img'), sel = zona.querySelector('.recorte-sel'), r = null;
+    function pintar() { if (!r) { sel.style.display = 'none'; return; } sel.style.display = 'block'; sel.style.left = r.x + 'px'; sel.style.top = r.y + 'px'; sel.style.width = r.w + 'px'; sel.style.height = r.h + 'px'; }
+    function punto(e) { var b = img.getBoundingClientRect(); return { x: Math.max(0, Math.min(b.width, e.clientX - b.left)), y: Math.max(0, Math.min(b.height, e.clientY - b.top)) }; }
+    var ini = null;
+    zona.addEventListener('pointerdown', function (e) { e.preventDefault(); zona.setPointerCapture(e.pointerId); ini = punto(e); r = { x: ini.x, y: ini.y, w: 0, h: 0 }; pintar(); });
+    zona.addEventListener('pointermove', function (e) { if (!ini) return; var p2 = punto(e); r = { x: Math.min(ini.x, p2.x), y: Math.min(ini.y, p2.y), w: Math.abs(p2.x - ini.x), h: Math.abs(p2.y - ini.y) }; pintar(); });
+    zona.addEventListener('pointerup', function () { ini = null; });
+    function cerrar() { fondo.remove(); document.removeEventListener('keydown', tecla); }
+    function tecla(e) { if (e.key === 'Escape') cerrar(); }
+    document.addEventListener('keydown', tecla);
+    fondo.addEventListener('click', function (e) { if (e.target === fondo) cerrar(); });
+    fondo.querySelector('.no').onclick = cerrar;
+    fondo.querySelector('.ok').onclick = function () {
+      if (!r || r.w < 5 || r.h < 5) { cerrar(); return; }
+      var k = img.naturalWidth / img.getBoundingClientRect().width, c = document.createElement('canvas');
+      c.width = Math.round(r.w * k); c.height = Math.round(r.h * k);
+      var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, Math.round(r.x * k), Math.round(r.y * k), c.width, c.height, 0, 0, c.width, c.height);
+      lsSet(clave, { src: c.toDataURL('image/jpeg', 0.92), w: c.width, h: c.height, fecha: dato.fecha });
+      cerrar(); despues(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+    };
+  }
   function hoyYmdPag() { var d = new Date(Date.now() - 5 * 3600000); return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(); }
   zonaImagen('img1Soltar', 'img1Archivo', 'rpt.img1', 'prodMsg', function () { renderProd(); });
 
@@ -1111,7 +1152,7 @@ html.locked .ppt { display: none !important; }
     var d = insp(), h = hoyYmdPag(), dd = String(h).slice(6, 8) + '/' + String(h).slice(4, 6);
     $('inspBanda').textContent = 'INSPECTORES EN EL DÍA – ' + DIAS[new Date(utc(h)).getUTCDay()] + '. ' + dd;
     var inp = $('inspIn'); if (document.activeElement !== inp) inp.value = d.n || '';
-    $('img3Ver').innerHTML = d.img3 ? '<img alt="Imagen 3 del seguimiento del inspector de calidad" src="' + d.img3.src + '"><button type="button" class="quitar-img" data-quitar="rpt.img3">Borrar imagen</button>' : '<b>Pegar imagen</b>';
+    $('img3Ver').innerHTML = d.img3 ? '<img alt="Imagen 3 del seguimiento del inspector de calidad" src="' + d.img3.src + '"><span class="img-acc"><button type="button" class="ico-img" data-recortar="rpt.img3" title="Recortar imagen" aria-label="Recortar imagen"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></button><button type="button" class="quitar-img" data-quitar="rpt.img3">Borrar imagen</button></span>' : '<b>Pegar imagen</b>';
   }
   $('inspIn').addEventListener('change', function () {
     try { var v = this.value.trim(); if (v) localStorage.setItem(claveInsp(), v); else localStorage.removeItem(claveInsp()); } catch (e) { /* sin almacenamiento */ }
