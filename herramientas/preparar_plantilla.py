@@ -279,8 +279,30 @@ def poner_en(sh, box, sz=None, font=None, negrita=None, centro=True):
                     r_.remove(lat); hermanos[0].addprevious(lat)
 
 
+# recuadros de la fila de arriba: todos del mismo tamaño y a la misma altura, centrados bajo su título
+#   (título, recuadro avance, recuadro semana, rótulo avance, rótulo semana, nota «*Corte semana»)
+FILA3_GRUPOS = [(14, 16, 20, 19, 23, 2), (6, 18, 22, 11, 13, 10), (74, 61, 67, 63, 68, 21)]
+FILA3_Y, FILA3_W, FILA3_H, FILA3_HUECO = 1.72, 1.86, 1.42, 0.14
+
+
+def igualar_fila3(d):
+    for tit, ca, cs, ra, rs_, nota in FILA3_GRUPOS:
+        if tit not in d:
+            continue
+        tx, _, tw, _ = abs_xfrm(d[tit])
+        x0 = tx + (tw - 2 * FILA3_W - FILA3_HUECO) / 2
+        for caja, rot, x in ((ca, ra, x0), (cs, rs_, x0 + FILA3_W + FILA3_HUECO)):
+            if caja in d:
+                poner_en(d[caja], [x, FILA3_Y, FILA3_W, FILA3_H], centro=False)
+            if rot in d:
+                poner_en(d[rot], [x, FILA3_Y + 0.04, FILA3_W, 0.32], sz=14)
+        if nota in d:
+            poner_en(d[nota], [x0, FILA3_Y + FILA3_H + 0.03, FILA3_W, 0.3])
+
+
 def acomodar_fila3(d):
     """d = {id de forma: forma}. Valor, objetivo y diferencia dentro de su recuadro, sin encimarse."""
+    igualar_fila3(d)
     for caja, val, obj, dif in FILA3:
         if caja not in d:
             continue
