@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610201110';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610201105';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -242,7 +242,7 @@
 
   // ---------- dibujo de una diapositiva (fondo de tu PPT + todos los textos encima)
   function htmlSlide(n, editable) {
-    var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg?v=' + V + '">';
+    var h = '<div class="slide' + (editable ? ' edit' : '') + '"><img class="bg" alt="" src="lib/fondos/s' + (n < 10 ? '0' : '') + n + '.jpg?v=' + V + '.' + ((plantilla && plantilla.ver) || '') + '">';
     campos().forEach(function (c, ci) {
       if (c.s !== n) return;
       var b = c.box, m = ed.m[claveMov(ci)] || [0, 0];
@@ -640,7 +640,7 @@
     var b = this; b.disabled = true; msg('Generando…');
     var textos = {};
     campos().forEach(function (c) { c.p.forEach(function (p) { textos[p.id] = textoCampo(p); }); });
-    Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx?v=' + V).then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
+    Promise.all([cargar('lib/jszip.min.js'), fetch('lib/plantilla_reporte.pptx?v=' + V + '.' + ((plantilla && plantilla.ver) || '')).then(function (r) { if (!r.ok) throw new Error('sin plantilla PPT'); return r.arrayBuffer(); })])
       .then(function (res) { return window.JSZip.loadAsync(res[1]); })
       .then(function (zip) {
         var arch = plantilla.archivos || {}, nombres = Object.keys(zip.files).filter(function (f) { return /^ppt\/slides\/slide\d+\.xml$/.test(f); });
