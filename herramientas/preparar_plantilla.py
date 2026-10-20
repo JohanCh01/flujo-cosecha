@@ -279,25 +279,22 @@ def poner_en(sh, box, sz=None, font=None, negrita=None, centro=True):
                     r_.remove(lat); hermanos[0].addprevious(lat)
 
 
-# recuadros de la fila de arriba: todos del mismo tamaño y a la misma altura, centrados bajo su título
-#   (título, recuadro avance, recuadro semana, rótulo avance, rótulo semana, nota «*Corte semana»)
-FILA3_GRUPOS = [(14, 16, 20, 19, 23, 2), (6, 18, 22, 11, 13, 10), (74, 61, 67, 63, 68, 21)]
-FILA3_Y, FILA3_W, FILA3_H, FILA3_HUECO = 1.72, 1.86, 1.42, 0.14
+# recuadros de la fila de arriba: SOLO se igualan en altura (mismo borde de arriba y de abajo);
+# su posición a lo ancho, su ancho y los rótulos «AVANCE DE CAMPAÑA» / «SEMANA» quedan como en tu PPT.
+#   (recuadro avance, recuadro semana, nota «*Corte semana»)
+FILA3_GRUPOS = [(16, 20, 2), (18, 22, 10), (61, 67, 21)]
+FILA3_Y, FILA3_H = 1.66, 1.52            # de la parte más alta a la más baja de los recuadros originales
 
 
 def igualar_fila3(d):
-    for tit, ca, cs, ra, rs_, nota in FILA3_GRUPOS:
-        if tit not in d:
-            continue
-        tx, _, tw, _ = abs_xfrm(d[tit])
-        x0 = tx + (tw - 2 * FILA3_W - FILA3_HUECO) / 2
-        for caja, rot, x in ((ca, ra, x0), (cs, rs_, x0 + FILA3_W + FILA3_HUECO)):
+    for ca, cs, nota in FILA3_GRUPOS:
+        for caja in (ca, cs):
             if caja in d:
-                poner_en(d[caja], [x, FILA3_Y, FILA3_W, FILA3_H], centro=False)
-            if rot in d:
-                poner_en(d[rot], [x, FILA3_Y + 0.04, FILA3_W, 0.32], sz=14)
-        if nota in d:
-            poner_en(d[nota], [x0, FILA3_Y + FILA3_H + 0.03, FILA3_W, 0.3])
+                x, _, w, _ = abs_xfrm(d[caja])
+                poner_en(d[caja], [x, FILA3_Y, w, FILA3_H], centro=False)
+        if nota in d:                                   # la nota baja lo justo para no quedar encima del recuadro
+            x, _, w, h = abs_xfrm(d[nota])
+            poner_en(d[nota], [x, FILA3_Y + FILA3_H + 0.02, w, h], centro=False)
 
 
 def acomodar_fila3(d):
@@ -307,9 +304,9 @@ def acomodar_fila3(d):
         if caja not in d:
             continue
         x, y, w, h = abs_xfrm(d[caja])
-        for sid, (dy, alto, sz, font, neg) in ((val, (0.34, 0.54, 36, "Aptos Light", False)),
-                                                (obj, (0.87, 0.25, 16, None, None)),
-                                                (dif, (1.09, 0.24, 16, None, None))):
+        for sid, (dy, alto, sz, font, neg) in ((val, (0.40, 0.54, 36, "Aptos Light", False)),
+                                                (obj, (0.95, 0.25, 16, None, None)),
+                                                (dif, (1.19, 0.25, 16, None, None))):
             if sid in d:
                 poner_en(d[sid], [x + 0.04, y + dy, w - 0.08, alto], sz=sz, font=font, negrita=neg)
 
