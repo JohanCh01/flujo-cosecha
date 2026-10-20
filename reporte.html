@@ -169,6 +169,8 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .kpis.rec { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .kpi .big.azul { color: var(--band-ink); }
 .kpi .big.rojo { color: #c0392b; }
+.comp-estado { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); } .comp-estado.ok::before { content: "✓ "; color: #1e8e3e; }
+.comp-estado.error { color: #c0392b; } .comp-estado.guardando { color: var(--muted); font-style: italic; }
 .big-ed { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
 .big-in { width: 100%; min-width: 0; box-sizing: border-box; text-align: center; font-family: inherit; font-size: 38px; font-weight: 600; line-height: 1.1; color: var(--accent); background: transparent; border: 1px dashed transparent; border-radius: 8px; padding: 2px 4px; font-variant-numeric: tabular-nums; }
 .big-in:hover { border-color: var(--line); } .big-in:focus { outline: 2px solid var(--accent); border-color: transparent; background: var(--surface); }
@@ -242,6 +244,7 @@ html.locked .ppt { display: none !important; }
     <div>
       <h1>REPORTE DIARIO <b>ESPÁRRAGO</b></h1>
       <p class="meta" id="meta" aria-live="polite"></p>
+      <p class="comp-estado" id="compEstado" aria-live="polite" hidden></p>
     </div>
     <div class="head-actions">
       <a class="btn" id="btnGithub" href="https://github.com/JohanCh01/flujo-cosecha/actions/workflows/actualizar.yml" target="_blank" rel="noopener" hidden title="Abre GitHub para bajar datos nuevos ahora (botón «Run workflow»)">
@@ -418,6 +421,131 @@ html.locked .ppt { display: none !important; }
   var PROYECTADO = { get kg() { return proy('rec').kg; }, rev: PROY_REV };
 
   var $ = function (id) { return document.getElementById(id); };
+
+  // ================= GUARDADO COMPARTIDO =================
+  // Lo que se completa a mano (proyectados, objetivos, producción, personas, despachos, inspectores, stock e imágenes)
+  // se guarda cifrado en el repositorio (manual.json y man_imgN.json), así lo ven y lo corrigen todos los que entran con su DNI.
+  // La clave y el token llegan dentro de fito.json (cifrado), los pone configurar_compartido.py.
+  // En cada navegador se guarda además una copia (localStorage) para que la página abra rápido.
+  var COMP = (function () {
+    var COMPARTIDO = /^rpt\.(proy|mo\.obj|recl\.obj|prod\.|pers\.|despk\.|insp\.|stock\.|img[134]$)/;
+    var IMAGENES = { 'rpt.img1': 'man_img1.json', 'rpt.img3': 'man_img3.json', 'rpt.img4': 'man_img4.json' };
+    var cfg = null, llave = null, remoto = {}, sha = {}, pend = {}, timer = null, callando = false, alCambiar = null, ultimo = '';
+    var proto = Storage.prototype, setO = proto.setItem, remO = proto.removeItem;
+    function meta() { try { return JSON.parse(localStorage.getItem('rpt.sync.meta') || '{}') || {}; } catch (e) { return {}; } }
+    function metaPon(k, t) { var m = meta(); m[k] = t; try { setO.call(localStorage, 'rpt.sync.meta', JSON.stringify(m)); } catch (e) { /* nada */ } }
+    proto.setItem = function (k, v) { setO.call(this, k, v); if (this === window.localStorage && !callando && COMPARTIDO.test(k)) cambio(k); };
+    proto.removeItem = function (k) { remO.call(this, k); if (this === window.localStorage && !callando && COMPARTIDO.test(k)) cambio(k); };
+    function cambio(k) { metaPon(k, Date.now()); pend[k] = 1; estado('guardando'); clearTimeout(timer); timer = setTimeout(subir, 1500); }
+    function estado(e, extra) {
+      var el = document.getElementById('compEstado'); if (!el) return;
+      el.hidden = !cfg; el.className = 'comp-estado ' + e;
+      el.textContent = e === 'guardando' ? 'Guardando para todos…' : e === 'ok' ? 'Guardado para todos' + (extra ? ' · ' + extra : '') : e === 'error' ? 'No se pudo guardar para todos' + (extra ? ' (' + extra + ')' : '') + ' · queda en este navegador' : '';
+    }
+    function b64(u8) { var s2 = '', i; for (i = 0; i < u8.length; i += 32768) s2 += String.fromCharCode.apply(null, u8.subarray(i, i + 32768)); return btoa(s2); }
+    function deb64(t) { var b = atob(t), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+    function cifrar(obj) {
+      var iv = crypto.getRandomValues(new Uint8Array(12));
+      return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, llave, new TextEncoder().encode(JSON.stringify(obj)))
+        .then(function (c) { return JSON.stringify({ v: 1, iv: b64(iv), data: b64(new Uint8Array(c)) }); });
+    }
+    function descifrar(txt) {
+      var o = JSON.parse(txt);
+      return crypto.subtle.decrypt({ name: 'AES-GCM', iv: deb64(o.iv) }, llave, deb64(o.data)).then(function (p) { return JSON.parse(new TextDecoder().decode(p)); });
+    }
+    function api(ruta, op) {
+      op = op || {}; op.headers = Object.assign({ Authorization: 'Bearer ' + cfg.gh, Accept: 'application/vnd.github+json' }, op.headers || {}); op.cache = 'no-store';
+      return fetch('https://api.github.com/repos/' + (cfg.repo || 'JohanCh01/flujo-cosecha') + '/contents/' + ruta, op);
+    }
+    function leerArchivo(nombre) {                     // → {txt, sha} o null si no existe
+      return api(nombre).then(function (r) {
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error('GitHub ' + r.status);
+        return r.json().then(function (j) {
+          if (j.content && j.encoding === 'base64') return { txt: new TextDecoder().decode(deb64(j.content.replace(/\s/g, ''))), sha: j.sha };
+          return api(nombre, { headers: { Accept: 'application/vnd.github.raw' } }).then(function (r2) { return r2.text(); }).then(function (t) { return { txt: t, sha: j.sha }; });
+        });
+      });
+    }
+    function escribirArchivo(nombre, txt, mensaje) {
+      var cuerpo = { message: mensaje, content: b64(new TextEncoder().encode(txt)) };
+      if (sha[nombre]) cuerpo.sha = sha[nombre];
+      return api(nombre, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) }).then(function (r) {
+        if (r.status === 409 || r.status === 422) { var e = new Error('conflicto'); e.conflicto = true; throw e; }
+        if (!r.ok) throw new Error('GitHub ' + r.status);
+        return r.json().then(function (j) { sha[nombre] = j.content.sha; });
+      });
+    }
+    // trae lo de todos y lo mezcla con lo de este navegador: gana lo más reciente de cada dato
+    function bajar() {
+      var nombres = ['manual.json'].concat(Object.keys(IMAGENES).map(function (k) { return IMAGENES[k]; }));
+      return Promise.all(nombres.map(function (n) { return leerArchivo(n).catch(function () { return null; }); })).then(function (rs) {
+        var r0 = rs[0], tareas = [];
+        sha = {}; nombres.forEach(function (n, i) { if (rs[i]) sha[n] = rs[i].sha; });
+        tareas.push(r0 ? descifrar(r0.txt) : Promise.resolve({}));
+        Object.keys(IMAGENES).forEach(function (k, i) { var r = rs[i + 1]; tareas.push(r ? descifrar(r.txt).then(function (o) { var x = {}; x[k] = o; return x; }) : Promise.resolve({})); });
+        return Promise.all(tareas);
+      }).then(function (partes) {
+        remoto = Object.assign.apply(null, [{}].concat(partes));
+        var M = meta(), cambiado = false;
+        callando = true;
+        Object.keys(remoto).forEach(function (k) {
+          var r = remoto[k]; if (!r || pend[k]) return;
+          if (M[k] == null || r.t > M[k]) {
+            if (r.v == null) localStorage.removeItem(k); else localStorage.setItem(k, r.v);
+            M[k] = r.t; cambiado = true;
+          }
+        });
+        callando = false;
+        try { setO.call(localStorage, 'rpt.sync.meta', JSON.stringify(M)); } catch (e) { /* nada */ }
+        // lo que hay en este navegador y todavía no está para todos (o es más nuevo) → se sube
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i); if (!COMPARTIDO.test(k)) continue;
+          var r = remoto[k], t = M[k] || 1;
+          if (!r || t > r.t) { pend[k] = 1; if (!M[k]) metaPon(k, Date.now()); }
+        }
+        Object.keys(M).forEach(function (k) { if (COMPARTIDO.test(k) && localStorage.getItem(k) == null && remoto[k] && remoto[k].v != null && M[k] > remoto[k].t) pend[k] = 1; });
+        if (Object.keys(pend).length) { clearTimeout(timer); timer = setTimeout(subir, 800); } else estado('ok', hora());
+        if (cambiado && alCambiar) alCambiar();
+      });
+    }
+    function hora() { var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+    var subiendo = false;
+    function subir(intento) {
+      if (!cfg || subiendo) { if (cfg) { clearTimeout(timer); timer = setTimeout(subir, 1500); } return; }
+      var ks = Object.keys(pend); if (!ks.length) return;
+      subiendo = true; pend = {};
+      var M = meta(), val = function (k) { var v = localStorage.getItem(k); return { v: v, t: M[k] || Date.now() }; };
+      var hayManual = ks.some(function (k) { return !IMAGENES[k]; }), tareas = [];
+      ks.forEach(function (k) { remoto[k] = val(k); });
+      if (hayManual) {
+        var base = {}; Object.keys(remoto).forEach(function (k) { if (!IMAGENES[k]) base[k] = remoto[k]; });
+        tareas.push(cifrar(base).then(function (txt) { return escribirArchivo('manual.json', txt, 'Reporte diario: datos completados a mano'); }));
+      }
+      ks.filter(function (k) { return IMAGENES[k]; }).forEach(function (k) {
+        tareas.push(cifrar(remoto[k]).then(function (txt) { return escribirArchivo(IMAGENES[k], txt, 'Reporte diario: imagen'); }));
+      });
+      Promise.all(tareas).then(function () { subiendo = false; estado('ok', hora()); if (Object.keys(pend).length) subir(); })
+        .catch(function (e) {
+          subiendo = false; ks.forEach(function (k) { pend[k] = 1; });
+          if (e.conflicto && (intento || 0) < 3) { bajar().then(function () { subir((intento || 0) + 1); }); return; }  // otro guardó justo antes: se mezcla y se reintenta
+          estado('error', e.message);
+        });
+    }
+    return {
+      iniciar: function (c, cuandoCambie) {
+        if (!c || !c.mk || !c.gh || !window.crypto || !crypto.subtle) return Promise.resolve(false);
+        if (cfg && cfg.gh === c.gh) return bajar().catch(function (e) { estado('error', e.message); });
+        cfg = c; alCambiar = cuandoCambie;
+        return crypto.subtle.importKey('raw', deb64(c.mk), 'AES-GCM', false, ['encrypt', 'decrypt']).then(function (k) {
+          llave = k; estado('guardando');
+          setInterval(function () { if (!Object.keys(pend).length && !subiendo && document.visibilityState === 'visible') bajar().catch(function () {}); }, 90000);
+          return bajar().then(function () { return true; });
+        }).catch(function (e) { estado('error', e.message); return false; });
+      }
+    };
+  })();
+
   var ZONAS = ['COMPOSITAN', 'OLMOS', 'TERCEROS'];
   var NOM_ZONA = { TODAS: 'Todas', COMPOSITAN: 'Compositan', OLMOS: 'Olmos', TERCEROS: 'Terceros', ZONA: 'Por zona' };
   var COLOR_CSS = { AZUL: 'var(--c-azul)', VERDE: 'var(--c-verde)', AMARILLO: 'var(--c-amarillo)', ROJO: 'var(--c-rojo)', ROJO2: 'var(--c-rojo2)' };
@@ -483,6 +611,7 @@ html.locked .ppt { display: none !important; }
     state.recl = P.recl || null;
     // Despachos · Mercado: filas del Excel de ventas (bloque «desp» que sube ventas_excel.py desde la laptop)
     state.desp = P.desp || null;
+    state.comp = P.comp || null;
     if (state.status == null || state.status >= state.statuses.length) {
       var ev_ = state.statuses.indexOf('EVALUADO');
       state.status = ev_ >= 0 ? ev_ : -1;             // por defecto solo «Evaluado», como en tu Power BI
@@ -1308,6 +1437,7 @@ html.locked .ppt { display: none !important; }
   if (!enSitio) {
     if (EMBED) usePacked(EMBED);
     mostrar(false);
+    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); });
     $('btnAct').onclick = function () { mostrar(true); renderMeta('vista local: los datos nuevos se ven en el sitio publicado'); };
     return;
   }
@@ -1356,6 +1486,7 @@ html.locked .ppt { display: none !important; }
       } catch (e) { aviso = 'no se pudieron abrir los datos; recarga la página'; }
     }
     mostrar(conservar); if (aviso) renderMeta(aviso);
+    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); });
     document.documentElement.classList.remove('locked');
   }
   $('btnAct').onclick = function () {

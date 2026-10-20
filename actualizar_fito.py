@@ -722,10 +722,10 @@ def main():
     # bloques que se suben desde la laptop (aquí solo se conservan):
     #   rsql = kilos recepcionados del SQL (recepcion_sql.py) · dren = kilos drenados del Power BI (drenados_pbi.py)
     #   mo = mano de obra CMO del Power BI (mano_obra_pbi.py) · recl = ratio de reclamos (reclamos_pbi.py)
-    for k in ("rsql", "dren", "mo", "recl", "desp"):
+    for k in ("rsql", "dren", "mo", "recl", "desp", "comp"):
         if anterior.get(k):
             contenido[k] = anterior[k]
-    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon", "rsql", "dren", "mo", "recl", "desp") if k in anterior or k in contenido} == contenido
+    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon", "rsql", "dren", "mo", "recl", "desp", "comp") if k in anterior or k in contenido} == contenido
     if igual and firma_anterior == _firma(dnis, sal, it):
         log("fito.json ya estaba al día: no se cambia nada.")
         return 0
