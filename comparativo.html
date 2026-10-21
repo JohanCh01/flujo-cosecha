@@ -261,6 +261,10 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5z"/><path d="M14 3.5V8h4.5M9 12l4 5M13 12l-4 5"/></svg>
         Exportar Excel
       </button>
+      <button class="btn" id="btnPdf" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5z"/><path d="M14 3.5V8h4.5M9 17v-3M12 17v-5M15 17v-2"/></svg>
+        Descargar PDF
+      </button>
       <button class="btn primary" id="btnAct" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5"/></svg>
         Actualizar
@@ -761,6 +765,240 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       anaMsg('No se pudo analizar: ' + e.message, 'mal');
     } finally { esperando = false; b.disabled = false; pintarChat(); }
   };
+
+  // ---------- reporte PDF (lo que se está viendo)
+  function cargarPdf() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+    return new Promise(function (ok, mal) { var s = document.createElement('script'); s.src = 'lib/jspdf.umd.min.js'; s.onload = ok; s.onerror = mal; document.head.appendChild(s); });
+  }
+  function resumenDe(L) {
+    var conP = L.filter(function (r) { return sumaProc(r) > 0; }), conD = L.filter(function (r) { return sumaDias(r) > 0; });
+    var proc = ['% Compositan', '% Olmos', '% Terceros', '% Re-proceso'].map(function (k) { return conP.length ? conP.reduce(function (a, r) { return a + (r[k] || 0); }, 0) / conP.length : null; });
+    var dias = []; for (var d = 1; d <= 8; d++) dias.push(conD.length ? conD.reduce(function (a, r) { return a + (r['% ' + d + 'D'] || 0) / sumaDias(r); }, 0) / conD.length : null);
+    return {
+      n: L.length, con: L.filter(function (r) { return grupoReclamo(r) === 'con'; }).length,
+      pend: L.filter(function (r) { return /PENDIENTE/i.test(r['Status Final'] || ''); }).length,
+      aereo: L.length ? L.filter(function (r) { return r.tipo === 'Aéreo'; }).length / L.length : null,
+      diasProm: promedio(L, METRICAS[4][1]), pt: promedio(L, METRICAS[6][1]), em: promedio(L, METRICAS[8][1]),
+      terc: promedio(L, METRICAS[2][1]), proc: proc, dias: dias
+    };
+  }
+  function txtPdf(v) { return String(v == null ? '' : v).replace(/[–—−]/g, '-').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[^\x00-\xFF]/g, ''); }
+  function pctTxt(v) { return v == null ? '-' : Math.round(v * 100) + ' %'; }
+  function sinMd(t) { return String(t || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#+\s*/gm, '').replace(/^\s*[*•]\s+/gm, '- '); }
+
+  $('btnPdf').onclick = function () {
+    if (!state.vista.length) return renderMeta('no hay pedidos con estos filtros para el reporte');
+    var b = this; b.disabled = true;
+    cargarPdf().then(function () { armarPdf(); }).catch(function (e) { console.error(e); renderMeta('no se pudo armar el PDF; recarga la página'); })
+      .then(function () { b.disabled = false; });
+  };
+
+  function armarPdf() {
+    var V = state.vista, R = resumenDe(V), E = estadisticas();
+    var doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+    var W = 297, H = 210, M = 12, y = 0;
+    var C = { ink: [23, 32, 26], ink2: [71, 85, 76], muted: [110, 122, 113], line: [217, 223, 214], soft: [242, 244, 239], acc: [44, 106, 59],
+      comp: [95, 178, 76], olm: [44, 106, 59], ter: [226, 180, 18], rep: [163, 48, 31], dias: [226, 180, 18], danger: [163, 48, 31],
+      gProc: [230, 244, 226], gDias: [253, 243, 207], gPt: [252, 230, 232], gEm: [225, 240, 247], gInd: [236, 238, 235], gGen: [243, 245, 241] };
+    function font(bold, sz, c) { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(sz); c = c || C.ink; doc.setTextColor(c[0], c[1], c[2]); }
+    function fill(c) { doc.setFillColor(c[0], c[1], c[2]); }
+    function stroke(c) { doc.setDrawColor(c[0], c[1], c[2]); }
+    function t(x, yy, s, o) { doc.text(txtPdf(s), x, yy, o || {}); }
+    var ahora = new Date(), genTxt = ahora.toLocaleDateString('es-PE') + ' ' + ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+    function cabecera(sub) {
+      fill(C.acc); doc.rect(0, 0, W, 3, 'F');
+      font(true, 16); t(M, 13, 'COMPARATIVO DE DESPACHOS');
+      font(false, 9, C.muted); t(M, 18.5, sub);
+      t(W - M, 13, 'Filtros: ' + textoFiltros(), { align: 'right', maxWidth: 150 });
+      t(W - M, 18.5, 'Datos al ' + fechaHora(state.data.gen) + '  |  Generado el ' + genTxt, { align: 'right' });
+      stroke(C.line); doc.setLineWidth(.3); doc.line(M, 22, W - M, 22);
+      return 28;
+    }
+    function titulo(s, x, yy) { font(true, 11, C.ink); t(x, yy, s); return yy + 5; }
+    function nota(s, x, yy, ancho) { font(false, 7.5, C.muted); var l = doc.splitTextToSize(txtPdf(s), ancho); doc.text(l, x, yy); return yy + l.length * 3.3; }
+
+    // ===== Página 1: resumen
+    y = cabecera('Resumen del periodo');
+    var kpis = [
+      ['Pedidos', String(R.n)], ['Con reclamo', String(R.con)], ['Reporte pendiente', String(R.pend)], ['Envío aéreo', pctTxt(R.aereo)],
+      ['Días cosecha-despacho', R.diasProm == null ? '-' : R.diasProm.toFixed(1).replace('.', ',')], ['Prom C-% PT', pctTxt(R.pt)], ['Prom C-% EM', pctTxt(R.em)]
+    ];
+    var kw = (W - 2 * M - 6 * 4) / 7;
+    kpis.forEach(function (k, i) {
+      var x = M + i * (kw + 4);
+      fill(C.soft); stroke(C.line); doc.roundedRect(x, y, kw, 19, 2, 2, 'FD');
+      font(false, 7.5, C.muted); t(x + 4, y + 6, k[0]);
+      font(true, 15, i === 1 && R.con ? C.danger : C.ink); t(x + 4, y + 15, k[1]);
+    });
+    y += 27;
+
+    // Procedencia (barra apilada)
+    var colW = (W - 2 * M - 10) / 2, x1 = M, x2 = M + colW + 10;
+    var yA = titulo('Procedencia de la materia prima', x1, y);
+    font(false, 7.5, C.muted); t(x1, yA, 'Promedio de los pedidos con datos de producción'); yA += 4;
+    var nombres = ['Compositan', 'Olmos', 'Terceros', 'Re-proceso'], colores = [C.comp, C.olm, C.ter, C.rep], tot = R.proc.reduce(function (a, v) { return a + (v || 0); }, 0), xb = x1;
+    if (tot > 0) {
+      R.proc.forEach(function (v, i) { var w = colW * (v || 0) / tot; if (w > 0) { fill(colores[i]); doc.rect(xb, yA, w, 9, 'F'); xb += w; } });
+      var yl = yA + 15;
+      nombres.forEach(function (n, i) {
+        var xx = x1 + i * (colW / 4); fill(colores[i]); doc.rect(xx, yl - 2.6, 3, 3, 'F');
+        font(false, 8, C.ink2); t(xx + 4.5, yl, n); font(true, 10, C.ink); t(xx + 4.5, yl + 5, pctTxt(R.proc[i]));
+      });
+    } else { nota('Sin datos de producción para estos pedidos.', x1, yA + 4, colW); }
+
+    // Días (barras verticales)
+    var yB = titulo('Días entre cosecha y despacho', x2, y);
+    font(false, 7.5, C.muted); t(x2, yB, 'Porcentaje promedio de cajas según días'); yB += 3;
+    var maxD = Math.max.apply(null, R.dias.map(function (v) { return v || 0; })), bw = colW / 8, hMax = 22;
+    if (maxD > 0) {
+      R.dias.forEach(function (v, i) {
+        var h = hMax * (v || 0) / maxD, xx = x2 + i * bw + 2;
+        fill(C.dias); doc.rect(xx, yB + hMax - h + 4, bw - 4, h, 'F');
+        font(true, 7.5, C.ink); t(xx + (bw - 4) / 2, yB + hMax - h + 3, pctTxt(v), { align: 'center' });
+        font(false, 7.5, C.muted); t(xx + (bw - 4) / 2, yB + hMax + 8, (i + 1) + 'D', { align: 'center' });
+      });
+    } else { nota('Sin datos de días para estos pedidos.', x2, yB + 6, colW); }
+    y += 46;
+
+    // Evolución por mes o semana
+    var meses = unicos(V.map(function (r) { return r.anio + '-' + String(r.om).padStart(2, '0'); }));
+    var porMes = meses.length > 1, claves = porMes ? meses.sort() : unicos(V.map(function (r) { return r.sem; })).sort();
+    y = titulo('Evolución por ' + (porMes ? 'mes' : 'semana'), M, y);
+    var cab = ['Periodo', 'Pedidos', 'Con reclamo', 'Reporte pendiente', '% Terceros', 'Días cos-desp', 'Prom C-% PT', 'Prom C-% EM', 'Envío aéreo'];
+    var anchos = [40, 26, 28, 32, 28, 30, 30, 30, 29];
+    function filaTabla(vals, yy, opts) {
+      var xx = M; opts = opts || {};
+      if (opts.fondo) { fill(opts.fondo); doc.rect(M, yy - 4, anchos.reduce(function (a, b) { return a + b; }, 0), 6, 'F'); }
+      vals.forEach(function (v, i) { font(!!opts.negrita, 8, opts.color || C.ink); t(i ? xx + anchos[i] - 2 : xx + 2, yy, v, i ? { align: 'right' } : {}); xx += anchos[i]; });
+      stroke(C.line); doc.setLineWidth(.15); doc.line(M, yy + 2, M + anchos.reduce(function (a, b) { return a + b; }, 0), yy + 2);
+      return yy + 6;
+    }
+    y = filaTabla(cab, y + 2, { negrita: true, fondo: C.soft, color: C.ink2 });
+    var maxFilas = Math.floor((H - 14 - y) / 6), lista = claves.slice(-maxFilas);
+    lista.forEach(function (k) {
+      var L = V.filter(function (r) { return porMes ? r.anio + '-' + String(r.om).padStart(2, '0') === k : r.sem === k; }), Q = resumenDe(L);
+      var nom = porMes ? MESES[+k.slice(5) - 1] + ' ' + k.slice(0, 4) : 'Semana ' + String(k).replace(/^S/, '');
+      y = filaTabla([nom, Q.n, Q.con, Q.pend, pctTxt(Q.terc), Q.diasProm == null ? '-' : Q.diasProm.toFixed(1).replace('.', ','), pctTxt(Q.pt), pctTxt(Q.em), pctTxt(Q.aereo)], y);
+    });
+    if (claves.length > lista.length) y = nota('Se muestran los últimos ' + lista.length + ' periodos.', M, y + 1, 200);
+
+    var clientes = unicos(V.map(function (r) { return r.cli; }));
+    if (clientes.length > 1 && y + 22 < H - 14) {
+      y = titulo('Por cliente', M, y + 5);
+      y = filaTabla(['Cliente'].concat(cab.slice(1)), y + 2, { negrita: true, fondo: C.soft, color: C.ink2 });
+      var porCli = clientes.map(function (c) { return { c: c, L: V.filter(function (r) { return r.cli === c; }) }; })
+        .sort(function (a, b) { return b.L.length - a.L.length; });
+      var caben = Math.floor((H - 14 - y) / 6), muestra = porCli.slice(0, caben);
+      muestra.forEach(function (o) {
+        var Q = resumenDe(o.L);
+        y = filaTabla([o.c, Q.n, Q.con, Q.pend, pctTxt(Q.terc), Q.diasProm == null ? '-' : Q.diasProm.toFixed(1).replace('.', ','), pctTxt(Q.pt), pctTxt(Q.em), pctTxt(Q.aereo)], y);
+      });
+      if (porCli.length > muestra.length) nota('Se muestran los ' + muestra.length + ' clientes con más pedidos de ' + porCli.length + '.', M, y + 1, 200);
+    }
+
+    // ===== Página 2: con / sin reclamo, pedidos a revisar, Gemini
+    doc.addPage(); y = cabecera('Reclamos y pedidos a revisar');
+    var izqW = 140;
+    var yI = titulo('Pedidos con reclamo frente a sin reclamo', M, y);
+    if (!E.con.length || !E.sin.length) {
+      yI = nota((!E.con.length ? 'No hay pedidos con reclamo' : 'No hay pedidos sin reclamo') + ' con estos filtros.', M, yI + 1, izqW);
+    } else {
+      var aC = [64, 25, 25, 26];
+      function filaC(vals, yy, o) {
+        o = o || {}; var xx = M;
+        if (o.fondo) { fill(o.fondo); doc.rect(M, yy - 4, izqW, 6, 'F'); }
+        vals.forEach(function (v, i) { font(!!o.negrita, 8, o.color && i ? o.color : (o.cab ? C.ink2 : C.ink)); t(i ? xx + aC[i] - 2 : xx + 2, yy, v, i ? { align: 'right' } : {}); xx += aC[i]; });
+        stroke(C.line); doc.setLineWidth(.15); doc.line(M, yy + 2, M + izqW, yy + 2); return yy + 6;
+      }
+      yI = filaC(['Promedio por pedido', 'Con reclamo', 'Sin reclamo', 'Diferencia'], yI + 2, { negrita: true, fondo: C.soft, cab: true });
+      yI = filaC(['Pedidos', E.con.length, E.sin.length, ''], yI, { negrita: true });
+      E.filas.forEach(function (x) {
+        var marca = x.dif != null && Math.abs(x.dif) >= x.m[3];
+        yI = filaC([x.m[0], fmt(x.con, x.m[2]), fmt(x.sin, x.m[2]), fmtDif(x.dif, x.m[2])], yI, marca ? { fondo: C.gDias, negrita: true } : {});
+      });
+      yI = nota('Resaltadas las diferencias más grandes. Son diferencias observadas, no causas comprobadas' + (E.con.length < 5 ? '; hay pocos pedidos con reclamo.' : '.'), M, yI + 1, izqW);
+    }
+
+    var xR = M + izqW + 10, derW = W - M - xR, yD = titulo('Pedidos para revisar', xR, y);
+    function top(etq, fn, f) {
+      var L = V.map(function (r) { return { r: r, v: fn(r) }; }).filter(function (o) { return o.v != null && o.v > 0; })
+        .sort(function (a, b) { return b.v - a.v; }).slice(0, 5);
+      font(true, 8.5, C.ink2); t(xR, yD + 1, etq); yD += 5;
+      if (!L.length) { yD = nota('Sin datos.', xR, yD, derW); return; }
+      L.forEach(function (o) {
+        var r = o.r, extra = [r.tipo, r['Status Final'] || r.reclamo].filter(Boolean).join(', ');
+        font(true, 8, C.ink); t(xR + 2, yD, r.pv);
+        font(false, 8, C.ink2); t(xR + 24, yD, fecha(r.fd) + (r.cli ? '  ' + r.cli : ''));
+        font(true, 8, C.ink); t(xR + 72, yD, f(o.v), { align: 'right' });
+        font(false, 7, C.muted); t(xR + 76, yD, extra, { maxWidth: derW - 76 });
+        yD += 5;
+      });
+      yD += 2;
+    }
+    top('Mayor C-% en inspección PT (máximo)', function (r) { return conInsp(r, 'PT') ? r['Máx C-% PT'] : null; }, pctTxt);
+    top('Mayor C-% en inspección de empaque (máximo)', function (r) { return conInsp(r, 'EM') ? r['Máx C-% EM'] : null; }, pctTxt);
+    top('Más días entre cosecha y despacho (promedio)', METRICAS[4][1], function (v) { return v.toFixed(1).replace('.', ',') + ' d'; });
+
+    var ultima = chat.filter(function (m) { return m.rol === 'model'; }).pop();
+    if (ultima) {
+      var pregunta = (chat[chat.indexOf(ultima) - 1] || {}).texto || '';
+      var yG = Math.max(yI, yD) + 4;
+      var lineas = doc.splitTextToSize(txtPdf(sinMd(ultima.texto)), W - 2 * M - 8);
+      if (yG + 16 + lineas.length * 3.6 > H - 12) { doc.addPage(); yG = cabecera('Análisis de Gemini'); }
+      fill(C.soft); stroke(C.line);
+      var alto = 14 + lineas.length * 3.6; doc.roundedRect(M, yG, W - 2 * M, alto, 2, 2, 'FD');
+      font(true, 10, C.ink); t(M + 4, yG + 6, 'Análisis de Gemini');
+      font(false, 7.5, C.muted); t(M + 42, yG + 6, 'Pregunta: ' + pregunta, { maxWidth: W - 2 * M - 46 });
+      font(false, 8.5, C.ink); doc.text(lineas, M + 4, yG + 12);
+      nota('Respuesta generada por IA sobre los pedidos filtrados (' + (ultima.pie || '').split(' · ').slice(0, 2).join(', ') + '). Revisa los números antes de usarlos.', M + 4, yG + alto - 2.5, W - 2 * M - 8);
+    }
+
+    // ===== Páginas de detalle
+    var cols = [['Fecha', 'fd', 'd', 15], ['Pedido', 'pv', 't', 17], ['Cliente', 'cli', 't', 11], ['Envío', 'tipo', 't', 14], ['FCL / AWB', 'fcl', 't', 22], ['ETA', 'eta', 'd', 15],
+      ['% Comp', '% Compositan', 'p', 10], ['% Olm', '% Olmos', 'p', 10], ['% Ter', '% Terceros', 'p', 10], ['% Rep', '% Re-proceso', 'p', 9]]
+      .concat([1, 2, 3, 4, 5, 6, 7, 8].map(function (d) { return [d + 'D', '% ' + d + 'D', 'p', 7.5]; }))
+      .concat([['PT prom', 'Prom C-% PT', 'p', 9.5], ['PT máx', 'Máx C-% PT', 'p', 9.5], ['EM prom', 'Prom C-% EM', 'p', 9.5], ['EM máx', 'Máx C-% EM', 'p', 9.5],
+        ['Vida útil', 'Vida Útil', 't', 12], ['Tol.', 'Con Tolerancia', 't', 7], ['Status', 'Status Final', 't', 0]]);
+    var usado = cols.reduce(function (a, c) { return a + c[3]; }, 0); cols[cols.length - 1][3] = W - 2 * M - usado;
+    var fondoCol = function (c) { return /^% (Comp|Olm|Ter|Rep)/.test(c[0]) ? C.gProc : /^\dD$/.test(c[0]) ? C.gDias : /^PT/.test(c[0]) ? C.gPt : /^EM/.test(c[0]) ? C.gEm : /Vida|Tol|Status/.test(c[0]) ? C.gInd : null; };
+    function cabDetalle() {
+      doc.addPage(); var yy = cabecera('Detalle de pedidos (' + V.length + ')'), xx = M;
+      cols.forEach(function (c) {
+        var f = fondoCol(c) || C.soft; fill(f); doc.rect(xx, yy - 4, c[3], 9, 'F'); font(true, 6.5, C.ink2);
+        var l = doc.splitTextToSize(txtPdf(c[0]), c[3] - 1);
+        doc.text(l, xx + c[3] / 2, l.length > 1 ? yy - .6 : yy + 1.2, { align: 'center' }); xx += c[3];
+      });
+      return yy + 9;
+    }
+    y = cabDetalle();
+    var fdPrev = null;
+    V.forEach(function (r) {
+      if (y > H - 12) { y = cabDetalle(); fdPrev = null; }
+      var xx = M;
+      cols.forEach(function (c) {
+        var v = r[c[1]], s, f = fondoCol(c);
+        if (f) { fill(f); doc.rect(xx, y - 3.4, c[3], 4.8, 'F'); }
+        if (c[2] === 'd') s = v ? fecha(v) : '-';
+        else if (c[2] === 'p') s = v == null ? '-' : Math.round(v * 100) + '%';
+        else s = v == null || v === '' ? '-' : String(v);
+        if (c[1] === 'fd' && r.fd === fdPrev) s = '';
+        font(c[1] === 'pv' || c[1] === 'fd', 6.5, c[2] === 'p' && !v ? C.muted : C.ink);
+        var maxW = c[3] - 1.5; while (s.length > 2 && doc.getTextWidth(txtPdf(s)) > maxW) s = s.slice(0, -2) + '.';
+        t(c[2] === 't' && c[1] !== 'tipo' && c[1] !== 'cli' && c[1] !== 'Con Tolerancia' ? xx + 1 : xx + c[3] / 2, y, s, c[2] === 't' && c[1] !== 'tipo' && c[1] !== 'cli' && c[1] !== 'Con Tolerancia' ? {} : { align: 'center' });
+        xx += c[3];
+      });
+      stroke(C.line); doc.setLineWidth(.1); doc.line(M, y + 1.4, W - M, y + 1.4);
+      fdPrev = r.fd; y += 4.8;
+    });
+
+    // pie con número de página
+    var n = doc.getNumberOfPages();
+    for (var i = 1; i <= n; i++) { doc.setPage(i); font(false, 7, C.muted); t(W - M, H - 6, 'Página ' + i + ' de ' + n, { align: 'right' }); t(M, H - 6, 'Danper - Aseguramiento de la Calidad'); }
+    var f = state.f, nombre = 'Comparativo_' + (f.mes ? MESES[f.mes - 1] + '_' : '') + (f.anio || 'todos') + (f.cli ? '_' + f.cli : '') + '.pdf';
+    doc.save(nombre.replace(/\s+/g, '_'));
+  }
 
   // ---------- selector de páginas
   function appsAbrir(on) { $('apps').classList.toggle('abierto', on); $('appsB').setAttribute('aria-expanded', String(on)); }
