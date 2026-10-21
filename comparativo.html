@@ -183,6 +183,31 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 .est.no { background: var(--surface-2); color: var(--danger); }
 .lista .mas { color: var(--muted); font-size: 12.5px; display: block; }
 
+/* ---------- panel de análisis */
+.drawer.ancho { width: min(680px, 100vw); }
+.contexto { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.contexto strong { color: var(--ink); font-weight: 600; }
+.cmp-tabla { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cmp-tabla th, .cmp-tabla td { padding: 7px 10px; border-bottom: 1px solid var(--line-soft); text-align: right; }
+.cmp-tabla th:first-child, .cmp-tabla td:first-child { text-align: left; }
+.cmp-tabla thead th { font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
+.cmp-tabla thead th.con { color: var(--danger); }
+.cmp-tabla td.dif { color: var(--muted); }
+.cmp-tabla tr.marca td { background: var(--warn-soft); }
+.cmp-tabla tr.marca td.dif { color: var(--warn); font-weight: 600; }
+.cmp-tabla tr.cuenta td { font-weight: 600; }
+.sugs { display: flex; flex-wrap: wrap; gap: 6px; }
+.sug { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; cursor: pointer; text-align: left; }
+.sug:hover { border-color: var(--accent); color: var(--accent); }
+.pregunta { width: 100%; min-height: 76px; resize: vertical; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 9px 11px; font: inherit; color: inherit; }
+.respuesta { border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 12px 14px; font-size: 13.5px; line-height: 1.55; }
+.respuesta p { margin: 0 0 8px; }
+.respuesta p:last-child, .respuesta ul:last-child { margin-bottom: 0; }
+.respuesta ul { margin: 0 0 8px; padding-left: 18px; }
+.respuesta li { margin-bottom: 3px; }
+.respuesta .quien { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.ana-acc { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
 @media (max-width: 700px) {
   .inp { width: 100%; }
   .filters fieldset.field { flex-basis: 100%; }
@@ -215,6 +240,10 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       <p class="meta" id="meta">Cargando…</p>
     </div>
     <div class="head-actions">
+      <button class="btn" id="btnAnalisis" type="button" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M7 16V11M11.5 16V6.5M16 16v-3.5"/><path d="M18.5 4.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg>
+        Análisis
+      </button>
       <button class="btn" id="btnArchivos" type="button" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>
         Archivos <span class="badge" id="badgePend" hidden></span>
@@ -272,6 +301,31 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     <section>
       <h3>Usados en la última actualización</h3>
       <ul class="lista" id="lFuentes"></ul>
+    </section>
+  </div>
+</aside>
+
+<aside class="drawer ancho" id="drAna" role="dialog" aria-modal="true" aria-labelledby="anaTit" hidden>
+  <div class="dr-h">
+    <h2 id="anaTit">Análisis</h2>
+    <button class="cerrar" id="anaCerrar" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="dr-b">
+    <p class="contexto" id="anaCtx"></p>
+    <section>
+      <h3>Pedidos con reclamo frente a sin reclamo</h3>
+      <div id="anaTabla"></div>
+    </section>
+    <section class="subir" id="anaIA">
+      <h3>Preguntar a Gemini</h3>
+      <div class="sugs" id="anaSugs"></div>
+      <textarea class="pregunta" id="anaPreg" placeholder="Ej.: ¿Qué tienen distinto los pedidos con reclamo de octubre?"></textarea>
+      <div class="ana-acc">
+        <button class="btn primary" id="btnPreguntar" type="button">Analizar con Gemini</button>
+        <span class="nota" id="anaNota"></span>
+      </div>
+      <div class="msg" id="anaMsg" role="status"></div>
+      <div class="respuesta" id="anaResp" hidden></div>
     </section>
   </div>
 </aside>
@@ -457,22 +511,27 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       .then(function () { b.disabled = false; });
   };
 
-  // ---------- panel de archivos
-  function abrirPanel(on) {
-    var d = $('drawer'), v = $('velo');
+  // ---------- paneles laterales (Archivos y Análisis)
+  var PANELES = { drawer: { cerrar: 'drCerrar', boton: 'btnArchivos', alAbrir: function () { cargarSubidas(); } },
+                  drAna: { cerrar: 'anaCerrar', boton: 'btnAnalisis', alAbrir: function () { pintarAnalisis(); } } };
+  var abierto = null;
+  function abrirPanel(id, on) {
+    var d = $(id), v = $('velo'), P = PANELES[id];
     if (on) {
-      d.hidden = false; v.hidden = false;
+      abierto = id; d.hidden = false; v.hidden = false;
       requestAnimationFrame(function () { d.classList.add('on'); v.classList.add('on'); });
-      $('drCerrar').focus(); cargarSubidas();
+      $(P.cerrar).focus(); P.alAbrir();
     } else {
-      d.classList.remove('on'); v.classList.remove('on');
+      abierto = null; d.classList.remove('on'); v.classList.remove('on');
       setTimeout(function () { d.hidden = true; v.hidden = true; }, 200);
-      $('btnArchivos').focus();
+      $(P.boton).focus();
     }
   }
-  $('btnArchivos').onclick = function () { abrirPanel(true); };
-  $('drCerrar').onclick = function () { abrirPanel(false); };
-  $('velo').onclick = function () { abrirPanel(false); };
+  Object.keys(PANELES).forEach(function (id) {
+    $(PANELES[id].boton).onclick = function () { abrirPanel(id, true); };
+    $(PANELES[id].cerrar).onclick = function () { abrirPanel(id, false); };
+  });
+  $('velo').onclick = function () { if (abierto) abrirPanel(abierto, false); };
 
   var subTipo = lsGet('cmp.subTipo') || 'AEREO', archivo = null;
   function armarSubida() {
@@ -545,7 +604,126 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
         '<span class="det">Más reciente: ' + esc(u.a) + (u.m ? ', ' + fechaHora(u.m) : '') + (L.some(function (x) { return !x.ok; }) ? '. Alguno no se pudo leer.' : '') + '</span></li>';
     }).join('');
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (!$('drawer').hidden) abrirPanel(false); appsAbrir(false); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (abierto) abrirPanel(abierto, false); appsAbrir(false); } });
+
+  // ---------- análisis: con reclamo frente a sin reclamo
+  function grupoReclamo(r) {
+    var t = String(r.reclamo || '').toLowerCase();
+    return t.indexOf('con') === 0 ? 'con' : t.indexOf('sin') === 0 ? 'sin' : null;
+  }
+  function sumaProc(r) { return ['% Compositan', '% Olmos', '% Terceros', '% Re-proceso'].reduce(function (a, k) { return a + (r[k] || 0); }, 0); }
+  function sumaDias(r) { var t = 0; for (var d = 1; d <= 8; d++) t += r['% ' + d + 'D'] || 0; return t; }
+  function conInsp(r, s) { return (r['Prom C-% ' + s] || 0) + (r['Máx C-% ' + s] || 0) + (r['Mín C-% ' + s] || 0) > 0; }
+  // [etiqueta, valor del pedido (o null si no tiene dato), formato, umbral para resaltar la diferencia]
+  var METRICAS = [
+    ['% Compositan', function (r) { return sumaProc(r) ? r['% Compositan'] : null; }, 'p', .1],
+    ['% Olmos', function (r) { return sumaProc(r) ? r['% Olmos'] : null; }, 'p', .1],
+    ['% Terceros', function (r) { return sumaProc(r) ? r['% Terceros'] : null; }, 'p', .1],
+    ['% Re-proceso', function (r) { return sumaProc(r) ? r['% Re-proceso'] : null; }, 'p', .05],
+    ['Días cosecha – despacho (promedio)', function (r) { var t = sumaDias(r), a = 0; if (!t) return null; for (var d = 1; d <= 8; d++) a += d * (r['% ' + d + 'D'] || 0); return a / t; }, 'd', .5],
+    ['Cajas con 5 días o más', function (r) { var t = sumaDias(r), a = 0; if (!t) return null; for (var d = 5; d <= 8; d++) a += r['% ' + d + 'D'] || 0; return a / t; }, 'p', .1],
+    ['Prom C-% PT', function (r) { return conInsp(r, 'PT') ? r['Prom C-% PT'] : null; }, 'p', .02],
+    ['Máx C-% PT', function (r) { return conInsp(r, 'PT') ? r['Máx C-% PT'] : null; }, 'p', .03],
+    ['Prom C-% EM', function (r) { return conInsp(r, 'EM') ? r['Prom C-% EM'] : null; }, 'p', .02],
+    ['Máx C-% EM', function (r) { return conInsp(r, 'EM') ? r['Máx C-% EM'] : null; }, 'p', .03],
+    ['Con tolerancia', function (r) { return r['Con Tolerancia'] === 'Si' ? 1 : 0; }, 'p', .1],
+    ['Envío aéreo', function (r) { return r.tipo === 'Aéreo' ? 1 : 0; }, 'p', .1]
+  ];
+  function promedio(L, fn) { var s = 0, n = 0; L.forEach(function (r) { var v = fn(r); if (v != null) { s += v; n++; } }); return n ? s / n : null; }
+  function fmt(v, f) { return v == null ? '–' : f === 'd' ? v.toFixed(1).replace('.', ',') + ' días' : Math.round(v * 100) + ' %'; }
+  function fmtDif(v, f) { if (v == null) return '–'; var s = v > 0 ? '+' : v < 0 ? '−' : ''; v = Math.abs(v); return s + (f === 'd' ? v.toFixed(1).replace('.', ',') + ' d' : Math.round(v * 100) + ' pts'); }
+  function estadisticas() {
+    var V = state.vista, con = V.filter(function (r) { return grupoReclamo(r) === 'con'; }), sin = V.filter(function (r) { return grupoReclamo(r) === 'sin'; });
+    return { con: con, sin: sin, nd: V.length - con.length - sin.length,
+      filas: METRICAS.map(function (m) { var a = promedio(con, m[1]), b = promedio(sin, m[1]); return { m: m, con: a, sin: b, dif: a != null && b != null ? a - b : null }; }) };
+  }
+  function textoFiltros() {
+    var f = state.f, t = [];
+    t.push(f.anio ? 'Año ' + f.anio : 'Todos los años');
+    t.push(f.mes ? MESES[f.mes - 1] : 'todos los meses');
+    if (f.cli) t.push('cliente ' + f.cli);
+    if (f.pv) t.push('pedido que contiene ' + f.pv);
+    if (f.fcl) t.push('FCL/AWB ' + f.fcl);
+    if (f.conteo) t.push('conteo ' + f.conteo);
+    if (f.tipo) t.push('envío ' + f.tipo);
+    return t.join(', ');
+  }
+  function pintarAnalisis() {
+    var E = estadisticas(), V = state.vista;
+    $('anaCtx').innerHTML = 'Con los filtros actuales (<strong>' + esc(textoFiltros()) + '</strong>): <strong>' + V.length + '</strong> pedidos, <strong>' +
+      E.con.length + '</strong> con reclamo, <strong>' + E.sin.length + '</strong> sin reclamo' + (E.nd ? ' y ' + E.nd + ' sin dato de reclamo' : '') + '.';
+    if (!E.con.length || !E.sin.length) {
+      $('anaTabla').innerHTML = '<p class="nota">' + (!E.con.length ? 'No hay pedidos con reclamo' : 'No hay pedidos sin reclamo') + ' con estos filtros, así que no hay con qué comparar. Prueba con otro mes o quita filtros.</p>';
+    } else {
+      $('anaTabla').innerHTML = '<table class="cmp-tabla"><thead><tr><th>Promedio por pedido</th><th class="con">Con reclamo</th><th>Sin reclamo</th><th>Diferencia</th></tr></thead><tbody>' +
+        '<tr class="cuenta"><td>Pedidos</td><td>' + E.con.length + '</td><td>' + E.sin.length + '</td><td></td></tr>' +
+        E.filas.map(function (x) {
+          var marca = x.dif != null && Math.abs(x.dif) >= x.m[3];
+          return '<tr' + (marca ? ' class="marca"' : '') + '><td>' + esc(x.m[0]) + '</td><td>' + fmt(x.con, x.m[2]) + '</td><td>' + fmt(x.sin, x.m[2]) + '</td><td class="dif">' + fmtDif(x.dif, x.m[2]) + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<p class="nota" style="margin-top:8px">Resaltadas las diferencias más grandes. Procedencia, días e inspecciones solo cuentan los pedidos que tienen ese dato.' +
+        (E.con.length < 5 ? ' Hay pocos pedidos con reclamo: tómalo como una señal, no como una conclusión.' : '') + '</p>';
+    }
+    var sub = state.data && state.data.subida;
+    $('anaIA').hidden = !sub;
+    var sugs = ['¿Qué tienen distinto los pedidos con reclamo?', '¿Qué pedido se ve más riesgoso y por qué?', 'Resume este periodo en 5 puntos'];
+    var pvCon = E.con[0] && E.con[0].pv;
+    if (pvCon) sugs.unshift('¿Por qué el pedido ' + pvCon + ' tuvo reclamo frente a los demás?');
+    $('anaSugs').innerHTML = sugs.map(function (t) { return '<button type="button" class="sug">' + esc(t) + '</button>'; }).join('');
+    $('anaNota').textContent = 'Gemini recibe los ' + V.length + ' pedidos de la tabla con los filtros actuales.';
+  }
+  $('anaSugs').onclick = function (e) { var b = e.target.closest('.sug'); if (b) { $('anaPreg').value = b.textContent; $('anaPreg').focus(); } };
+
+  function csvVista() {
+    var cab = ['Fecha despacho', 'Pedido', 'Cliente', 'Envío', 'FCL/AWB', 'ETA', 'Reclamo', 'Status', 'Resultado inspección',
+      '% Compositan', '% Olmos', '% Terceros', '% Re-proceso'].concat([1, 2, 3, 4, 5, 6, 7, 8].map(function (d) { return '% ' + d + 'D'; }))
+      .concat(['Prom C-% PT', 'Máx C-% PT', 'Mín C-% PT', 'Prom C-% EM', 'Máx C-% EM', 'Mín C-% EM', 'Vida útil', 'Con tolerancia', 'Conteo']);
+    function p(v) { return v == null ? '' : Math.round(v * 100); }
+    function t(v) { return String(v == null ? '' : v).replace(/[;\n\r]/g, ' '); }
+    return [cab.join(';')].concat(state.vista.map(function (r) {
+      var f = [fecha(r.fd), r.pv, t(r.cli), t(r.tipo), t(r.fcl), fecha(r.eta), t(r.reclamo), t(r['Status Final']), t(r['Resultados Inspección']),
+        p(r['% Compositan']), p(r['% Olmos']), p(r['% Terceros']), p(r['% Re-proceso'])];
+      for (var d = 1; d <= 8; d++) f.push(p(r['% ' + d + 'D']));
+      f.push(p(r['Prom C-% PT']), p(r['Máx C-% PT']), p(r['Mín C-% PT']), p(r['Prom C-% EM']), p(r['Máx C-% EM']), p(r['Mín C-% EM']), t(r['Vida Útil']), t(r['Con Tolerancia']), t(r.conteo));
+      return f.join(';');
+    })).join('\n');
+  }
+  function textoResumen() {
+    var E = estadisticas();
+    var t = 'Pedidos con reclamo: ' + E.con.length + '; sin reclamo: ' + E.sin.length + '; sin dato de reclamo: ' + E.nd + '.\n';
+    return t + E.filas.map(function (x) { return x.m[0] + ': con reclamo ' + fmt(x.con, x.m[2]) + ', sin reclamo ' + fmt(x.sin, x.m[2]) + ', diferencia ' + fmtDif(x.dif, x.m[2]); }).join('\n');
+  }
+  function aHtml(md) {
+    var lineas = esc(md).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').split(/\n/), h = '', lista = false, parr = [];
+    function cerrarP() { if (parr.length) { h += '<p>' + parr.join(' ') + '</p>'; parr = []; } }
+    lineas.forEach(function (l) {
+      var m = l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)$/);
+      if (m) { cerrarP(); if (!lista) { h += '<ul>'; lista = true; } h += '<li>' + m[1] + '</li>'; return; }
+      if (lista) { h += '</ul>'; lista = false; }
+      l = l.replace(/^#+\s*/, '');
+      if (!l.trim()) cerrarP(); else parr.push(l.trim());
+    });
+    cerrarP(); if (lista) h += '</ul>';
+    return h;
+  }
+  function anaMsg(txt, tipo) { $('anaMsg').textContent = txt; $('anaMsg').className = 'msg ' + (tipo || ''); }
+  $('btnPreguntar').onclick = async function () {
+    var sub = state.data && state.data.subida, preg = $('anaPreg').value.trim();
+    if (!preg) { $('anaPreg').focus(); return anaMsg('Escribe una pregunta o elige una de las sugerencias.', 'mal'); }
+    if (!state.vista.length) return anaMsg('No hay pedidos con estos filtros.', 'mal');
+    var b = this; b.disabled = true; b.classList.add('girando'); anaMsg('Gemini está analizando ' + state.vista.length + ' pedidos…');
+    try {
+      var r = await fetch(sub.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ clave: sub.clave, accion: 'analizar', pregunta: preg, filtros: textoFiltros(), resumen: textoResumen(), datos: csvVista() }) });
+      var d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'sin respuesta');
+      anaMsg('');
+      $('anaResp').innerHTML = aHtml(d.respuesta) + '<span class="quien">Respuesta de ' + esc(d.modelo || 'Gemini') + ' con ' + state.vista.length + ' pedidos. Revisa los números en la tabla antes de usarlos.</span>';
+      $('anaResp').hidden = false;
+    } catch (e) {
+      anaMsg('No se pudo analizar: ' + e.message, 'mal');
+    } finally { b.disabled = false; b.classList.remove('girando'); }
+  };
 
   // ---------- selector de páginas
   function appsAbrir(on) { $('apps').classList.toggle('abierto', on); $('appsB').setAttribute('aria-expanded', String(on)); }
