@@ -984,6 +984,52 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     top('Mayor C-% en inspección de empaque (máximo)', function (r) { return conInsp(r, 'EM') ? r['Máx C-% EM'] : null; }, pctTxt);
     top('Más días entre cosecha y despacho (promedio)', METRICAS[4][1], function (v) { return v.toFixed(1).replace('.', ',') + ' d'; });
 
+    // ----- gráficos de cajas: con reclamo frente a sin reclamo
+    function cuartil(v, q) { var i = (v.length - 1) * q, a = Math.floor(i), b = Math.ceil(i); return v[a] + (v[b] - v[a]) * (i - a); }
+    function cajas(x0, y0, w, h, tit, sub, grupos, fmtV) {
+      font(true, 10, C.ink); t(x0, y0, tit);
+      font(false, 7.5, C.muted); t(x0, y0 + 4.5, sub);
+      var top = y0 + 10, alto = h - 24, ejeX = x0 + 14, ancho = w - 18;
+      var todos = [].concat.apply([], grupos.map(function (g) { return g.v; }));
+      if (!todos.length) { nota('Sin datos para este gráfico.', x0, top + 6, w); return; }
+      var mx = Math.max.apply(null, todos), mn = Math.min(0, Math.min.apply(null, todos));
+      var paso = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10].find(function (s) { return (mx - mn) / s <= 5; }) || 10;
+      var tope = Math.ceil(mx / paso) * paso || paso;
+      function yv(v) { return top + alto - (v - mn) / (tope - mn) * alto; }
+      stroke(C.line); doc.setLineWidth(.15);
+      for (var k = mn; k <= tope + 1e-9; k += paso) { doc.line(ejeX, yv(k), ejeX + ancho, yv(k)); font(false, 6.5, C.muted); t(ejeX - 2, yv(k) + 1, fmtV(k, true), { align: 'right' }); }
+      var cw = ancho / grupos.length;
+      grupos.forEach(function (g, i) {
+        var cx = ejeX + cw * i + cw / 2, bw = Math.min(22, cw * .38), v = g.v.slice().sort(function (a, b) { return a - b; });
+        font(true, 8, C.ink2); t(cx, top + alto + 6, g.nombre, { align: 'center' });
+        font(false, 7, C.muted); t(cx, top + alto + 10, v.length + ' pedidos', { align: 'center' });
+        if (v.length < 5) { font(false, 7.5, C.muted); t(cx, top + alto / 2, v.length ? 'Pocos pedidos' : 'Sin pedidos', { align: 'center' }); return; }
+        var q1 = cuartil(v, .25), q2 = cuartil(v, .5), q3 = cuartil(v, .75), iqr = q3 - q1;
+        var lo = v.find(function (x) { return x >= q1 - 1.5 * iqr; }), hi = v.slice().reverse().find(function (x) { return x <= q3 + 1.5 * iqr; });
+        stroke(g.borde); doc.setLineWidth(.35);
+        doc.line(cx, yv(hi), cx, yv(q3)); doc.line(cx, yv(q1), cx, yv(lo));
+        doc.line(cx - bw / 4, yv(hi), cx + bw / 4, yv(hi)); doc.line(cx - bw / 4, yv(lo), cx + bw / 4, yv(lo));
+        fill(g.relleno); doc.rect(cx - bw / 2, yv(q3), bw, Math.max(.4, yv(q1) - yv(q3)), 'FD');
+        doc.setLineWidth(.8); doc.line(cx - bw / 2, yv(q2), cx + bw / 2, yv(q2));
+        fill(g.borde); v.forEach(function (x) { if (x < lo || x > hi) doc.circle(cx, yv(x), .7, 'F'); });
+        font(true, 7.5, C.ink); t(cx + bw / 2 + 2, yv(q2) + 1, 'Mediana ' + fmtV(q2));
+        font(false, 6.5, C.muted); t(cx + bw / 2 + 2, yv(q3) + 1, fmtV(q3)); t(cx + bw / 2 + 2, yv(q1) + 1, fmtV(q1));
+      });
+    }
+    var yCajas = Math.max(yI, yD) + 4, hCajas = 58;
+    if (yCajas + hCajas > H - 12) { doc.addPage(); yCajas = cabecera('Reclamos y pedidos a revisar (continuación)'); }
+    var conR = V.filter(function (r) { return grupoReclamo(r) === 'con'; }), sinR = V.filter(function (r) { return grupoReclamo(r) === 'sin'; });
+    function valores(L, fn) { return L.map(fn).filter(function (x) { return x != null; }); }
+    var estilo = [{ relleno: [248, 215, 210], borde: C.danger }, { relleno: [214, 236, 216], borde: C.acc }];
+    var anchoCaja = (W - 2 * M - 12) / 2;
+    cajas(M, yCajas, anchoCaja, hCajas, 'C-% de empaque por pedido', 'Prom C-% EM de cada pedido con inspección de empaque.',
+      [Object.assign({ nombre: 'Con reclamo', v: valores(conR, METRICAS[8][1]) }, estilo[0]), Object.assign({ nombre: 'Sin reclamo', v: valores(sinR, METRICAS[8][1]) }, estilo[1])],
+      function (x, eje) { return Math.round(x * 100) + (eje ? '%' : ' %'); });
+    cajas(M + anchoCaja + 12, yCajas, anchoCaja, hCajas, 'Días entre cosecha y despacho por pedido', 'Promedio de días de cada pedido, ponderado por sus cajas.',
+      [Object.assign({ nombre: 'Con reclamo', v: valores(conR, METRICAS[4][1]) }, estilo[0]), Object.assign({ nombre: 'Sin reclamo', v: valores(sinR, METRICAS[4][1]) }, estilo[1])],
+      function (x, eje) { return eje ? String(Math.round(x * 10) / 10).replace('.', ',') : x.toFixed(1).replace('.', ',') + ' d'; });
+    nota('Cómo leerlo: la caja reúne a la mitad de los pedidos, la línea gruesa es la mediana (el pedido del medio) y los puntos son pedidos fuera de lo común. Se dibuja con 5 pedidos o más.', M, yCajas + hCajas + 1, W - 2 * M);
+    yI = yD = yCajas + hCajas + 6;
 
     var ultima = chat.filter(function (m) { return m.rol === 'model'; }).pop();
     if (ultima) {
@@ -997,65 +1043,6 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       font(false, 7.5, C.muted); t(M + 42, yG + 6, 'Pregunta: ' + pregunta, { maxWidth: W - 2 * M - 46 });
       font(false, 8.5, C.ink); doc.text(lineas, M + 4, yG + 12);
       nota('Respuesta generada por IA sobre los pedidos filtrados (' + (ultima.pie || '').split(' · ').slice(0, 2).join(', ') + '). Revisa los números antes de usarlos.', M + 4, yG + alto - 2.5, W - 2 * M - 8);
-    }
-
-    // ===== Página: una cajita por cada pedido reclamado (Mín – Prom – Máx)
-    function rangos(x0, y0, w, h, tit, sub, items, ref, fmtV, limite) {
-      font(true, 10, C.ink); t(x0, y0, tit);
-      font(false, 7.5, C.muted); t(x0, y0 + 4.5, sub);
-      var fuera = [];
-      items = items.filter(function (o) { if (limite != null && o.mx > limite) { fuera.push(o.pv + ' (' + fmtV(o.mx) + ')'); return false; } return true; });
-      var top = y0 + 11, alto = h - 26, ejeX = x0 + 12, ancho = w - 14;
-      if (!items.length) { nota(fuera.length ? 'Solo hay valores imposibles; revisar la inspección: ' + fuera.join(', ') + '.' : 'Ningún pedido reclamado tiene este dato.', x0, top + 6, w); return; }
-      var mx = Math.max.apply(null, items.map(function (o) { return o.mx; }).concat(ref != null ? [ref] : []));
-      var paso = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10].find(function (s) { return mx / s <= 5; }) || 10;
-      var tope = Math.ceil(mx / paso) * paso || paso;
-      function yv(v) { return top + alto - v / tope * alto; }
-      stroke(C.line); doc.setLineWidth(.15);
-      for (var k = 0; k <= tope + 1e-9; k += paso) { doc.line(ejeX, yv(k), ejeX + ancho, yv(k)); font(false, 6.5, C.muted); t(ejeX - 2, yv(k) + 1, fmtV(k, true), { align: 'right' }); }
-      var cw = ancho / items.length, bw = Math.min(9, cw * .5);
-      items.forEach(function (o, i) {
-        var cx = ejeX + cw * i + cw / 2;
-        stroke(C.danger); doc.setLineWidth(.3); fill([248, 215, 210]);
-        doc.rect(cx - bw / 2, yv(o.mx), bw, Math.max(.6, yv(o.mn) - yv(o.mx)), 'FD');
-        doc.setLineWidth(.9); doc.line(cx - bw / 2, yv(o.pr), cx + bw / 2, yv(o.pr));
-        font(true, 6.5, C.ink); t(cx, yv(o.mx) - 1.3, fmtV(o.pr), { align: 'center' });
-        font(cw < 14 ? false : true, cw < 14 ? 5.6 : 6.5, C.ink2); t(cx, top + alto + 4.5, o.pv, { align: 'center' });
-        font(false, 5.8, C.muted); t(cx, top + alto + 8, fecha(o.fd).slice(0, 5), { align: 'center' });
-      });
-      if (ref != null) {
-        doc.setLineDashPattern([1.2, 1], 0); stroke(C.acc); doc.setLineWidth(.5);
-        doc.line(ejeX, yv(ref), ejeX + ancho, yv(ref)); doc.setLineDashPattern([], 0);
-        font(true, 6.8, C.acc); t(ejeX + ancho, yv(ref) - 1.2, 'Promedio sin reclamo: ' + fmtV(ref), { align: 'right' });
-      }
-      if (fuera.length) { font(false, 7, C.danger); t(x0 + w, y0 + 4.5, 'No se grafica (valor imposible, revisar la inspección): ' + fuera.join(', '), { align: 'right' }); }
-    }
-    var reclamados = V.filter(function (r) { return grupoReclamo(r) === 'con'; }).slice().sort(function (a, b) { return (a.fd || '').localeCompare(b.fd || ''); });
-    var sinRec = V.filter(function (r) { return grupoReclamo(r) === 'sin'; });
-    if (reclamados.length) {
-      doc.addPage(); y = cabecera('Pedidos reclamados (' + reclamados.length + ')');
-      var MAXP = 24, muestra = reclamados.slice(-MAXP);
-      if (reclamados.length > MAXP) y = nota('Hay ' + reclamados.length + ' pedidos reclamados; se muestran los ' + MAXP + ' más recientes.', M, y, W - 2 * M) + 1;
-      var hG = (H - 14 - y) / 3;
-      function itemsInsp(s) {
-        return muestra.filter(function (r) { return conInsp(r, s); }).map(function (r) {
-          return { pv: r.pv, fd: r.fd, mn: r['Mín C-% ' + s] || 0, pr: r['Prom C-% ' + s] || 0, mx: r['Máx C-% ' + s] || 0 };
-        });
-      }
-      function itemsDias() {
-        return muestra.filter(function (r) { return sumaDias(r) > 0; }).map(function (r) {
-          var ds = []; for (var d = 1; d <= 8; d++) if ((r['% ' + d + 'D'] || 0) > 0) ds.push(d);
-          return { pv: r.pv, fd: r.fd, mn: ds[0], pr: METRICAS[4][1](r), mx: ds[ds.length - 1] };
-        });
-      }
-      var pct0 = function (x, eje) { return Math.round(x * 100) + (eje ? '%' : ' %'); };
-      var dias1 = function (x, eje) { return eje ? String(Math.round(x * 10) / 10).replace('.', ',') : x.toFixed(1).replace('.', ',') + (eje ? '' : ' d'); };
-      rangos(M, y, W - 2 * M, hG, 'C-% en inspección PT', 'Cada caja es un pedido: va de su Mín a su Máx y la línea gruesa es su Prom.',
-        itemsInsp('PT'), promedio(sinRec, METRICAS[6][1]), pct0, 1);
-      rangos(M, y + hG, W - 2 * M, hG, 'C-% en inspección de empaque', 'Cada caja es un pedido: va de su Mín a su Máx y la línea gruesa es su Prom.',
-        itemsInsp('EM'), promedio(sinRec, METRICAS[8][1]), pct0, 1);
-      rangos(M, y + 2 * hG, W - 2 * M, hG, 'Días entre cosecha y despacho', 'Cada caja es un pedido: va del día menor al mayor en que tuvo cajas y la línea gruesa es su promedio.',
-        itemsDias(), promedio(sinRec, METRICAS[4][1]), dias1);
     }
 
     // ===== Páginas de detalle
