@@ -185,6 +185,14 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 .est.no { background: var(--surface-2); color: var(--danger); }
 .lista .mas { color: var(--muted); font-size: 12.5px; display: block; }
 
+/* ---------- vista previa del PDF */
+.vista { position: fixed; inset: 0; z-index: 50; background: rgba(10, 15, 11, .55); display: grid; place-items: center; padding: 2vh 2vw; }
+.vista-caja { width: min(1200px, 96vw); height: 96vh; background: var(--surface); border-radius: 14px; box-shadow: var(--pop); display: flex; flex-direction: column; overflow: hidden; }
+.vista-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.vista-h h2 { margin: 0; font-family: var(--font-cond); font-size: 19px; font-weight: 600; }
+.vista-h .nota { margin-top: 2px; }
+.vista iframe { flex: 1; width: 100%; border: 0; background: #525659; }
+
 /* ---------- panel de análisis */
 .drawer.ancho { width: min(680px, 100vw); }
 .contexto { margin: 0; font-size: 13px; color: var(--ink-soft); }
@@ -260,7 +268,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
         Archivos <span class="badge" id="badgePend" hidden></span>
       </button>
       <button class="btn icono" id="btnExcel" type="button" title="Exportar a Excel" aria-label="Exportar a Excel"><img src="lib/icono-excel.png" alt=""></button>
-      <button class="btn icono" id="btnPdf" type="button" title="Descargar reporte PDF" aria-label="Descargar reporte PDF"><img src="lib/icono-pdf.png" alt=""></button>
+      <button class="btn icono" id="btnPdf" type="button" title="Vista previa del reporte PDF" aria-label="Vista previa del reporte PDF" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:21px;height:21px;color:var(--accent)"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
       <button class="btn primary" id="btnAct" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5"/></svg>
         Actualizar
@@ -284,6 +294,21 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 </div>
 
 <div class="velo" id="velo" hidden></div>
+<div class="vista" id="vista" role="dialog" aria-modal="true" aria-labelledby="vistaTit" hidden>
+  <div class="vista-caja">
+    <div class="vista-h">
+      <div>
+        <h2 id="vistaTit">Vista previa del reporte</h2>
+        <p class="nota" id="vistaFiltros"></p>
+      </div>
+      <div class="head-actions">
+        <button class="btn primary" id="vistaBajar" type="button"><img src="lib/icono-pdf.png" alt="" style="width:20px;height:20px">Descargar PDF</button>
+        <button class="cerrar" id="vistaCerrar" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+    </div>
+    <iframe id="vistaPdf" title="Vista previa del reporte PDF"></iframe>
+  </div>
+</div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drTit" hidden>
   <div class="dr-h">
     <h2 id="drTit">Archivos</h2>
@@ -616,7 +641,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
         '<span class="det">Más reciente: ' + esc(u.a) + (u.m ? ', ' + fechaHora(u.m) : '') + (L.some(function (x) { return !x.ok; }) ? '. Alguno no se pudo leer.' : '') + '</span></li>';
     }).join('');
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (abierto) abrirPanel(abierto, false); appsAbrir(false); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (!$('vista').hidden) cerrarVista(); else if (abierto) abrirPanel(abierto, false); appsAbrir(false); } });
 
   // ---------- análisis: con reclamo frente a sin reclamo
   function grupoReclamo(r) {
@@ -788,12 +813,27 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   function pctTxt(v) { return v == null ? '-' : Math.round(v * 100) + ' %'; }
   function sinMd(t) { return String(t || '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#+\s*/gm, '').replace(/^\s*[*•]\s+/gm, '- '); }
 
+  var reporte = null;   // { doc, nombre, url } del último PDF armado
+  function cerrarVista() {
+    $('vista').hidden = true; $('vistaPdf').removeAttribute('src');
+    if (reporte && reporte.url) URL.revokeObjectURL(reporte.url);
+    reporte = null; $('btnPdf').focus();
+  }
   $('btnPdf').onclick = function () {
     if (!state.vista.length) return renderMeta('no hay pedidos con estos filtros para el reporte');
     var b = this; b.disabled = true;
-    cargarPdf().then(function () { armarPdf(); }).catch(function (e) { console.error(e); renderMeta('no se pudo armar el PDF; recarga la página'); })
+    cargarPdf().then(function () {
+      reporte = armarPdf();
+      reporte.url = URL.createObjectURL(reporte.doc.output('blob'));
+      $('vistaFiltros').textContent = 'Filtros: ' + textoFiltros() + ' · ' + state.vista.length + ' pedidos';
+      $('vistaPdf').src = reporte.url + '#view=FitH';
+      $('vista').hidden = false; $('vistaCerrar').focus();
+    }).catch(function (e) { console.error(e); renderMeta('no se pudo armar el PDF; recarga la página'); })
       .then(function () { b.disabled = false; });
   };
+  $('vistaBajar').onclick = function () { if (reporte) reporte.doc.save(reporte.nombre); };
+  $('vistaCerrar').onclick = cerrarVista;
+  $('vista').addEventListener('click', function (e) { if (e.target === this) cerrarVista(); });
 
   function armarPdf() {
     var V = state.vista, R = resumenDe(V), E = estadisticas();
@@ -997,7 +1037,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var n = doc.getNumberOfPages();
     for (var i = 1; i <= n; i++) { doc.setPage(i); font(false, 7, C.muted); t(W - M, H - 6, 'Página ' + i + ' de ' + n, { align: 'right' }); t(M, H - 6, 'Danper - Aseguramiento de la Calidad'); }
     var f = state.f, nombre = 'Comparativo_' + (f.mes ? MESES[f.mes - 1] + '_' : '') + (f.anio || 'todos') + (f.cli ? '_' + f.cli : '') + '.pdf';
-    doc.save(nombre.replace(/\s+/g, '_'));
+    return { doc: doc, nombre: nombre.replace(/\s+/g, '_') };
   }
 
   // ---------- selector de páginas
