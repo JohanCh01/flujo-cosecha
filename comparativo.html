@@ -332,7 +332,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       </div>
       <div class="chat" id="anaChat"></div>
       <div class="sugs" id="anaSugs"></div>
-      <textarea class="pregunta" id="anaPreg" placeholder="Pregunta lo que quieras sobre la tabla. Ej.: ¿Qué pedidos con reporte pendiente se parecen a los que tuvieron reclamo?"></textarea>
+      <textarea class="pregunta" id="anaPreg" placeholder="Preguntar a Gemini"></textarea>
       <div class="ana-acc">
         <button class="btn primary" id="btnPreguntar" type="button">Preguntar</button>
       </div>
@@ -665,7 +665,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     $('anaCtx').innerHTML = 'Con los filtros actuales (<strong>' + esc(textoFiltros()) + '</strong>): <strong>' + V.length + '</strong> pedidos, <strong>' +
       E.con.length + '</strong> con reclamo, <strong>' + E.sin.length + '</strong> sin reclamo' + (E.nd ? ' y ' + E.nd + ' sin dato de reclamo' : '') + '.';
     if (!E.con.length || !E.sin.length) {
-      $('anaTabla').innerHTML = '<p class="nota">' + (!E.con.length ? 'No hay pedidos con reclamo' : 'No hay pedidos sin reclamo') + ' con estos filtros, así que no hay con qué comparar. Prueba con otro mes o quita filtros.</p>';
+      $('anaTabla').innerHTML = '<p class="nota">' + (!E.con.length ? 'No hay pedidos con reclamo' : 'No hay pedidos sin reclamo') + ' con estos filtros.</p>';
     } else {
       $('anaTabla').innerHTML = '<table class="cmp-tabla"><thead><tr><th>Promedio por pedido</th><th class="con">Con reclamo</th><th>Sin reclamo</th><th>Diferencia</th></tr></thead><tbody>' +
         '<tr class="cuenta"><td>Pedidos</td><td>' + E.con.length + '</td><td>' + E.sin.length + '</td><td></td></tr>' +
