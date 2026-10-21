@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Temperaturas de cámaras</title>
+<script>
+/* Publicada junto al Flujo de cosecha: no se muestra hasta comprobar la sesión iniciada allá */
+if (/\.github\.io$/i.test(location.hostname) || /[?&]sitio=1\b/.test(location.search)) document.documentElement.classList.add('locked');
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+:root {
+  --bg: #f2f4ef; --surface: #ffffff; --surface-2: #f7f9f5; --ink: #17201a; --ink-soft: #47554c; --muted: #5c6a60;
+  --line: #d9dfd6; --line-soft: #e9ede6; --accent: #2c6a3b; --accent-ink: #ffffff; --accent-soft: #e0eee1;
+  --danger: #a3301f; --warn: #8a5a00; --warn-soft: #fbf0d6; --pop: 0 10px 28px rgba(23, 32, 26, .18);
+  /* colores de grupo (los mismos de la matriz de Power BI, en versión suave) */
+  --g-gen: #f3f5f1;   --g-gen-h: #e4e9e1;
+  --g-proc: #e6f4e2;  --g-proc-h: #c9e8c0; --g-proc-x: #5fb24c;
+  --g-dias: #fdf3cf;  --g-dias-h: #f6e19a; --g-dias-x: #e2b412;
+  --g-pt: #fce6e8;    --g-pt-h: #f6c9ce;
+  --g-em: #e1f0f7;    --g-em-h: #bfdfee;
+  --g-ind: #eceeeb;   --g-ind-h: #d8dcd6;
+  --zero: #9aa59c;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
+    --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
+    --danger: #f08a78; --warn: #e7bf6a; --warn-soft: #33290f; --pop: 0 10px 28px rgba(0, 0, 0, .55);
+    --g-gen: #1c231e;  --g-gen-h: #263028;
+    --g-proc: #1b2a1c; --g-proc-h: #24402a; --g-proc-x: #4f9c45;
+    --g-dias: #2b2614; --g-dias-h: #46391a; --g-dias-x: #b78f1b;
+    --g-pt: #2d1e21;   --g-pt-h: #4a2a30;
+    --g-em: #18262e;   --g-em-h: #22404f;
+    --g-ind: #212622;  --g-ind-h: #2f3631;
+    --zero: #5d6a61;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
+  --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
+  --danger: #f08a78; --warn: #e7bf6a; --warn-soft: #33290f; --pop: 0 10px 28px rgba(0, 0, 0, .55);
+  --g-gen: #1c231e;  --g-gen-h: #263028;
+  --g-proc: #1b2a1c; --g-proc-h: #24402a; --g-proc-x: #4f9c45;
+  --g-dias: #2b2614; --g-dias-h: #46391a; --g-dias-x: #b78f1b;
+  --g-pt: #2d1e21;   --g-pt-h: #4a2a30;
+  --g-em: #18262e;   --g-em-h: #22404f;
+  --g-ind: #212622;  --g-ind-h: #2f3631;
+  --zero: #5d6a61;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.4; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.gate { display: none; }
+html.locked .app { display: none; }
+html.locked .gate { display: grid; place-items: center; min-height: 100vh; color: var(--muted); }
+
+.app { max-width: 1680px; margin: 0 auto; padding: 16px clamp(16px, 2.4vw, 32px) 28px; display: flex; flex-direction: column; gap: 14px; min-height: 100vh; }
+
+/* ---------- selector de páginas (igual que en las otras páginas) */
+.apps { position: relative; display: flex; align-items: center; height: 32px; }
+.apps-b { width: 32px; height: 32px; padding: 0; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--accent); cursor: pointer; }
+.apps-b svg { width: 18px; height: 18px; }
+.apps-b:hover, .apps.abierto .apps-b { background: var(--surface-2); border-color: var(--accent); }
+.apps-m { position: absolute; left: 38px; top: 0; height: 32px; display: flex; align-items: center; gap: 4px; padding: 0 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, .12); z-index: 30;
+  visibility: hidden; opacity: 0; transform: translateX(-6px); transition: opacity .16s, transform .16s, visibility 0s .16s; }
+.apps.abierto .apps-m { visibility: visible; opacity: 1; transform: none; transition: opacity .16s, transform .16s; }
+.apps-i { position: relative; width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--ink-soft); text-decoration: none; }
+.apps-i svg { width: 20px; height: 20px; }
+.apps-i:hover, .apps-i:focus-visible { background: var(--surface-2); color: var(--accent); }
+.apps-i[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.apps-i::after { content: attr(data-nombre); position: absolute; left: 0; top: calc(100% + 7px); white-space: nowrap; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 5px; pointer-events: none; opacity: 0; transition: opacity .12s; }
+.apps-i:hover::after, .apps-i:focus-visible::after { opacity: 1; }
+
+/* ---------- encabezado */
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.head h1 { margin: 0; font-family: var(--font-cond); font-weight: 600; font-size: 26px; letter-spacing: .01em; line-height: 1.1; }
+.meta { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.meta strong { color: var(--ink); font-weight: 500; }
+.meta .err { color: var(--danger); font-weight: 500; }
+.head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 500; text-decoration: none; color: var(--ink); font-size: 13.5px; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(.93); }
+.btn[disabled] { opacity: .6; cursor: progress; }
+.btn.icono { width: 36px; padding: 0; justify-content: center; }
+.btn.icono img { width: 24px; height: 24px; display: block; }
+
+/* ---------- monitoreo embebido (app Alerta Xsense, solo consulta) */
+.app { height: 100vh; min-height: 0; padding-bottom: 12px; }
+.marco { flex: 1 1 auto; min-height: 420px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.marco iframe { display: block; width: 100%; height: 100%; border: 0; }
+.btn.girando svg { animation: gira 1s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+@media (max-width: 700px) { .head h1 { font-size: 22px; } .app { height: auto; min-height: 100vh; } .marco { height: 80vh; } }
+</style>
+</head>
+<body>
+<div class="gate">Comprobando acceso…</div>
+<div class="app">
+  <div class="apps" id="apps">
+    <button class="apps-b" id="appsB" type="button" aria-expanded="false" aria-controls="appsM" aria-label="Ir a otra página" title="Páginas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
+    </button>
+    <nav class="apps-m" id="appsM" aria-label="Páginas">
+      <a class="apps-i" id="navFlujo" href="https://johanch01.github.io/flujo-cosecha/" aria-label="Flujo de cosecha" data-nombre="Flujo de cosecha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4.2l3.3 3.4v2.6h-7.5z"/><circle cx="7" cy="17.3" r="1.8"/><circle cx="17" cy="17.3" r="1.8"/></svg></a>
+      <a class="apps-i" href="fitosanitario.html" aria-label="Evaluación fitosanitaria" data-nombre="Evaluación fitosanitaria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10.5-10M9.3 14.8l-.4-3.4M12.3 12l2.9.4"/></svg></a>
+      <a class="apps-i" href="reporte.html" aria-label="Reporte diario" data-nombre="Reporte diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M7.5 16v-3M12 16V9M16.5 16v-5"/></svg></a>
+      <a class="apps-i" href="comparativo.html" aria-label="Comparativo de despachos" data-nombre="Comparativo de despachos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M9 4.5v15M15 9.5v10"/></svg></a>
+      <a class="apps-i" href="temperaturas.html" aria-current="page" aria-label="Temperaturas de cámaras" data-nombre="Temperaturas de cámaras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0Z"/><path d="M12 9v7"/></svg></a>
+    </nav>
+  </div>
+
+  <header class="head">
+    <div>
+      <h1>Temperaturas de cámaras</h1>
+      <p class="meta">Packing Espárrago · monitoreo Xsense, se actualiza solo cada 10 min</p>
+    </div>
+    <div class="head-actions">
+      <a class="btn" href="https://johanch01.github.io/alerta-xsense/" target="_blank" rel="noopener" title="Abrir la app de alertas en otra pestaña">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4.5h5.5V10M19.5 4.5 11 13M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg>
+        Abrir app
+      </a>
+      <button class="btn primary" id="btnAct" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5"/></svg>
+        Actualizar
+      </button>
+    </div>
+  </header>
+
+  <div class="marco"><iframe id="marco" title="Temperaturas de cámaras — Packing Espárrago" loading="eager"></iframe></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var APP = '/alerta-xsense/?embed=1';
+
+  // ---------- selector de páginas
+  function appsAbrir(on) { $('apps').classList.toggle('abierto', on); $('appsB').setAttribute('aria-expanded', String(on)); }
+  $('appsB').addEventListener('click', function (e) { e.stopPropagation(); appsAbrir(!$('apps').classList.contains('abierto')); });
+  $('appsM').addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && a.getAttribute('aria-current') === 'page') { e.preventDefault(); appsAbrir(false); } });
+  document.addEventListener('click', function (e) { if (!e.target.closest('#apps')) appsAbrir(false); });
+
+  function mostrar() {
+    if (!$('marco').src) $('marco').src = APP;
+    document.documentElement.classList.remove('locked');
+  }
+  $('btnAct').onclick = function () {
+    var b = this; b.classList.add('girando');
+    $('marco').src = APP + '&t=' + Date.now();
+    setTimeout(function () { b.classList.remove('girando'); }, 900);
+  };
+
+  // ---------- fuera del sitio publicado (vista local): se muestra sin verificar
+  if (!document.documentElement.classList.contains('locked')) {
+    $('marco').src = 'https://johanch01.github.io/alerta-xsense/?embed=1';
+    return;
+  }
+
+  // ---------- sitio publicado: misma sesión (DNI) del Flujo de cosecha
+  function unb64(str) { var t = atob(str), u8 = new Uint8Array(t.length); for (var i = 0; i < t.length; i++) u8[i] = t.charCodeAt(i); return u8; }
+  function read(store, k) { try { return store.getItem(k); } catch (e) { return null; } }
+  function toLogin() { location.replace('./'); }
+  function getJson(name) { return fetch(name + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function aes(raw) { return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']); }
+  function open(key, iv, data) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(data)); }
+  async function admKey(pass, pk) {
+    var base = await crypto.subtle.importKey('raw', new TextEncoder().encode('adm:' + pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: unb64(pk.adm.s), iterations: pk.it, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  }
+  async function unlock(pk, dk, adm) {
+    if (dk && pk.keys) for (var i = 0; i < pk.keys.length; i++) { try { return new Uint8Array(await open(dk, pk.keys[i].i, pk.keys[i].c)); } catch (e) { /* otra cerradura */ } }
+    if (adm && pk.adm) { try { return unb64(JSON.parse(new TextDecoder().decode(await open(await admKey(adm, pk), pk.adm.i, pk.adm.c))).k); } catch (e) { /* clave vieja */ } }
+    return null;
+  }
+  async function gunzip(bytes) {
+    return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+  }
+  if (/\.github\.io$/i.test(location.hostname)) $('navFlujo').href = './';
+  var ses = null;
+  try { ses = JSON.parse(read(sessionStorage, 'fc.ses') || read(localStorage, 'fc.ses') || 'null'); } catch (e) { ses = null; }
+  var adm = read(localStorage, 'fc.adm');
+  if ((!ses || !ses.k) && !adm || !window.crypto || !crypto.subtle || !window.DecompressionStream) return toLogin();
+  var dk = null;
+
+  if (/\.github\.io$/i.test(location.hostname)) $('navFlujo').href = './';
+  var ses = null;
+  try { ses = JSON.parse(read(sessionStorage, 'fc.ses') || read(localStorage, 'fc.ses') || 'null'); } catch (e) { ses = null; }
+  var adm = read(localStorage, 'fc.adm');
+  if ((!ses || !ses.k) && !adm || !window.crypto || !crypto.subtle) return toLogin();
+
+  (async function () {
+    var dk = null;
+    try { if (ses && ses.k) dk = await aes(unb64(ses.k)); } catch (e) { dk = null; }
+    var pk = await getJson('datos.json');      // la sesión tiene que seguir abriendo el flujo (si se quitó el acceso, ya no entra)
+    if (!pk || !(await unlock(pk, dk, adm))) return toLogin();
+    mostrar();
+  })().catch(toLogin);
+})();
+</script>
+</body>
+</html>
