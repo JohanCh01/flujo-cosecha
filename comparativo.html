@@ -986,12 +986,16 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 
     // ----- gráficos de cajas: con reclamo frente a sin reclamo
     function cuartil(v, q) { var i = (v.length - 1) * q, a = Math.floor(i), b = Math.ceil(i); return v[a] + (v[b] - v[a]) * (i - a); }
-    function cajas(x0, y0, w, h, tit, sub, grupos, fmtV) {
+    function cajas(x0, y0, w, h, tit, sub, grupos, fmtV, limite) {
       font(true, 10, C.ink); t(x0, y0, tit);
       font(false, 7.5, C.muted); t(x0, y0 + 4.5, sub);
       var top = y0 + 10, alto = h - 24, ejeX = x0 + 14, ancho = w - 18;
-      var todos = [].concat.apply([], grupos.map(function (g) { return g.v; }));
-      if (!todos.length) { nota('Sin datos para este gráfico.', x0, top + 6, w); return; }
+      var fuera = [];                                   // valores imposibles (p. ej. C-% > 100 %): no se grafican
+      grupos.forEach(function (g) {
+        g.p = g.p.filter(function (o) { if (limite != null && o.v > limite) { fuera.push(o.pv + ' (' + fmtV(o.v) + ')'); return false; } return true; });
+      });
+      var todos = [].concat.apply([], grupos.map(function (g) { return g.p.map(function (o) { return o.v; }); }));
+      if (!todos.length) { nota('Sin datos para este gráfico.', x0, top + 6, w); return 0; }
       var mx = Math.max.apply(null, todos), mn = Math.min(0, Math.min.apply(null, todos));
       var paso = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10].find(function (s) { return (mx - mn) / s <= 5; }) || 10;
       var tope = Math.ceil(mx / paso) * paso || paso;
@@ -1000,35 +1004,59 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       for (var k = mn; k <= tope + 1e-9; k += paso) { doc.line(ejeX, yv(k), ejeX + ancho, yv(k)); font(false, 6.5, C.muted); t(ejeX - 2, yv(k) + 1, fmtV(k, true), { align: 'right' }); }
       var cw = ancho / grupos.length;
       grupos.forEach(function (g, i) {
-        var cx = ejeX + cw * i + cw / 2, bw = Math.min(22, cw * .38), v = g.v.slice().sort(function (a, b) { return a - b; });
+        var cx = ejeX + cw * i + cw * .42, bw = Math.min(24, cw * .36), P = g.p.slice().sort(function (a, b) { return a.v - b.v; }), v = P.map(function (o) { return o.v; });
         font(true, 8, C.ink2); t(cx, top + alto + 6, g.nombre, { align: 'center' });
         font(false, 7, C.muted); t(cx, top + alto + 10, v.length + ' pedidos', { align: 'center' });
-        if (v.length < 5) { font(false, 7.5, C.muted); t(cx, top + alto / 2, v.length ? 'Pocos pedidos' : 'Sin pedidos', { align: 'center' }); return; }
-        var q1 = cuartil(v, .25), q2 = cuartil(v, .5), q3 = cuartil(v, .75), iqr = q3 - q1;
-        var lo = v.find(function (x) { return x >= q1 - 1.5 * iqr; }), hi = v.slice().reverse().find(function (x) { return x <= q3 + 1.5 * iqr; });
-        stroke(g.borde); doc.setLineWidth(.35);
-        doc.line(cx, yv(hi), cx, yv(q3)); doc.line(cx, yv(q1), cx, yv(lo));
-        doc.line(cx - bw / 4, yv(hi), cx + bw / 4, yv(hi)); doc.line(cx - bw / 4, yv(lo), cx + bw / 4, yv(lo));
-        fill(g.relleno); doc.rect(cx - bw / 2, yv(q3), bw, Math.max(.4, yv(q1) - yv(q3)), 'FD');
-        doc.setLineWidth(.8); doc.line(cx - bw / 2, yv(q2), cx + bw / 2, yv(q2));
-        fill(g.borde); v.forEach(function (x) { if (x < lo || x > hi) doc.circle(cx, yv(x), .7, 'F'); });
-        font(true, 7.5, C.ink); t(cx + bw / 2 + 2, yv(q2) + 1, 'Mediana ' + fmtV(q2));
-        font(false, 6.5, C.muted); t(cx + bw / 2 + 2, yv(q3) + 1, fmtV(q3)); t(cx + bw / 2 + 2, yv(q1) + 1, fmtV(q1));
+        if (!v.length) { font(false, 7.5, C.muted); t(cx, top + alto / 2, 'Sin pedidos', { align: 'center' }); return; }
+        var hayCaja = v.length >= 5, lo = v[0], hi = v[v.length - 1], q1, q2, q3;
+        if (hayCaja) {
+          q1 = cuartil(v, .25); q2 = cuartil(v, .5); q3 = cuartil(v, .75);
+          var iqr = q3 - q1;
+          lo = v.find(function (x) { return x >= q1 - 1.5 * iqr; }); hi = v.slice().reverse().find(function (x) { return x <= q3 + 1.5 * iqr; });
+          doc.setGState(new doc.GState({ opacity: .55 }));
+          stroke(g.borde); doc.setLineWidth(.3);
+          doc.line(cx, yv(hi), cx, yv(q3)); doc.line(cx, yv(q1), cx, yv(lo));
+          doc.line(cx - bw / 4, yv(hi), cx + bw / 4, yv(hi)); doc.line(cx - bw / 4, yv(lo), cx + bw / 4, yv(lo));
+          fill(g.relleno); doc.rect(cx - bw / 2, yv(q3), bw, Math.max(.4, yv(q1) - yv(q3)), 'FD');
+          doc.setGState(new doc.GState({ opacity: 1 }));
+          stroke(g.borde); doc.setLineWidth(.8); doc.line(cx - bw / 2, yv(q2), cx + bw / 2, yv(q2));
+        }
+        // cada pedido es un punto (repartidos a lo ancho para que no se tapen)
+        P.forEach(function (o, n) {
+          var dx = ((n * 7) % 11 - 5) / 5 * (bw * .38);
+          fill(g.borde); doc.setDrawColor(255, 255, 255); doc.setLineWidth(.2); doc.circle(cx + dx, yv(o.v), .85, 'FD');
+        });
+        // número de pedido junto a los más altos que se salen de lo normal (máx. 3)
+        var raros = P.filter(function (o) { return !hayCaja || o.v > hi; }).slice(-3);
+        if (!hayCaja) raros = P.slice(-3);
+        var ocupado = [];
+        raros.reverse().forEach(function (o) {
+          var yy = yv(o.v) + 1; while (ocupado.some(function (u) { return Math.abs(u - yy) < 2.6; })) yy -= 2.6;
+          ocupado.push(yy); font(false, 6.2, g.borde); t(cx + bw / 2 + 2, yy, o.pv + '  ' + fmtV(o.v));
+        });
+        var xl = cx - bw / 2 - 2;
+        if (hayCaja) {
+          font(true, 7.5, C.ink); t(xl, yv(q2) + 1, 'Mediana ' + fmtV(q2), { align: 'right' });
+          if (yv(q1) - yv(q3) > 7) { font(false, 6.5, C.muted); t(xl, yv(q3) + 1, fmtV(q3), { align: 'right' }); t(xl, yv(q1) + 1, fmtV(q1), { align: 'right' }); }
+        } else { font(false, 6.8, C.muted); t(xl, yv(v[Math.floor(v.length / 2)]) + 1, 'Pocos pedidos', { align: 'right' }); }
       });
+      if (fuera.length) nota('No se grafica (valor imposible, revisar la inspección): ' + fuera.join(', ') + '.', x0, y0 + h + 1, w);
+      return fuera.length ? 4 : 0;
     }
     var yCajas = Math.max(yI, yD) + 4, hCajas = 58;
     if (yCajas + hCajas > H - 12) { doc.addPage(); yCajas = cabecera('Reclamos y pedidos a revisar (continuación)'); }
     var conR = V.filter(function (r) { return grupoReclamo(r) === 'con'; }), sinR = V.filter(function (r) { return grupoReclamo(r) === 'sin'; });
-    function valores(L, fn) { return L.map(fn).filter(function (x) { return x != null; }); }
+    function valores(L, fn) { return L.map(function (r) { return { v: fn(r), pv: r.pv }; }).filter(function (o) { return o.v != null; }); }
     var estilo = [{ relleno: [248, 215, 210], borde: C.danger }, { relleno: [214, 236, 216], borde: C.acc }];
     var anchoCaja = (W - 2 * M - 12) / 2;
-    cajas(M, yCajas, anchoCaja, hCajas, 'C-% de empaque por pedido', 'Prom C-% EM de cada pedido con inspección de empaque.',
-      [Object.assign({ nombre: 'Con reclamo', v: valores(conR, METRICAS[8][1]) }, estilo[0]), Object.assign({ nombre: 'Sin reclamo', v: valores(sinR, METRICAS[8][1]) }, estilo[1])],
-      function (x, eje) { return Math.round(x * 100) + (eje ? '%' : ' %'); });
-    cajas(M + anchoCaja + 12, yCajas, anchoCaja, hCajas, 'Días entre cosecha y despacho por pedido', 'Promedio de días de cada pedido, ponderado por sus cajas.',
-      [Object.assign({ nombre: 'Con reclamo', v: valores(conR, METRICAS[4][1]) }, estilo[0]), Object.assign({ nombre: 'Sin reclamo', v: valores(sinR, METRICAS[4][1]) }, estilo[1])],
+    var extra1 = cajas(M, yCajas, anchoCaja, hCajas, 'C-% de empaque por pedido', 'Prom C-% EM de cada pedido con inspección de empaque. Cada punto es un pedido.',
+      [Object.assign({ nombre: 'Con reclamo', p: valores(conR, METRICAS[8][1]) }, estilo[0]), Object.assign({ nombre: 'Sin reclamo', p: valores(sinR, METRICAS[8][1]) }, estilo[1])],
+      function (x, eje) { return Math.round(x * 100) + (eje ? '%' : ' %'); }, 1);
+    var extra2 = cajas(M + anchoCaja + 12, yCajas, anchoCaja, hCajas, 'Días entre cosecha y despacho por pedido', 'Promedio de días de cada pedido, ponderado por sus cajas. Cada punto es un pedido.',
+      [Object.assign({ nombre: 'Con reclamo', p: valores(conR, METRICAS[4][1]) }, estilo[0]), Object.assign({ nombre: 'Sin reclamo', p: valores(sinR, METRICAS[4][1]) }, estilo[1])],
       function (x, eje) { return eje ? String(Math.round(x * 10) / 10).replace('.', ',') : x.toFixed(1).replace('.', ',') + ' d'; });
-    nota('Cómo leerlo: la caja reúne a la mitad de los pedidos, la línea gruesa es la mediana (el pedido del medio) y los puntos son pedidos fuera de lo común. Se dibuja con 5 pedidos o más.', M, yCajas + hCajas + 1, W - 2 * M);
+    hCajas += Math.max(extra1, extra2);
+    nota('Cómo leerlo: cada punto es un pedido; la caja reúne a la mitad de ellos y la línea gruesa es la mediana (el pedido del medio). Se rotulan los pedidos más altos fuera de lo común. La caja se dibuja con 5 pedidos o más.', M, yCajas + hCajas + 1, W - 2 * M);
     yI = yD = yCajas + hCajas + 6;
 
     var ultima = chat.filter(function (m) { return m.rol === 'model'; }).pop();
