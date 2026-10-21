@@ -155,7 +155,8 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var APP = '/alerta-xsense/?embed=1';
+  // '&v=' con la hora evita que el navegador muestre una versión guardada (caché) de la app
+  var APP = '/alerta-xsense/?embed=1&v=' + Date.now();
 
   // ---------- selector de páginas
   function appsAbrir(on) { $('apps').classList.toggle('abierto', on); $('appsB').setAttribute('aria-expanded', String(on)); }
@@ -169,13 +170,13 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   }
   $('btnAct').onclick = function () {
     var b = this; b.classList.add('girando');
-    $('marco').src = APP + '&t=' + Date.now();
+    $('marco').src = '/alerta-xsense/?embed=1&v=' + Date.now();
     setTimeout(function () { b.classList.remove('girando'); }, 900);
   };
 
   // ---------- fuera del sitio publicado (vista local): se muestra sin verificar
   if (!document.documentElement.classList.contains('locked')) {
-    $('marco').src = 'https://johanch01.github.io/alerta-xsense/?embed=1';
+    $('marco').src = 'https://johanch01.github.io/alerta-xsense/?embed=1&v=' + Date.now();
     return;
   }
 
