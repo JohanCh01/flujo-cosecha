@@ -97,6 +97,16 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .btn.icono { width: 36px; padding: 0; justify-content: center; }
 .btn.icono img { width: 24px; height: 24px; display: block; }
 
+/* ---------- encabezado compacto en una sola fila */
+.app { gap: 10px; padding-top: 10px; }
+.head { align-items: center; flex-wrap: nowrap; gap: 12px; }
+.head .tit { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.head h1 { font-size: 20px; }
+.head .meta { margin: 0; font-size: 12.5px; }
+.head .btn { height: 32px; padding: 0 12px; font-size: 13px; }
+.head .apps { flex: none; }
+@media (max-width: 700px) { .head { flex-wrap: wrap; } .head .tit { flex-basis: calc(100% - 50px); } }
+
 /* ---------- monitoreo embebido (app Alerta Xsense, solo consulta) */
 .app { height: 100vh; min-height: 0; padding-bottom: 12px; }
 .marco { flex: 1 1 auto; min-height: 420px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
@@ -109,6 +119,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 <body>
 <div class="gate">Comprobando acceso…</div>
 <div class="app">
+  <header class="head">
   <div class="apps" id="apps">
     <button class="apps-b" id="appsB" type="button" aria-expanded="false" aria-controls="appsM" aria-label="Ir a otra página" title="Páginas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
@@ -121,9 +132,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
       <a class="apps-i" href="temperaturas.html" aria-current="page" aria-label="Temperaturas de cámaras" data-nombre="Temperaturas de cámaras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0Z"/><path d="M12 9v7"/></svg></a>
     </nav>
   </div>
-
-  <header class="head">
-    <div>
+    <div class="tit">
       <h1>Temperaturas de cámaras</h1>
       <p class="meta">Packing Espárrago · monitoreo Xsense, se actualiza solo cada 10 min</p>
     </div>
@@ -189,13 +198,6 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
   async function gunzip(bytes) {
     return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
   }
-  if (/\.github\.io$/i.test(location.hostname)) $('navFlujo').href = './';
-  var ses = null;
-  try { ses = JSON.parse(read(sessionStorage, 'fc.ses') || read(localStorage, 'fc.ses') || 'null'); } catch (e) { ses = null; }
-  var adm = read(localStorage, 'fc.adm');
-  if ((!ses || !ses.k) && !adm || !window.crypto || !crypto.subtle || !window.DecompressionStream) return toLogin();
-  var dk = null;
-
   if (/\.github\.io$/i.test(location.hostname)) $('navFlujo').href = './';
   var ses = null;
   try { ses = JSON.parse(read(sessionStorage, 'fc.ses') || read(localStorage, 'fc.ses') || 'null'); } catch (e) { ses = null; }
