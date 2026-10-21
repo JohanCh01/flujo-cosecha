@@ -64,7 +64,7 @@ button, select, input { font: inherit; color: inherit; }
 html.locked .app { display: none; }
 html.locked .gate { display: grid; place-items: center; min-height: 100vh; color: var(--muted); }
 
-.app { max-width: 2200px; margin: 0 auto; padding: 16px clamp(12px, 1.6vw, 24px) 28px; display: flex; flex-direction: column; gap: 14px; min-height: 100vh; }
+.app { max-width: 1680px; margin: 0 auto; padding: 16px clamp(16px, 2.4vw, 32px) 28px; display: flex; flex-direction: column; gap: 14px; min-height: 100vh; }
 
 /* ---------- selector de páginas (igual que en las otras páginas) */
 .apps { position: relative; display: flex; align-items: center; height: 32px; }
@@ -119,25 +119,24 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 
 /* ---------- tabla */
 .tabla-caja { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: auto; flex: 1; min-height: 320px; max-height: calc(100vh - 230px); }
-table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; font-variant-numeric: tabular-nums; width: 100%; }
-.cmp th, .cmp td { border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); padding: 4px 4px; white-space: nowrap; }
-.cmp td { font-size: 11.5px; padding: 4px 2px; }
+table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; font-variant-numeric: tabular-nums; width: max-content; min-width: 100%; }
+.cmp th, .cmp td { border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); padding: 5px 8px; white-space: nowrap; }
 .cmp thead th { position: sticky; z-index: 3; font-family: var(--font-cond); font-weight: 600; color: var(--ink); text-align: center; }
 .cmp thead tr.g th { top: 0; height: 30px; font-size: 13px; border-bottom: 1px solid var(--line); }
-.cmp thead tr.c th { top: 30px; font-size: 12.5px; line-height: 1.2; vertical-align: bottom; border-bottom: 2px solid var(--line); white-space: normal; min-width: 0; padding: 4px 3px; hyphens: manual; }
+.cmp thead tr.c th { top: 30px; font-size: 12.5px; line-height: 1.2; vertical-align: bottom; border-bottom: 2px solid var(--line); white-space: normal; min-width: 50px; }
 .cmp thead th.fijo, .cmp td.fijo { position: sticky; z-index: 2; }
 .cmp thead th.fijo { z-index: 4; }
-.cmp .f1 { left: 0; min-width: 74px; max-width: 74px; }
-.cmp .f2 { left: 74px; min-width: 78px; box-shadow: 1px 0 0 var(--line); }
+.cmp .f1 { left: 0; min-width: 96px; }
+.cmp .f2 { left: 96px; min-width: 98px; box-shadow: 1px 0 0 var(--line); }
 .cmp td { text-align: center; color: var(--ink); }
-.cmp td.izq { text-align: left; font-size: 10.5px; }
+.cmp td.izq { text-align: left; }
 .cmp td.fecha { font-weight: 600; vertical-align: top; background: var(--surface); }
 .cmp td.pv { font-weight: 500; background: var(--surface); }
 .cmp tbody tr.inicio td { border-top: 1px solid var(--line); }
 .cmp tbody tr:hover td:not(.fecha) { filter: brightness(.96); }
 .cmp .vacio { color: var(--zero); }
 .cmp .cero { color: var(--zero); }
-.cmp .txt { font-size: 10.5px; max-width: 96px; white-space: normal; line-height: 1.2; }
+.cmp .txt { font-size: 11.5px; max-width: 150px; white-space: normal; line-height: 1.25; }
 .cmp .si { font-weight: 600; color: var(--accent); }
 .cmp .gen { background: var(--g-gen); } .cmp th.gen { background: var(--g-gen-h); }
 .cmp .proc { background: var(--g-proc); } .cmp th.proc { background: var(--g-proc-h); }
@@ -380,10 +379,10 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   // Columnas de la tabla: [clave en los datos, encabezado, tipo]
   var GRUPOS = [
     { id: 'gen', nombre: 'Datos generales', cols: [['cli', 'Cliente', 't'], ['tipo', 'Envío', 't'], ['fcl', 'N° FCL / AWB', 't'], ['eta', 'ETA', 'd']] },
-    { id: 'proc', nombre: 'Procedencia de MMPP', cols: [['% Compositan', '% Compo\u00adsitan', 'h'], ['% Olmos', '% Olmos', 'h'], ['% Terceros', '% Terceros', 'h'], ['% Re-proceso', '% Re-proceso', 'h']] },
-    { id: 'dias', nombre: 'Días cosecha – despacho', cols: [1, 2, 3, 4, 5, 6, 7, 8].map(function (d) { return ['% ' + d + 'D', '%\u00a0' + d + 'D', 'h']; }) },
-    { id: 'pt', nombre: 'Inspección PT', cols: [['Prom C-% PT', 'Prom C\u2011%', 'p'], ['Máx C-% PT', 'Máx C\u2011%', 'p'], ['Mín C-% PT', 'Mín C\u2011%', 'p']] },
-    { id: 'em', nombre: 'Inspección empaque', cols: [['Prom C-% EM', 'Prom C\u2011%', 'p'], ['Máx C-% EM', 'Máx C\u2011%', 'p'], ['Mín C-% EM', 'Mín C\u2011%', 'p']] },
+    { id: 'proc', nombre: 'Procedencia de MMPP', cols: [['% Compositan', '% Compositan', 'h'], ['% Olmos', '% Olmos', 'h'], ['% Terceros', '% Terceros', 'h'], ['% Re-proceso', '% Re-proceso', 'h']] },
+    { id: 'dias', nombre: 'Días cosecha – despacho', cols: [1, 2, 3, 4, 5, 6, 7, 8].map(function (d) { return ['% ' + d + 'D', '% ' + d + 'D', 'h']; }) },
+    { id: 'pt', nombre: 'Inspección PT', cols: [['Prom C-% PT', 'Prom C-%', 'p'], ['Máx C-% PT', 'Máx C-%', 'p'], ['Mín C-% PT', 'Mín C-%', 'p']] },
+    { id: 'em', nombre: 'Inspección empaque', cols: [['Prom C-% EM', 'Prom C-%', 'p'], ['Máx C-% EM', 'Máx C-%', 'p'], ['Mín C-% EM', 'Mín C-%', 'p']] },
     { id: 'ind', nombre: 'Indicadores', cols: [['Resultados Inspección', 'Resultado inspección', 'x'], ['Vida Útil', 'Vida útil', 't'], ['Con Tolerancia', 'Con tolerancia', 's'], ['Status Final', 'Status', 'x']] }
   ];
 
@@ -397,7 +396,6 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' });
   }
   function pct(v) { return Math.round(v * 100) + ' %'; }
-  function pctCelda(v) { return Math.round(v * 100) + '%'; }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
 
@@ -452,9 +450,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var v = r[c[0]], cls = g.id + (primera ? ' sep' : ''), t = c[2];
     if (t === 'h' || t === 'p') {
       if (v == null) return '<td class="' + cls + ' vacio">–</td>';
-      if (!v) return '<td class="' + cls + ' cero">0%</td>';
-      if (t === 'h') return '<td class="' + cls + ' h" style="--p:' + Math.round(Math.min(1, v) * 70) + '%">' + pctCelda(v) + '</td>';
-      return '<td class="' + cls + '">' + pctCelda(v) + '</td>';
+      if (!v) return '<td class="' + cls + ' cero">0 %</td>';
+      if (t === 'h') return '<td class="' + cls + ' h" style="--p:' + Math.round(Math.min(1, v) * 70) + '%">' + pct(v) + '</td>';
+      return '<td class="' + cls + '">' + pct(v) + '</td>';
     }
     if (t === 'd') return v ? '<td class="' + cls + '">' + fecha(v) + '</td>' : '<td class="' + cls + ' vacio">–</td>';
     if (t === 's') return '<td class="' + cls + (v === 'Si' ? ' si' : ' cero') + '">' + esc(v || '--') + '</td>';
@@ -522,7 +520,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var b = this; b.disabled = true;
     cargarXlsx().then(function () {
       var enc = ['Fecha despacho', 'Pedido Vta'], fil = [];
-      GRUPOS.forEach(function (g) { g.cols.forEach(function (c) { enc.push(g.id === 'gen' || g.id === 'ind' ? c[1] : c[0]); }); });
+      GRUPOS.forEach(function (g) { g.cols.forEach(function (c) { enc.push(g.id === 'gen' ? c[1] : (g.id === 'pt' ? c[1] + ' PT' : g.id === 'em' ? c[1] + ' EM' : c[1])); }); });
       enc.push('Conteo');
       // fechas como número de Excel (sin hora ni zona horaria, para que no se corran un día)
       function serial(s) { if (!s) return null; var p = s.split('-'); return (Date.UTC(+p[0], +p[1] - 1, +p[2]) - Date.UTC(1899, 11, 30)) / 864e5; }
