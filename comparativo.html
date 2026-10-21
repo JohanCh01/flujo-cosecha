@@ -235,10 +235,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     <label class="field"><span>Mes</span><select class="sel" id="fMes"></select></label>
     <label class="field"><span>Cliente</span><select class="sel" id="fCli"></select></label>
     <label class="field"><span>Pedido de venta</span><input class="inp" id="fPv" type="search" inputmode="numeric" placeholder="Buscar pedido" autocomplete="off"></label>
-    <label class="field"><span>N° FCL / AWB</span><input class="inp" id="fFcl" type="search" placeholder="Buscar FCL o AWB" autocomplete="off"></label>
+    <label class="field"><span>N° FCL / AWB</span><select class="sel" id="fFcl"></select></label>
     <label class="field"><span>Conteo</span><select class="sel" id="fConteo"></select></label>
     <fieldset class="field"><legend>Tipo de envío</legend><div class="seg" id="fTipo"></div></fieldset>
-    <fieldset class="field"><legend>Tracking</legend><div class="seg" id="fTrk"></div></fieldset>
     <button class="limpiar" id="btnLimpiar" type="button">Quitar filtros</button>
   </section>
 
@@ -254,12 +253,8 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   </div>
   <div class="dr-b">
     <section class="subir" id="secSubir">
-      <div>
-        <h3>Cargar un archivo</h3>
-        <p class="nota">Se guarda en la carpeta del Drive y entra a la tabla en la siguiente actualización. Sube siempre la versión más reciente.</p>
-      </div>
+      <h3>Cargar un archivo</h3>
       <fieldset class="field"><legend>Qué archivo es</legend><div class="seg" id="sTipo"></div></fieldset>
-      <label class="field"><span>Tu nombre</span><input class="inp" id="sQuien" autocomplete="name" placeholder="Para saber quién lo subió"></label>
       <label class="zona" id="zona" tabindex="0">
         <input type="file" id="sArchivo" accept=".xlsx,.xlsm,.xls" hidden>
         Arrastra el Excel aquí o <b>elígelo</b>
@@ -300,7 +295,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     { id: 'ind', nombre: 'Indicadores', cols: [['Resultados Inspección', 'Resultado inspección', 'x'], ['Vida Útil', 'Vida útil', 't'], ['Con Tolerancia', 'Con tolerancia', 's'], ['Status Final', 'Status', 'x']] }
   ];
 
-  var state = { data: null, rows: [], vista: [], f: { anio: '', mes: '', cli: '', pv: '', fcl: '', conteo: '', tipo: '', trk: '' }, subidas: null, subErr: '' };
+  var state = { data: null, rows: [], vista: [], f: { anio: '', mes: '', cli: '', pv: '', fcl: '', conteo: '', tipo: '' }, subidas: null, subErr: '' };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fecha(s) { if (!s) return ''; var p = String(s).slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s; }
@@ -337,11 +332,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     if (sin !== 'mes' && f.mes && String(r.om) !== f.mes) return false;
     if (sin !== 'cli' && f.cli && r.cli !== f.cli) return false;
     if (f.pv && String(r.pv).indexOf(f.pv.replace(/\D/g, '')) < 0) return false;
-    if (f.fcl && String(r.fcl || '').toUpperCase().replace(/\s/g, '').indexOf(f.fcl.toUpperCase().replace(/\s/g, '')) < 0) return false;
+    if (sin !== 'fcl' && f.fcl && r.fcl !== f.fcl) return false;
     if (sin !== 'conteo' && f.conteo && String(r.conteo || '').split(' / ').indexOf(f.conteo) < 0) return false;
     if (f.tipo && r.tipo !== f.tipo) return false;
-    if (f.trk === 'con' && !r.fcl) return false;
-    if (f.trk === 'sin' && r.fcl) return false;
     return true;
   }
   function armarFiltros() {
@@ -353,10 +346,11 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     f.mes = opciones($('fMes'), meses.map(function (m) { return [m, MESES[m - 1]]; }), 'Todos', f.mes);
     var clis = unicos(R.filter(function (r) { return pasa(r, f, 'cli'); }).map(function (r) { return r.cli; })).sort();
     f.cli = opciones($('fCli'), clis.map(function (c) { return [c, c]; }), 'Todos', f.cli);
+    var fcls = unicos(R.filter(function (r) { return pasa(r, f, 'fcl'); }).map(function (r) { return r.fcl; })).sort();
+    f.fcl = opciones($('fFcl'), fcls.map(function (c) { return [c, c]; }), 'Todos', f.fcl);
     var cont = unicos([].concat.apply([], R.filter(function (r) { return pasa(r, f, 'conteo'); }).map(function (r) { return String(r.conteo || '').split(' / '); }))).sort();
     f.conteo = opciones($('fConteo'), cont.map(function (c) { return [c, c]; }), 'Todos', f.conteo);
     seg($('fTipo'), [['', 'Todos']].concat(TIPOS.map(function (t) { return [t, t]; })), f.tipo, function (v) { f.tipo = v; refrescar(); });
-    seg($('fTrk'), [['', 'Todos'], ['con', 'Con tracking'], ['sin', 'Sin tracking']], f.trk, function (v) { f.trk = v; refrescar(); });
   }
   function refrescar() { armarFiltros(); render(); }
 
@@ -378,7 +372,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var f = state.f;
     state.vista = state.rows.filter(function (r) { return pasa(r, f); });
     var V = state.vista;
-    $('conteo').textContent = V.length.toLocaleString('es-PE') + ' pedidos' + (V.length ? ' (' + V.filter(function (r) { return !r.fcl; }).length + ' sin tracking)' : '');
+    $('conteo').textContent = V.length.toLocaleString('es-PE') + (V.length === 1 ? ' pedido' : ' pedidos');
     if (!state.data) { $('caja').innerHTML = '<div class="vacia"><strong>Todavía no hay datos</strong>Aparecen cuando el administrador corre la actualización.</div>'; return; }
     if (!V.length) { $('caja').innerHTML = '<div class="vacia"><strong>Ningún pedido con estos filtros</strong>Prueba quitando alguno o usa «Quitar filtros».</div>'; return; }
     var h = '<table class="cmp"><thead><tr class="g"><th class="fijo f1 gen" rowspan="2">Fecha<br>despacho</th><th class="fijo f2 gen" rowspan="2">Pedido Vta</th>';
@@ -408,23 +402,21 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       (extra ? '. <span class="err">' + esc(extra) + '</span>' : '') : (extra ? '<span class="err">' + esc(extra) + '</span>' : 'Sin datos todavía');
   }
 
-  ['fAnio', 'fMes', 'fCli', 'fConteo'].forEach(function (id) {
+  ['fAnio', 'fMes', 'fCli', 'fFcl', 'fConteo'].forEach(function (id) {
     $(id).addEventListener('change', function () {
-      var k = { fAnio: 'anio', fMes: 'mes', fCli: 'cli', fConteo: 'conteo' }[id];
+      var k = { fAnio: 'anio', fMes: 'mes', fCli: 'cli', fFcl: 'fcl', fConteo: 'conteo' }[id];
       state.f[k] = this.value; if (k === 'anio') { state.anioTocado = true; state.f.mes = ''; }
       refrescar();
     });
   });
   var tBusca;
-  ['fPv', 'fFcl'].forEach(function (id) {
-    $(id).addEventListener('input', function () {
-      state.f[id === 'fPv' ? 'pv' : 'fcl'] = this.value.trim();
-      clearTimeout(tBusca); tBusca = setTimeout(refrescar, 150);
-    });
+  $('fPv').addEventListener('input', function () {
+    state.f.pv = this.value.trim();
+    clearTimeout(tBusca); tBusca = setTimeout(refrescar, 150);
   });
   $('btnLimpiar').onclick = function () {
-    state.f = { anio: '', mes: '', cli: '', pv: '', fcl: '', conteo: '', tipo: '', trk: '' }; state.anioTocado = true;
-    $('fPv').value = ''; $('fFcl').value = ''; refrescar();
+    state.f = { anio: '', mes: '', cli: '', pv: '', fcl: '', conteo: '', tipo: '' }; state.anioTocado = true;
+    $('fPv').value = ''; refrescar();
   };
 
   // ---------- exportar a Excel (lo que se está viendo)
@@ -483,7 +475,6 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   $('velo').onclick = function () { abrirPanel(false); };
 
   var subTipo = lsGet('cmp.subTipo') || 'AEREO', archivo = null;
-  $('sQuien').value = lsGet('cmp.quien') || '';
   function armarSubida() {
     var sub = state.data && state.data.subida;
     $('secSubir').hidden = !sub; $('sinSubida').hidden = !!sub;
@@ -505,19 +496,17 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   }
   function mensaje(txt, tipo) { $('sMsg').textContent = txt; $('sMsg').className = 'msg ' + (tipo || ''); }
   $('btnSubir').onclick = async function () {
-    var sub = state.data && state.data.subida, quien = $('sQuien').value.trim();
+    var sub = state.data && state.data.subida;
     if (!archivo) return mensaje('Elige el Excel que quieres subir.', 'mal');
     if (!/\.(xlsx|xlsm|xls)$/i.test(archivo.name)) return mensaje('Solo se aceptan archivos Excel (.xlsx, .xlsm o .xls).', 'mal');
-    if (!quien) { $('sQuien').focus(); return mensaje('Escribe tu nombre para saber quién lo subió.', 'mal'); }
-    lsSet('cmp.quien', quien);
     var b = this; b.disabled = true; mensaje('Subiendo ' + archivo.name + '…');
     try {
-      var cuerpo = { clave: sub.clave, tipo: subTipo, nombre: archivo.name, subidoPor: quien, contenido: await aBase64(archivo) };
+      var cuerpo = { clave: sub.clave, tipo: subTipo, nombre: archivo.name, contenido: await aBase64(archivo) };
       var r = await fetch(sub.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(cuerpo) });
       var d = await r.json();
       if (!d.ok) throw new Error(d.error || 'el servicio no aceptó el archivo');
       elegir(null); $('sArchivo').value = '';
-      mensaje('Subido a ' + d.carpeta + ': ' + d.archivo + '. Entra a la tabla en la siguiente actualización.', 'ok');
+      mensaje('Subido a ' + d.carpeta + ' como ' + d.archivo + '.', 'ok');
       cargarSubidas();
     } catch (e) {
       mensaje('No se pudo subir: ' + e.message + '. Revisa tu conexión e inténtalo de nuevo.', 'mal');
@@ -542,7 +531,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     $('lSubidas').innerHTML = L.length ? L.slice(0, 25).map(function (s) {
       var p = pendiente(s);
       return '<li><span class="nom">' + esc(s.archivo) + '</span><span class="est ' + (p ? 'pend' : 'proc') + '">' + (p ? 'Por procesar' : 'Procesado') + '</span>' +
-        '<span class="det">' + esc(GRUPO_SUBIDA[s.tipo] || s.carpeta) + ', ' + esc(s.subidoPor) + ', ' + fechaHora(s.fecha) + '</span></li>';
+        '<span class="det">' + esc(GRUPO_SUBIDA[s.tipo] || s.carpeta) + ', ' + fechaHora(s.fecha) + '</span></li>';
     }).join('') : '<li><span class="det">Nadie ha subido archivos desde la página todavía.</span></li>';
   }
   function pintarFuentes() {
