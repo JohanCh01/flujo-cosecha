@@ -214,11 +214,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 .ia-cab h3 { margin: 0; }
 .link { border: 0; background: transparent; color: var(--accent); cursor: pointer; font-weight: 500; padding: 2px 0; font-size: 13px; }
 .link:hover { text-decoration: underline; }
-.adjunto { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 6px 11px; background: var(--surface-2); font-size: 12.5px; }
-.adjunto b { font-weight: 600; word-break: break-all; }
-.adjunto button { border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; padding: 0 2px; }
-.adjunto button:hover { color: var(--danger); }
-.btn.suave { height: 36px; }
+
 .ana-acc { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 @media (max-width: 700px) {
@@ -339,13 +335,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       <textarea class="pregunta" id="anaPreg" placeholder="Pregunta lo que quieras sobre la tabla. Ej.: ¿Qué pedidos con reporte pendiente se parecen a los que tuvieron reclamo?"></textarea>
       <div class="ana-acc">
         <button class="btn primary" id="btnPreguntar" type="button">Preguntar</button>
-        <button class="btn suave" id="btnAdjuntar" type="button" title="Adjunta un Excel tuyo para cruzarlo con la tabla">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.1-8.1a3.3 3.3 0 0 1 4.7 4.7l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/></svg>
-          Adjuntar Excel
-        </button>
-        <input type="file" id="anaArchivo" accept=".xlsx,.xlsm,.xls,.csv" hidden>
       </div>
-      <div id="anaAdj"></div>
       <p class="nota" id="anaNota"></p>
       <div class="msg" id="anaMsg" role="status"></div>
     </section>
@@ -695,7 +685,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       ['Resume este periodo en 5 puntos', '¿Qué pedidos con reporte pendiente se parecen a los que tuvieron reclamo?',
        '¿Qué pedidos tienen más días cosecha-despacho y C-% alto a la vez?', '¿Qué tienen distinto los pedidos con reclamo?'];
     $('anaSugs').innerHTML = sugs.map(function (t) { return '<button type="button" class="sug">' + esc(t) + '</button>'; }).join('');
-    $('anaNota').textContent = 'Gemini recibe los ' + state.vista.length + ' pedidos de la tabla con los filtros actuales' + (adjunto ? ' y tu archivo adjunto.' : '.');
+    $('anaNota').textContent = 'Gemini analiza solo los ' + state.vista.length + ' pedidos de la tabla con los filtros actuales.';
   }
   $('anaSugs').onclick = function (e) { var b = e.target.closest('.sug'); if (b) { $('anaPreg').value = b.textContent; $('btnPreguntar').click(); } };
 
@@ -734,7 +724,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   function anaMsg(txt, tipo) { $('anaMsg').textContent = txt; $('anaMsg').className = 'msg ' + (tipo || ''); }
 
   // ---------- conversación con Gemini
-  var chat = [], adjunto = null, esperando = false;
+  var chat = [], esperando = false;
   function pintarChat() {
     var h = chat.map(function (m) {
       if (m.rol === 'user') return '<div class="burbuja yo">' + esc(m.texto) + '</div>';
@@ -749,31 +739,6 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   $('anaNueva').onclick = function () { chat = []; anaMsg(''); pintarChat(); $('anaPreg').focus(); };
   $('anaPreg').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('btnPreguntar').click(); } });
 
-  function pintarAdjunto() {
-    $('anaAdj').innerHTML = adjunto ? '<span class="adjunto">Adjunto: <b>' + esc(adjunto.nombre) + '</b> (' + adjunto.filas + ' filas' +
-      (adjunto.recortado ? ', se envía solo una parte' : '') + ')<button type="button" id="anaQuitar" aria-label="Quitar adjunto" title="Quitar adjunto">×</button></span>' : '';
-    if (adjunto) $('anaQuitar').onclick = function () { adjunto = null; pintarAdjunto(); pintarSugs(); };
-  }
-  $('btnAdjuntar').onclick = function () { $('anaArchivo').click(); };
-  $('anaArchivo').onchange = function () {
-    var f = this.files[0]; this.value = '';
-    if (!f) return;
-    anaMsg('Leyendo ' + f.name + '…');
-    cargarXlsx().then(function () { return f.arrayBuffer(); }).then(function (buf) {
-      var wb = XLSX.read(buf, { type: 'array', cellDates: true }), csv = [], filas = 0;
-      wb.SheetNames.slice(0, 5).forEach(function (n) {
-        var hoja = XLSX.utils.sheet_to_csv(wb.Sheets[n], { FS: ';', blankrows: false, dateNF: 'dd/mm/yyyy' }).trim();
-        if (!hoja) return;
-        filas += hoja.split('\n').length - 1;
-        csv.push((wb.SheetNames.length > 1 ? '### Hoja: ' + n + '\n' : '') + hoja);
-      });
-      var texto = csv.join('\n\n'), LIM = 150000;
-      if (!texto) throw new Error('el archivo está vacío');
-      adjunto = { nombre: f.name, csv: texto.slice(0, LIM), filas: filas, recortado: texto.length > LIM };
-      anaMsg(''); pintarAdjunto(); pintarSugs();
-    }).catch(function (e) { anaMsg('No se pudo leer el archivo: ' + e.message, 'mal'); });
-  };
-
   $('btnPreguntar').onclick = async function () {
     var sub = state.data && state.data.subida, preg = $('anaPreg').value.trim();
     if (esperando) return;
@@ -786,10 +751,10 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     try {
       var r = await fetch(sub.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ clave: sub.clave, accion: 'analizar', pregunta: preg, historial: historial, filtros: textoFiltros(),
-          resumen: textoResumen(), datos: csvVista(), adjunto: adjunto ? { nombre: adjunto.nombre, csv: adjunto.csv } : null }) });
+          resumen: textoResumen(), datos: csvVista() }) });
       var d = await r.json();
       if (!d.ok) throw new Error(d.error || 'sin respuesta');
-      chat.push({ rol: 'model', texto: d.respuesta, pie: (d.modelo || 'Gemini') + ' · ' + state.vista.length + ' pedidos' + (adjunto ? ' + ' + adjunto.nombre : '') +
+      chat.push({ rol: 'model', texto: d.respuesta, pie: (d.modelo || 'Gemini') + ' · ' + state.vista.length + ' pedidos' +
         (d.calculo ? ' · calculado con código' : '') + '. Revisa los números antes de usarlos.' });
     } catch (e) {
       chat.pop(); $('anaPreg').value = preg;
