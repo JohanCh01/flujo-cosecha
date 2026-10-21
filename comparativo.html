@@ -663,8 +663,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     ['Máx C-% PT', function (r) { return conInsp(r, 'PT') ? r['Máx C-% PT'] : null; }, 'p', .05],
     ['Prom C-% EM', function (r) { return conInsp(r, 'EM') ? r['Prom C-% EM'] : null; }, 'p', .05],
     ['Máx C-% EM', function (r) { return conInsp(r, 'EM') ? r['Máx C-% EM'] : null; }, 'p', .05],
-    ['Con tolerancia', function (r) { return r['Con Tolerancia'] === 'Si' ? 1 : 0; }, 'p', .05],
-    ['Envío aéreo', function (r) { return r.tipo === 'Aéreo' ? 1 : 0; }, 'p', .05]
+    ['Con tolerancia', function (r) { return r['Con Tolerancia'] === 'Si' ? 1 : 0; }, 'p', .05]
   ];
   function promedio(L, fn) { var s = 0, n = 0; L.forEach(function (r) { var v = fn(r); if (v != null) { s += v; n++; } }); return n ? s / n : null; }
   function fmt(v, f) { return v == null ? '–' : f === 'd' ? v.toFixed(1).replace('.', ',') + ' días' : Math.round(v * 100) + ' %'; }
@@ -804,7 +803,6 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     return {
       n: L.length, con: L.filter(function (r) { return grupoReclamo(r) === 'con'; }).length,
       pend: L.filter(function (r) { return /PENDIENTE/i.test(r['Status Final'] || ''); }).length,
-      aereo: L.length ? L.filter(function (r) { return r.tipo === 'Aéreo'; }).length / L.length : null,
       diasProm: promedio(L, METRICAS[4][1]), pt: promedio(L, METRICAS[6][1]), em: promedio(L, METRICAS[8][1]),
       terc: promedio(L, METRICAS[2][1]), proc: proc, dias: dias
     };
@@ -863,10 +861,10 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     // ===== Página 1: resumen
     y = cabecera('Resumen del periodo');
     var kpis = [
-      ['Pedidos', String(R.n)], ['Con reclamo', String(R.con)], ['Reporte pendiente', String(R.pend)], ['Envío aéreo', pctTxt(R.aereo)],
+      ['Pedidos', String(R.n)], ['Con reclamo', String(R.con)], ['Reporte pendiente', String(R.pend)],
       ['Días cosecha-despacho', R.diasProm == null ? '-' : R.diasProm.toFixed(1).replace('.', ',')], ['Prom C-% PT', pctTxt(R.pt)], ['Prom C-% EM', pctTxt(R.em)]
     ];
-    var kw = (W - 2 * M - 6 * 4) / 7;
+    var kw = (W - 2 * M - (kpis.length - 1) * 4) / kpis.length;
     kpis.forEach(function (k, i) {
       var x = M + i * (kw + 4);
       fill(C.soft); stroke(C.line); doc.roundedRect(x, y, kw, 19, 2, 2, 'FD');
@@ -907,8 +905,12 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var meses = unicos(V.map(function (r) { return r.anio + '-' + String(r.om).padStart(2, '0'); }));
     var porMes = meses.length > 1, claves = porMes ? meses.sort() : unicos(V.map(function (r) { return r.sem; })).sort();
     y = titulo('Evolución por ' + (porMes ? 'mes' : 'semana'), M, y);
-    var cab = ['Periodo', 'Pedidos', 'Con reclamo', 'Reporte pendiente', '% Terceros', 'Días cos-desp', 'Prom C-% PT', 'Prom C-% EM', 'Envío aéreo'];
-    var anchos = [40, 26, 28, 32, 28, 30, 30, 30, 29];
+    var cab = ['Periodo', 'Pedidos', 'Con reclamo', 'Reporte pendiente', '% Compositan', '% Olmos', '% Terceros', 'Días cos-desp', 'Prom C-% PT', 'Prom C-% EM'];
+    var anchos = [37, 22, 25, 31, 27, 22, 24, 28, 28, 29];
+    function filaResumen(nom, Q) {
+      return [nom, Q.n, Q.con, Q.pend, pctTxt(Q.proc[0]), pctTxt(Q.proc[1]), pctTxt(Q.proc[2]),
+        Q.diasProm == null ? '-' : Q.diasProm.toFixed(1).replace('.', ','), pctTxt(Q.pt), pctTxt(Q.em)];
+    }
     function filaTabla(vals, yy, opts) {
       var xx = M; opts = opts || {};
       if (opts.fondo) { fill(opts.fondo); doc.rect(M, yy - 4, anchos.reduce(function (a, b) { return a + b; }, 0), 6, 'F'); }
@@ -921,7 +923,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     lista.forEach(function (k) {
       var L = V.filter(function (r) { return porMes ? r.anio + '-' + String(r.om).padStart(2, '0') === k : r.sem === k; }), Q = resumenDe(L);
       var nom = porMes ? MESES[+k.slice(5) - 1] + ' ' + k.slice(0, 4) : 'Semana ' + String(k).replace(/^S/, '');
-      y = filaTabla([nom, Q.n, Q.con, Q.pend, pctTxt(Q.terc), Q.diasProm == null ? '-' : Q.diasProm.toFixed(1).replace('.', ','), pctTxt(Q.pt), pctTxt(Q.em), pctTxt(Q.aereo)], y);
+      y = filaTabla(filaResumen(nom, Q), y);
     });
     if (claves.length > lista.length) y = nota('Se muestran los últimos ' + lista.length + ' periodos.', M, y + 1, 200);
 
@@ -934,7 +936,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       var caben = Math.floor((H - 14 - y) / 6), muestra = porCli.slice(0, caben);
       muestra.forEach(function (o) {
         var Q = resumenDe(o.L);
-        y = filaTabla([o.c, Q.n, Q.con, Q.pend, pctTxt(Q.terc), Q.diasProm == null ? '-' : Q.diasProm.toFixed(1).replace('.', ','), pctTxt(Q.pt), pctTxt(Q.em), pctTxt(Q.aereo)], y);
+        y = filaTabla(filaResumen(o.c, Q), y);
       });
       if (porCli.length > muestra.length) nota('Se muestran los ' + muestra.length + ' clientes con más pedidos de ' + porCli.length + '.', M, y + 1, 200);
     }
@@ -968,7 +970,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       font(true, 8.5, C.ink2); t(xR, yD + 1, etq); yD += 5;
       if (!L.length) { yD = nota('Sin datos.', xR, yD, derW); return; }
       L.forEach(function (o) {
-        var r = o.r, extra = [r.tipo, r['Status Final'] || r.reclamo].filter(Boolean).join(', ');
+        var r = o.r, extra = [r['Status Final'] || r.reclamo].filter(Boolean).join(', ');
         font(true, 8, C.ink); t(xR + 2, yD, r.pv);
         font(false, 8, C.ink2); t(xR + 24, yD, fecha(r.fd) + (r.cli ? '  ' + r.cli : ''));
         font(true, 8, C.ink); t(xR + 72, yD, f(o.v), { align: 'right' });
