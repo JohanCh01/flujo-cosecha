@@ -200,12 +200,25 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 .sug { border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; cursor: pointer; text-align: left; }
 .sug:hover { border-color: var(--accent); color: var(--accent); }
 .pregunta { width: 100%; min-height: 76px; resize: vertical; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 9px 11px; font: inherit; color: inherit; }
-.respuesta { border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); padding: 12px 14px; font-size: 13.5px; line-height: 1.55; }
-.respuesta p { margin: 0 0 8px; }
-.respuesta p:last-child, .respuesta ul:last-child { margin-bottom: 0; }
-.respuesta ul { margin: 0 0 8px; padding-left: 18px; }
-.respuesta li { margin-bottom: 3px; }
-.respuesta .quien { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.chat { display: flex; flex-direction: column; gap: 10px; }
+.burbuja { max-width: 92%; border-radius: 12px; padding: 10px 13px; font-size: 13.5px; line-height: 1.55; }
+.burbuja.yo { align-self: flex-end; background: var(--accent-soft); color: var(--ink); border-bottom-right-radius: 4px; white-space: pre-wrap; }
+.burbuja.ia { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.burbuja.ia.espera { color: var(--muted); font-style: italic; }
+.burbuja p { margin: 0 0 8px; }
+.burbuja p:last-child, .burbuja ul:last-child { margin-bottom: 0; }
+.burbuja ul { margin: 0 0 8px; padding-left: 18px; }
+.burbuja li { margin-bottom: 3px; }
+.burbuja .quien { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.ia-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ia-cab h3 { margin: 0; }
+.link { border: 0; background: transparent; color: var(--accent); cursor: pointer; font-weight: 500; padding: 2px 0; font-size: 13px; }
+.link:hover { text-decoration: underline; }
+.adjunto { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 6px 11px; background: var(--surface-2); font-size: 12.5px; }
+.adjunto b { font-weight: 600; word-break: break-all; }
+.adjunto button { border: 0; background: transparent; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; padding: 0 2px; }
+.adjunto button:hover { color: var(--danger); }
+.btn.suave { height: 36px; }
 .ana-acc { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 @media (max-width: 700px) {
@@ -317,15 +330,24 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       <div id="anaTabla"></div>
     </section>
     <section class="subir" id="anaIA">
-      <h3>Preguntar a Gemini</h3>
-      <div class="sugs" id="anaSugs"></div>
-      <textarea class="pregunta" id="anaPreg" placeholder="Ej.: ¿Qué tienen distinto los pedidos con reclamo de octubre?"></textarea>
-      <div class="ana-acc">
-        <button class="btn primary" id="btnPreguntar" type="button">Analizar con Gemini</button>
-        <span class="nota" id="anaNota"></span>
+      <div class="ia-cab">
+        <h3>Preguntar a Gemini</h3>
+        <button type="button" class="link" id="anaNueva" hidden>Nueva conversación</button>
       </div>
+      <div class="chat" id="anaChat"></div>
+      <div class="sugs" id="anaSugs"></div>
+      <textarea class="pregunta" id="anaPreg" placeholder="Pregunta lo que quieras sobre la tabla. Ej.: ¿Qué pedidos con reporte pendiente se parecen a los que tuvieron reclamo?"></textarea>
+      <div class="ana-acc">
+        <button class="btn primary" id="btnPreguntar" type="button">Preguntar</button>
+        <button class="btn suave" id="btnAdjuntar" type="button" title="Adjunta un Excel tuyo para cruzarlo con la tabla">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.1-8.1a3.3 3.3 0 0 1 4.7 4.7l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/></svg>
+          Adjuntar Excel
+        </button>
+        <input type="file" id="anaArchivo" accept=".xlsx,.xlsm,.xls,.csv" hidden>
+      </div>
+      <div id="anaAdj"></div>
+      <p class="nota" id="anaNota"></p>
       <div class="msg" id="anaMsg" role="status"></div>
-      <div class="respuesta" id="anaResp" hidden></div>
     </section>
   </div>
 </aside>
@@ -666,13 +688,16 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     }
     var sub = state.data && state.data.subida;
     $('anaIA').hidden = !sub;
-    var sugs = ['¿Qué tienen distinto los pedidos con reclamo?', '¿Qué pedido se ve más riesgoso y por qué?', 'Resume este periodo en 5 puntos'];
-    var pvCon = E.con[0] && E.con[0].pv;
-    if (pvCon) sugs.unshift('¿Por qué el pedido ' + pvCon + ' tuvo reclamo frente a los demás?');
-    $('anaSugs').innerHTML = sugs.map(function (t) { return '<button type="button" class="sug">' + esc(t) + '</button>'; }).join('');
-    $('anaNota').textContent = 'Gemini recibe los ' + V.length + ' pedidos de la tabla con los filtros actuales.';
+    pintarChat();
   }
-  $('anaSugs').onclick = function (e) { var b = e.target.closest('.sug'); if (b) { $('anaPreg').value = b.textContent; $('anaPreg').focus(); } };
+  function pintarSugs() {
+    var sugs = chat.length ? ['Explícalo con más detalle', '¿Qué pedidos debería revisar primero?'] :
+      ['Resume este periodo en 5 puntos', '¿Qué pedidos con reporte pendiente se parecen a los que tuvieron reclamo?',
+       '¿Qué pedidos tienen más días cosecha-despacho y C-% alto a la vez?', '¿Qué tienen distinto los pedidos con reclamo?'];
+    $('anaSugs').innerHTML = sugs.map(function (t) { return '<button type="button" class="sug">' + esc(t) + '</button>'; }).join('');
+    $('anaNota').textContent = 'Gemini recibe los ' + state.vista.length + ' pedidos de la tabla con los filtros actuales' + (adjunto ? ' y tu archivo adjunto.' : '.');
+  }
+  $('anaSugs').onclick = function (e) { var b = e.target.closest('.sug'); if (b) { $('anaPreg').value = b.textContent; $('btnPreguntar').click(); } };
 
   function csvVista() {
     var cab = ['Fecha despacho', 'Pedido', 'Cliente', 'Envío', 'FCL/AWB', 'ETA', 'Reclamo', 'Status', 'Resultado inspección',
@@ -707,22 +732,69 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     return h;
   }
   function anaMsg(txt, tipo) { $('anaMsg').textContent = txt; $('anaMsg').className = 'msg ' + (tipo || ''); }
+
+  // ---------- conversación con Gemini
+  var chat = [], adjunto = null, esperando = false;
+  function pintarChat() {
+    var h = chat.map(function (m) {
+      if (m.rol === 'user') return '<div class="burbuja yo">' + esc(m.texto) + '</div>';
+      return '<div class="burbuja ia">' + aHtml(m.texto) + (m.pie ? '<span class="quien">' + esc(m.pie) + '</span>' : '') + '</div>';
+    }).join('');
+    if (esperando) h += '<div class="burbuja ia espera">Gemini está analizando ' + state.vista.length + ' pedidos… puede tardar hasta un par de minutos.</div>';
+    $('anaChat').innerHTML = h;
+    $('anaNueva').hidden = !chat.length;
+    pintarSugs();
+    var b = $('drAna').querySelector('.dr-b'); if (b && (chat.length || esperando)) b.scrollTop = b.scrollHeight;
+  }
+  $('anaNueva').onclick = function () { chat = []; anaMsg(''); pintarChat(); $('anaPreg').focus(); };
+  $('anaPreg').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('btnPreguntar').click(); } });
+
+  function pintarAdjunto() {
+    $('anaAdj').innerHTML = adjunto ? '<span class="adjunto">Adjunto: <b>' + esc(adjunto.nombre) + '</b> (' + adjunto.filas + ' filas' +
+      (adjunto.recortado ? ', se envía solo una parte' : '') + ')<button type="button" id="anaQuitar" aria-label="Quitar adjunto" title="Quitar adjunto">×</button></span>' : '';
+    if (adjunto) $('anaQuitar').onclick = function () { adjunto = null; pintarAdjunto(); pintarSugs(); };
+  }
+  $('btnAdjuntar').onclick = function () { $('anaArchivo').click(); };
+  $('anaArchivo').onchange = function () {
+    var f = this.files[0]; this.value = '';
+    if (!f) return;
+    anaMsg('Leyendo ' + f.name + '…');
+    cargarXlsx().then(function () { return f.arrayBuffer(); }).then(function (buf) {
+      var wb = XLSX.read(buf, { type: 'array', cellDates: true }), csv = [], filas = 0;
+      wb.SheetNames.slice(0, 5).forEach(function (n) {
+        var hoja = XLSX.utils.sheet_to_csv(wb.Sheets[n], { FS: ';', blankrows: false, dateNF: 'dd/mm/yyyy' }).trim();
+        if (!hoja) return;
+        filas += hoja.split('\n').length - 1;
+        csv.push((wb.SheetNames.length > 1 ? '### Hoja: ' + n + '\n' : '') + hoja);
+      });
+      var texto = csv.join('\n\n'), LIM = 150000;
+      if (!texto) throw new Error('el archivo está vacío');
+      adjunto = { nombre: f.name, csv: texto.slice(0, LIM), filas: filas, recortado: texto.length > LIM };
+      anaMsg(''); pintarAdjunto(); pintarSugs();
+    }).catch(function (e) { anaMsg('No se pudo leer el archivo: ' + e.message, 'mal'); });
+  };
+
   $('btnPreguntar').onclick = async function () {
     var sub = state.data && state.data.subida, preg = $('anaPreg').value.trim();
+    if (esperando) return;
     if (!preg) { $('anaPreg').focus(); return anaMsg('Escribe una pregunta o elige una de las sugerencias.', 'mal'); }
     if (!state.vista.length) return anaMsg('No hay pedidos con estos filtros.', 'mal');
-    var b = this; b.disabled = true; b.classList.add('girando'); anaMsg('Gemini está analizando ' + state.vista.length + ' pedidos…');
+    var historial = chat.map(function (m) { return { rol: m.rol, texto: m.texto }; });
+    chat.push({ rol: 'user', texto: preg }); $('anaPreg').value = '';
+    esperando = true; anaMsg(''); pintarChat();
+    var b = this; b.disabled = true;
     try {
       var r = await fetch(sub.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ clave: sub.clave, accion: 'analizar', pregunta: preg, filtros: textoFiltros(), resumen: textoResumen(), datos: csvVista() }) });
+        body: JSON.stringify({ clave: sub.clave, accion: 'analizar', pregunta: preg, historial: historial, filtros: textoFiltros(),
+          resumen: textoResumen(), datos: csvVista(), adjunto: adjunto ? { nombre: adjunto.nombre, csv: adjunto.csv } : null }) });
       var d = await r.json();
       if (!d.ok) throw new Error(d.error || 'sin respuesta');
-      anaMsg('');
-      $('anaResp').innerHTML = aHtml(d.respuesta) + '<span class="quien">Respuesta de ' + esc(d.modelo || 'Gemini') + ' con ' + state.vista.length + ' pedidos. Revisa los números en la tabla antes de usarlos.</span>';
-      $('anaResp').hidden = false;
+      chat.push({ rol: 'model', texto: d.respuesta, pie: (d.modelo || 'Gemini') + ' · ' + state.vista.length + ' pedidos' + (adjunto ? ' + ' + adjunto.nombre : '') +
+        (d.calculo ? ' · calculado con código' : '') + '. Revisa los números antes de usarlos.' });
     } catch (e) {
+      chat.pop(); $('anaPreg').value = preg;
       anaMsg('No se pudo analizar: ' + e.message, 'mal');
-    } finally { b.disabled = false; b.classList.remove('girando'); }
+    } finally { esperando = false; b.disabled = false; pintarChat(); }
   };
 
   // ---------- selector de páginas
