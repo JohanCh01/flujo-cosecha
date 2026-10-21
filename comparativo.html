@@ -94,6 +94,8 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn.primary:hover { filter: brightness(.93); }
 .btn[disabled] { opacity: .6; cursor: progress; }
+.btn.icono { width: 36px; padding: 0; justify-content: center; }
+.btn.icono img { width: 24px; height: 24px; display: block; }
 .btn.girando svg { animation: gira 1s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
 .badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--warn); color: var(--surface); font-size: 11px; font-weight: 600; display: inline-grid; place-items: center; }
@@ -257,14 +259,8 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>
         Archivos <span class="badge" id="badgePend" hidden></span>
       </button>
-      <button class="btn" id="btnExcel" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5z"/><path d="M14 3.5V8h4.5M9 12l4 5M13 12l-4 5"/></svg>
-        Exportar Excel
-      </button>
-      <button class="btn" id="btnPdf" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5z"/><path d="M14 3.5V8h4.5M9 17v-3M12 17v-5M15 17v-2"/></svg>
-        Descargar PDF
-      </button>
+      <button class="btn icono" id="btnExcel" type="button" title="Exportar a Excel" aria-label="Exportar a Excel"><img src="lib/icono-excel.png" alt=""></button>
+      <button class="btn icono" id="btnPdf" type="button" title="Descargar reporte PDF" aria-label="Descargar reporte PDF"><img src="lib/icono-pdf.png" alt=""></button>
       <button class="btn primary" id="btnAct" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4.5V11h-6.5"/></svg>
         Actualizar
@@ -632,22 +628,29 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   function conInsp(r, s) { return (r['Prom C-% ' + s] || 0) + (r['Máx C-% ' + s] || 0) + (r['Mín C-% ' + s] || 0) > 0; }
   // [etiqueta, valor del pedido (o null si no tiene dato), formato, umbral para resaltar la diferencia]
   var METRICAS = [
-    ['% Compositan', function (r) { return sumaProc(r) ? r['% Compositan'] : null; }, 'p', .1],
-    ['% Olmos', function (r) { return sumaProc(r) ? r['% Olmos'] : null; }, 'p', .1],
-    ['% Terceros', function (r) { return sumaProc(r) ? r['% Terceros'] : null; }, 'p', .1],
+    ['% Compositan', function (r) { return sumaProc(r) ? r['% Compositan'] : null; }, 'p', .05],
+    ['% Olmos', function (r) { return sumaProc(r) ? r['% Olmos'] : null; }, 'p', .05],
+    ['% Terceros', function (r) { return sumaProc(r) ? r['% Terceros'] : null; }, 'p', .05],
     ['% Re-proceso', function (r) { return sumaProc(r) ? r['% Re-proceso'] : null; }, 'p', .05],
     ['Días cosecha – despacho (promedio)', function (r) { var t = sumaDias(r), a = 0; if (!t) return null; for (var d = 1; d <= 8; d++) a += d * (r['% ' + d + 'D'] || 0); return a / t; }, 'd', .5],
-    ['Cajas con 5 días o más', function (r) { var t = sumaDias(r), a = 0; if (!t) return null; for (var d = 5; d <= 8; d++) a += r['% ' + d + 'D'] || 0; return a / t; }, 'p', .1],
-    ['Prom C-% PT', function (r) { return conInsp(r, 'PT') ? r['Prom C-% PT'] : null; }, 'p', .02],
-    ['Máx C-% PT', function (r) { return conInsp(r, 'PT') ? r['Máx C-% PT'] : null; }, 'p', .03],
-    ['Prom C-% EM', function (r) { return conInsp(r, 'EM') ? r['Prom C-% EM'] : null; }, 'p', .02],
-    ['Máx C-% EM', function (r) { return conInsp(r, 'EM') ? r['Máx C-% EM'] : null; }, 'p', .03],
-    ['Con tolerancia', function (r) { return r['Con Tolerancia'] === 'Si' ? 1 : 0; }, 'p', .1],
-    ['Envío aéreo', function (r) { return r.tipo === 'Aéreo' ? 1 : 0; }, 'p', .1]
+    ['Cajas con 5 días o más', function (r) { var t = sumaDias(r), a = 0; if (!t) return null; for (var d = 5; d <= 8; d++) a += r['% ' + d + 'D'] || 0; return a / t; }, 'p', .05],
+    ['Prom C-% PT', function (r) { return conInsp(r, 'PT') ? r['Prom C-% PT'] : null; }, 'p', .05],
+    ['Máx C-% PT', function (r) { return conInsp(r, 'PT') ? r['Máx C-% PT'] : null; }, 'p', .05],
+    ['Prom C-% EM', function (r) { return conInsp(r, 'EM') ? r['Prom C-% EM'] : null; }, 'p', .05],
+    ['Máx C-% EM', function (r) { return conInsp(r, 'EM') ? r['Máx C-% EM'] : null; }, 'p', .05],
+    ['Con tolerancia', function (r) { return r['Con Tolerancia'] === 'Si' ? 1 : 0; }, 'p', .05],
+    ['Envío aéreo', function (r) { return r.tipo === 'Aéreo' ? 1 : 0; }, 'p', .05]
   ];
   function promedio(L, fn) { var s = 0, n = 0; L.forEach(function (r) { var v = fn(r); if (v != null) { s += v; n++; } }); return n ? s / n : null; }
   function fmt(v, f) { return v == null ? '–' : f === 'd' ? v.toFixed(1).replace('.', ',') + ' días' : Math.round(v * 100) + ' %'; }
-  function fmtDif(v, f) { if (v == null) return '–'; var s = v > 0 ? '+' : v < 0 ? '−' : ''; v = Math.abs(v); return s + (f === 'd' ? v.toFixed(1).replace('.', ',') + ' d' : Math.round(v * 100) + ' pts'); }
+  // se resalta con el número redondeado que se ve: 5 o más (en días, 0,5 o más)
+  function destaca(x) { if (x.dif == null) return false; return x.m[2] === 'd' ? Math.round(Math.abs(x.dif) * 10) >= 5 : Math.round(Math.abs(x.dif) * 100) >= 5; }
+  function fmtDif(v, f) {
+    if (v == null) return '–';
+    var n = f === 'd' ? Math.round(Math.abs(v) * 10) / 10 : Math.round(Math.abs(v) * 100);
+    if (!n) return '0';
+    return (v > 0 ? '+' : '-') + (f === 'd' ? String(n).replace('.', ',') : n);
+  }
   function estadisticas() {
     var V = state.vista, con = V.filter(function (r) { return grupoReclamo(r) === 'con'; }), sin = V.filter(function (r) { return grupoReclamo(r) === 'sin'; });
     return { con: con, sin: sin, nd: V.length - con.length - sin.length,
@@ -674,11 +677,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       $('anaTabla').innerHTML = '<table class="cmp-tabla"><thead><tr><th>Promedio por pedido</th><th class="con">Con reclamo</th><th>Sin reclamo</th><th>Diferencia</th></tr></thead><tbody>' +
         '<tr class="cuenta"><td>Pedidos</td><td>' + E.con.length + '</td><td>' + E.sin.length + '</td><td></td></tr>' +
         E.filas.map(function (x) {
-          var marca = x.dif != null && Math.abs(x.dif) >= x.m[3];
+          var marca = destaca(x);
           return '<tr' + (marca ? ' class="marca"' : '') + '><td>' + esc(x.m[0]) + '</td><td>' + fmt(x.con, x.m[2]) + '</td><td>' + fmt(x.sin, x.m[2]) + '</td><td class="dif">' + fmtDif(x.dif, x.m[2]) + '</td></tr>';
-        }).join('') + '</tbody></table>' +
-        '<p class="nota" style="margin-top:8px">Resaltadas las diferencias más grandes. Procedencia, días e inspecciones solo cuentan los pedidos que tienen ese dato.' +
-        (E.con.length < 5 ? ' Hay pocos pedidos con reclamo: tómalo como una señal, no como una conclusión.' : '') + '</p>';
+        }).join('') + '</tbody></table>';
     }
     var sub = state.data && state.data.subida;
     $('anaIA').hidden = !sub;
@@ -915,10 +916,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       yI = filaC(['Promedio por pedido', 'Con reclamo', 'Sin reclamo', 'Diferencia'], yI + 2, { negrita: true, fondo: C.soft, cab: true });
       yI = filaC(['Pedidos', E.con.length, E.sin.length, ''], yI, { negrita: true });
       E.filas.forEach(function (x) {
-        var marca = x.dif != null && Math.abs(x.dif) >= x.m[3];
+        var marca = destaca(x);
         yI = filaC([x.m[0], fmt(x.con, x.m[2]), fmt(x.sin, x.m[2]), fmtDif(x.dif, x.m[2])], yI, marca ? { fondo: C.gDias, negrita: true } : {});
       });
-      yI = nota('Resaltadas las diferencias más grandes. Son diferencias observadas, no causas comprobadas' + (E.con.length < 5 ? '; hay pocos pedidos con reclamo.' : '.'), M, yI + 1, izqW);
     }
 
     var xR = M + izqW + 10, derW = W - M - xR, yD = titulo('Pedidos para revisar', xR, y);
