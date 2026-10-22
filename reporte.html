@@ -430,7 +430,7 @@ html.locked .ppt { display: none !important; }
   // La clave y el token llegan dentro de fito.json (cifrado), los pone configurar_compartido.py.
   // En cada navegador se guarda además una copia (localStorage) para que la página abra rápido.
   var COMP = (function () {
-    var COMPARTIDO_RE = /^rpt\.(proy|mo\.obj|recl\.obj|prod\.|pers\.|despk\.|despsap$|insp\.|stock\.|img[134]$|ppt3\.)/;
+    var COMPARTIDO_RE = /^rpt\.(proy|mo\.obj|recl\.obj|prod\.|pers\.|despk\.|despsap$|insp\.|stock\.|img[134]$|desp2$|ppt3\.)/;
     // cambios de la Vista PPT (textos, formato, cuadros movidos): se comparten los de los últimos 30 días
     function limitePpt() { var d = new Date(Date.now() - 5 * 3600000 - 30 * 86400000); return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(); }
     var COMPARTIDO = { test: function (k) {
@@ -438,7 +438,7 @@ html.locked .ppt { display: none !important; }
       var m = /^rpt\.ppt3\.[^.]*\.[^.]*\.[^.]*\.(\d{8})\./.exec(k);
       return !m || Number(m[1]) >= limitePpt();
     } };
-    var IMAGENES = { 'rpt.img1': 'man_img1.json', 'rpt.img3': 'man_img3.json', 'rpt.img4': 'man_img4.json' };
+    var IMAGENES = { 'rpt.img1': 'man_img1.json', 'rpt.img3': 'man_img3.json', 'rpt.img4': 'man_img4.json', 'rpt.desp2': 'man_ventas.json' };   // cada uno en su archivo (son pesados)
     var cfg = null, llave = null, remoto = {}, sha = {}, pend = {}, timer = null, callando = false, alCambiar = null, ultimo = '';
     var proto = Storage.prototype, setO = proto.setItem, remO = proto.removeItem;
     function meta() { try { return JSON.parse(localStorage.getItem('rpt.sync.meta') || '{}') || {}; } catch (e) { return {}; } }
@@ -538,7 +538,7 @@ html.locked .ppt { display: none !important; }
         return cifrar(base).then(function (txt) { return escribirArchivo('manual.json', txt, 'Reporte diario: datos completados a mano'); });
       });
       ks.filter(function (k) { return IMAGENES[k]; }).forEach(function (k) {
-        pasos.push(function () { return cifrar(remoto[k]).then(function (txt) { return escribirArchivo(IMAGENES[k], txt, 'Reporte diario: imagen'); }); });
+        pasos.push(function () { return cifrar(remoto[k]).then(function (txt) { return escribirArchivo(IMAGENES[k], txt, k === 'rpt.desp2' ? 'Reporte diario: Excel de ventas' : 'Reporte diario: imagen'); }); });
       });
       // GitHub no acepta dos guardados a la vez: se mandan UNO POR UNO
       pasos.reduce(function (pr, paso) { return pr.then(paso); }, Promise.resolve())
@@ -1190,7 +1190,7 @@ html.locked .ppt { display: none !important; }
         var D = { archivo: archivo.name, fecha: new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 16), filas: filas };
         if (!lsSet('rpt.desp2', D)) throw new Error('este navegador no deja guardar (modo privado)');
         try { localStorage.removeItem('rpt.desp'); } catch (e) { /* nada */ }
-        m.textContent = 'Listo: «' + archivo.name + '» actualizado.' + cmp + ' Esto queda en este navegador; para que lo vean todos, corre en tu laptop: python ventas_excel.py "' + archivo.name + '"';
+        m.textContent = 'Listo: «' + archivo.name + '» actualizado.' + cmp + ' Queda guardado para todos.';
         renderDesp(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
       })
       .catch(function (e) { m.textContent = 'No se pudo leer el Excel: ' + e.message; });
@@ -1289,7 +1289,7 @@ html.locked .ppt { display: none !important; }
   })();
   function renderDesp() {
     var d = desp();
-    $('despArch').textContent = d.archivo ? 'Cargado: «' + d.archivo + '» · ' + String(d.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') + (d.origen === 'navegador' ? ' (en este navegador)' : '') : '';
+    $('despArch').textContent = d.archivo ? 'Cargado: «' + d.archivo + '» · ' + String(d.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
     if (!d.hay) { $('despTablas').innerHTML = d.otroAnio ? '<p class="aviso">Ese Excel no tiene embarques de ' + state.anio + '.</p>' : ''; return; }
     function tabla(tit, col, filas, total) {
       return '<table class="desp"><tr><th rowspan="1"></th><th>' + col + '</th><th>N° Fcls</th></tr>' +
