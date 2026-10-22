@@ -1201,7 +1201,7 @@ html.locked .ppt { display: none !important; }
     z.addEventListener('drop', function (e) { var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) subirVentas(f); });
   })();
   // despachos (diapositiva «Avance de Despachos»): del Excel de SAP (hoja Data), como tus cálculos:
-  //   Grupo Material = ESPÁRRAGO VERDE · semana = NUM.DE.SEMANA(Fecha Despacho PL; 2) (fecha vacía = semana 1, igual que en Excel)
+  //   Grupo Material = ESPÁRRAGO VERDE · semana = NUM.DE.SEMANA(Fecha Despacho PL; 2) · solo el año elegido (filas sin fecha no cuentan)
   //   AE = Tipo Envio AE y MU · MA = MA · vacíos no
   //   # PV = pedidos de venta distintos (Pedido Vta) · contenedores = Drw Total ÷ 14 000 con 1 decimal por semana;
   //   el acumulado suma las semanas 1 a la elegida. Proyectados = suma de Fcls AE + MA del Excel de ventas. Avance = (AE + MA) ÷ proyectados.
@@ -1211,9 +1211,9 @@ html.locked .ppt { display: none !important; }
     if (typeof t === 'number' && t > 0) f = new Date(Math.round((t - 25569) * 86400000));
     else if (t instanceof Date) f = new Date(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()));
     else if (typeof t === 'string') { var m = t.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); if (m) f = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])); }
-    if (!f || isNaN(f)) return 1;                      // vacía: Excel da semana 1
+    if (!f || isNaN(f)) return null;                   // sin fecha de despacho: no se cuenta
     var j = Date.UTC(f.getUTCFullYear(), 0, 1), dj = (new Date(j).getUTCDay() + 6) % 7;
-    return Math.floor((Math.round((f - j) / 86400000) + dj) / 7) + 1;
+    return f.getUTCFullYear() * 100 + Math.floor((Math.round((f - j) / 86400000) + dj) / 7) + 1;   // año·100 + semana (202642)
   }
   function procesarSap(wb) {
     var hoja = wb.Sheets.Data || wb.Sheets[wb.SheetNames[0]];
@@ -1227,7 +1227,8 @@ html.locked .ppt { display: none !important; }
     for (var r = 1; r < filas.length; r++) {
       var f = filas[r]; if (sinTilde(f[cG]) !== 'ESPARRAGO VERDE') continue;
       var e = textoCelda(f[cE]).toUpperCase(); e = e === 'AE' || e === 'MU' ? 'AE' : e === 'MA' ? 'MA' : ''; if (!e) continue;
-      var w = semanaExcel(f[cF]), p = textoCelda(f[cP]), kg = parseFloat(String(f[cD]).replace(/,/g, '')) || 0;
+      var w = semanaExcel(f[cF]); if (w == null) continue;      // solo filas con Fecha Despacho PL
+      var p = textoCelda(f[cP]), kg = parseFloat(String(f[cD]).replace(/,/g, '')) || 0;
       if (p) { var L = R[e].peds[p] || (R[e].peds[p] = []); if (L.indexOf(w) < 0) L.push(w); }
       R[e].drw[w] = Math.round(((R[e].drw[w] || 0) + kg) * 1000) / 1000; n++;
     }
@@ -1239,12 +1240,15 @@ html.locked .ppt { display: none !important; }
     var proy = D.hay ? D.aeTot + D.maTot : null;
     if (proy != null) out.proy = String(proy);
     if (!S) return out;
+    if (!S.v2) return out;                          // resumen viejo (contaba fechas vacías): hay que volver a subir el Excel
     var r1 = function (x) { return Math.round(x * 10) / 10; }, cont = {};
+    var A0 = state.anio * 100, hasta = A0 + N;             // solo el año elegido: semanas 1 a N de ese año
+    var enRango = function (w) { return w > A0 && w <= hasta; };
     ['AE', 'MA'].forEach(function (e) {
       var X = S[e] || { peds: {}, drw: {} }, acu = 0, sem = 0;
-      Object.keys(X.peds).forEach(function (p) { var ws = X.peds[p]; if (ws.some(function (w) { return w <= N; })) acu++; if (ws.indexOf(N) >= 0) sem++; });
-      var cAcu = 0; Object.keys(X.drw).forEach(function (w) { if (+w <= N) cAcu += r1(X.drw[w] / KG_CONT); });
-      cAcu = r1(cAcu); var cSem = r1((X.drw[N] || 0) / KG_CONT); cont[e] = cAcu;
+      Object.keys(X.peds).forEach(function (p) { var ws = X.peds[p]; if (ws.some(enRango)) acu++; if (ws.indexOf(hasta) >= 0) sem++; });
+      var cAcu = 0; Object.keys(X.drw).forEach(function (w) { if (enRango(+w)) cAcu += r1(X.drw[w] / KG_CONT); });
+      cAcu = r1(cAcu); var cSem = r1((X.drw[hasta] || 0) / KG_CONT); cont[e] = cAcu;
       var k = e.toLowerCase();
       out[k + '.pv.acu'] = String(acu); out[k + '.pv.sem'] = String(sem);
       out[k] = cAcu.toFixed(1); out[k + (e === 'AE' ? '.awb.sem' : '.fcl.sem')] = cSem.toFixed(1);
@@ -1259,14 +1263,14 @@ html.locked .ppt { display: none !important; }
     $('gridDespk').innerHTML = C.map(function (c) {
       return '<article class="card kpi"><h3>' + c[1] + '</h3><div class="big">' + (V[c[0]] != null ? esc(V[c[0]]) : '—') + '</div><div class="lbl">' + c[2] + '</div></article>';
     }).join('');
-    $('sapSoltar').querySelector('b').textContent = S ? 'Excel de despachos: «' + S.archivo + '»' : 'Arrastra aquí el Excel de despachos (SAP)';
+    $('sapSoltar').querySelector('b').textContent = S && S.v2 ? 'Excel de despachos: «' + S.archivo + '»' : S ? 'Vuelve a subir el Excel de despachos (SAP)' : 'Arrastra aquí el Excel de despachos (SAP)';
   }
   function subirSap(archivo) {
     var m = $('sapMsg'); m.hidden = false; m.textContent = 'Leyendo «' + archivo.name + '»… (es pesado, puede tardar unos segundos)';
     cargarXlsx().then(function () { return archivo.arrayBuffer(); }).then(function (buf) {
       var wb = XLSX.read(new Uint8Array(buf), { type: 'array', dense: true });
       var R = procesarSap(wb); if (!R.filas) throw new Error('no hay filas de ESPÁRRAGO VERDE con AE, MU o MA');
-      R.archivo = archivo.name; R.fecha = new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 16);
+      R.archivo = archivo.name; R.fecha = new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 16); R.v2 = true;
       if (!lsSet('rpt.despsap', R)) throw new Error('este navegador no deja guardar');
       m.hidden = true; renderDespk(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
     }).catch(function (e) { m.textContent = 'No se pudo leer el Excel: ' + e.message; });
