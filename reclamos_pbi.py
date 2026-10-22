@@ -188,12 +188,49 @@ return null;
 
 
 
+# Barra de íconos que Power BI pone sobre un gráfico (ordenar, filtros, foco, «…») y cuadritos flotantes: fuera de la foto
+CSS_SIN_ICONOS = r"""
+var id = 'sin-iconos-captura';
+if (!document.getElementById(id)) {
+  var st = document.createElement('style'); st.id = id;
+  // solo los botones (el título del gráfico se queda) y los cuadritos flotantes de ayuda
+  st.textContent = 'visual-container-header button, .visual-container-header button, .visualHeader button, .vcMenuBtn,' +
+    ' visual-header-item-container, .visual-header-item-container, .tooltip-container { visibility: hidden !important; }';
+  document.head.appendChild(st);
+}
+if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+"""
+
+
+def sin_iconos(driver):
+    """Saca el mouse de encima del gráfico, le quita el foco y oculta la barra de íconos de Power BI."""
+    try:
+        from selenium.webdriver.common.actions.action_builder import ActionBuilder
+        a = ActionBuilder(driver)
+        a.pointer_action.move_to_location(2, 2)           # esquina de arriba a la izquierda, lejos del gráfico
+        a.perform()
+    except Exception:
+        pass
+    try:
+        driver.execute_script(CSS_SIN_ICONOS)
+        for fr in driver.find_elements(By.TAG_NAME, "iframe"):   # por si el reporte está dentro de un marco
+            try:
+                driver.switch_to.frame(fr); driver.execute_script(CSS_SIN_ICONOS)
+            except Exception:
+                pass
+            finally:
+                driver.switch_to.default_content()
+    except Exception:
+        pass
+
+
 def captura(driver):
     """Foto del gráfico «Penalidad ($) por clasificación de reclamo» → JPG en bytes.
     Se toma la pantalla completa y se recorta justo el rectángulo visible del gráfico (sin pedazos de otros)."""
     driver.switch_to.default_content()
     if driver.execute_script(JS_GRAFICO, TITULO_GRAFICO) is None:
         return None
+    sin_iconos(driver)
     time.sleep(1.5)
     r = driver.execute_script(JS_GRAFICO, TITULO_GRAFICO)    # otra vez, ya quieto después de moverse a la vista
     png = driver.get_screenshot_as_png()
