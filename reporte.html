@@ -169,7 +169,7 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .kpis.rec { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .kpi .big.azul { color: var(--band-ink); }
 .kpi .big.rojo { color: #c0392b; }
-.comp-estado { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); } .comp-estado.ok::before { content: "✓ "; color: #1e8e3e; }
+.comp-estado { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); } .comp-estado.ok::after { content: " ✓"; color: #1e8e3e; font-weight: 700; }
 .comp-estado.error { color: #c0392b; } .comp-estado.guardando { color: var(--muted); font-style: italic; }
 .big-ed { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
 .big-in { width: 100%; min-width: 0; box-sizing: border-box; text-align: center; font-family: inherit; font-size: 38px; font-weight: 600; line-height: 1.1; color: var(--accent); background: transparent; border: 1px dashed transparent; border-radius: 8px; padding: 2px 4px; font-variant-numeric: tabular-nums; }
@@ -449,7 +449,7 @@ html.locked .ppt { display: none !important; }
     function estado(e, extra) {
       var el = document.getElementById('compEstado'); if (!el) return;
       el.hidden = !cfg; el.className = 'comp-estado ' + e;
-      el.textContent = e === 'guardando' ? 'Guardando para todos…' : e === 'ok' ? 'Guardado para todos' + (extra ? ' · ' + extra : '') : e === 'error' ? 'No se pudo guardar para todos' + (extra ? ' (' + extra + ')' : '') + ' · queda en este navegador' : '';
+      el.textContent = e === 'guardando' ? 'Guardando…' : e === 'ok' ? 'Cambios guardados' : e === 'error' ? 'No se pudo guardar para todos' + (extra ? ' (' + extra + ')' : '') + ' · queda en este navegador' : '';
     }
     function b64(u8) { var s2 = '', i; for (i = 0; i < u8.length; i += 32768) s2 += String.fromCharCode.apply(null, u8.subarray(i, i + 32768)); return btoa(s2); }
     function deb64(t) { var b = atob(t), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
