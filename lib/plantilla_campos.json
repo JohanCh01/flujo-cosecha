@@ -20,7 +20,7 @@
 "major": "Arial",
 "minor": "Arial"
 },
-"ver": "8ac908c4",
+"ver": "b2539f44",
 "campos": [
 {
 "s": 1,
@@ -3277,17 +3277,17 @@
 {
 "s": 5,
 "box": [
-2.843,
-2.2438,
+1.4976,
+2.0409,
 0.4824,
 0.7068
 ],
-"anchor": "top",
+"anchor": "middle",
 "ins": [
-0.1,
-0.05,
-0.1,
-0.05
+0.0,
+0.0,
+0.0,
+0.0
 ],
 "wrap": "none",
 "k": [
@@ -3311,42 +3311,8 @@
 {
 "s": 5,
 "box": [
-5.1686,
-1.6258,
-0.976,
-0.5049
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-1.065888,
-0.836875
-],
-"p": [
-{
-"sz": 24.0,
-"b": false,
-"i": false,
-"u": false,
-"c": "48BC65",
-"font": "Century Gothic",
-"al": "center",
-"id": "F99",
-"t": "{{desp.ae}}"
-}
-]
-},
-{
-"s": 5,
-"box": [
-7.3789,
-2.1392,
+11.0155,
+2.1431,
 0.8734,
 0.7068
 ],
@@ -3371,42 +3337,8 @@
 "c": "48BC65",
 "font": "Century Gothic",
 "al": "left",
-"id": "F100",
+"id": "F99",
 "t": "{{desp.av}}"
-}
-]
-},
-{
-"s": 5,
-"box": [
-5.0938,
-2.7889,
-0.976,
-0.5049
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "square",
-"k": [
-0.99995,
-1.000034
-],
-"p": [
-{
-"sz": 24.0,
-"b": false,
-"i": false,
-"u": false,
-"c": "48BC65",
-"font": "Century Gothic",
-"al": "center",
-"id": "F101",
-"t": "{{desp.ma}}"
 }
 ]
 },
@@ -3439,7 +3371,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F102",
+"id": "F100",
 "t": "3.  Avance de Despachos: Corte semana {{sem}}"
 }
 ]
@@ -3447,8 +3379,8 @@
 {
 "s": 5,
 "box": [
-2.6748,
-2.8231,
+1.3294,
+2.6202,
 0.8188,
 0.4495
 ],
@@ -3473,7 +3405,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F103",
+"id": "F101",
 "t": "#FCL"
 }
 ]
@@ -3481,8 +3413,8 @@
 {
 "s": 5,
 "box": [
-2.2968,
-2.0066,
+0.9514,
+1.8037,
 1.6783,
 0.3053
 ],
@@ -3507,7 +3439,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F104",
+"id": "F102",
 "t": "PROYECTADOS"
 }
 ]
@@ -3515,90 +3447,22 @@
 {
 "s": 5,
 "box": [
-5.1589,
-1.9692,
-0.9098,
-0.4039
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "none",
-"k": [
-1.065977,
-0.836835
-],
-"p": [
-{
-"sz": 18.0,
-"b": true,
-"i": false,
-"u": false,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
-"id": "F105",
-"t": "# AWB"
-}
-]
-},
-{
-"s": 5,
-"box": [
-4.8556,
-1.3836,
-1.5013,
-0.3366
-],
-"anchor": "top",
-"ins": [
-0.1,
-0.05,
-0.1,
-0.05
-],
-"wrap": "none",
-"k": [
-1.065923,
-0.836874
-],
-"p": [
-{
-"sz": 14.0,
-"b": false,
-"i": false,
-"u": true,
-"c": "000000",
-"font": "Abadi ExtraLight",
-"al": "left",
-"id": "F106",
-"t": "EJECUTADOS AE"
-}
-]
-},
-{
-"s": 5,
-"box": [
-2.2454,
+0.9,
 0.85,
-7.7347,
-0.4495
+12.0,
+0.45
 ],
-"anchor": "top",
+"anchor": "middle",
 "ins": [
-0.1,
-0.05,
-0.1,
-0.05
+0.0,
+0.0,
+0.0,
+0.0
 ],
-"wrap": "square",
+"wrap": "none",
 "k": [
 1.065937,
-1.112882
+1.112884
 ],
 "p": [
 {
@@ -3609,7 +3473,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F107",
+"id": "F103",
 "t": "DESPACHOS "
 }
 ]
@@ -3617,8 +3481,8 @@
 {
 "s": 5,
 "box": [
-7.0334,
-1.8036,
+10.67,
+1.8075,
 2.3809,
 0.3098
 ],
@@ -3643,7 +3507,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F108",
+"id": "F104",
 "t": "AVANCE DE CAMPAÑA"
 }
 ]
@@ -3651,22 +3515,22 @@
 {
 "s": 5,
 "box": [
-2.909,
-3.5987,
-1.8133,
-0.3366
+0.9,
+3.6,
+1.81,
+0.34
 ],
-"anchor": "top",
+"anchor": "middle",
 "ins": [
-0.1,
-0.05,
-0.1,
-0.05
+0.0,
+0.0,
+0.0,
+0.0
 ],
 "wrap": "none",
 "k": [
 0.999999,
-1.000033
+1.000035
 ],
 "p": [
 {
@@ -3677,7 +3541,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F109",
+"id": "F105",
 "t": "*Proyectado Rev. 11"
 }
 ]
@@ -3685,22 +3549,22 @@
 {
 "s": 5,
 "box": [
-4.9163,
-3.6423,
-3.7822,
-0.3366
+2.95,
+3.6,
+3.78,
+0.34
 ],
-"anchor": "top",
+"anchor": "middle",
 "ins": [
-0.1,
-0.05,
-0.1,
-0.05
+0.0,
+0.0,
+0.0,
+0.0
 ],
 "wrap": "none",
 "k": [
 0.999999,
-1.000033
+1.000035
 ],
 "p": [
 {
@@ -3711,7 +3575,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F110",
+"id": "F106",
 "t": "*Avance de campaña cierre hasta semana {{sem}}"
 }
 ]
@@ -3719,22 +3583,90 @@
 {
 "s": 5,
 "box": [
-5.1303,
-3.1743,
-0.8348,
-0.4039
+2.99,
+1.39,
+1.67,
+0.3
 ],
-"anchor": "top",
+"anchor": "middle",
 "ins": [
-0.1,
-0.05,
-0.1,
-0.05
+0.0,
+0.0,
+0.0,
+0.0
 ],
 "wrap": "none",
 "k": [
-0.999987,
-0.999984
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F107",
+"t": "AVANCE CAMPAÑA AE"
+}
+]
+},
+{
+"s": 5,
+"box": [
+2.99,
+1.69,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F108",
+"t": "{{desp.ae.pv.acu}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+2.99,
+2.04,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
 ],
 "p": [
 {
@@ -3744,8 +3676,620 @@
 "u": false,
 "c": "000000",
 "font": "Abadi ExtraLight",
-"al": "left",
+"al": "center",
+"id": "F109",
+"t": "# PV"
+}
+]
+},
+{
+"s": 5,
+"box": [
+4.87,
+1.39,
+1.67,
+0.3
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F110",
+"t": "SOLO SEM.{{sem}} AE"
+}
+]
+},
+{
+"s": 5,
+"box": [
+4.87,
+1.69,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
 "id": "F111",
+"t": "{{desp.ae.pv.sem}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+4.87,
+2.04,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F112",
+"t": "# PV"
+}
+]
+},
+{
+"s": 5,
+"box": [
+6.75,
+1.39,
+1.67,
+0.3
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F113",
+"t": "AVANCE CAMPAÑA AE"
+}
+]
+},
+{
+"s": 5,
+"box": [
+6.75,
+1.69,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F114",
+"t": "{{desp.ae}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+6.75,
+2.04,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F115",
+"t": "# AWB"
+}
+]
+},
+{
+"s": 5,
+"box": [
+8.63,
+1.39,
+1.67,
+0.3
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F116",
+"t": "SOLO SEM.{{sem}} AE"
+}
+]
+},
+{
+"s": 5,
+"box": [
+8.63,
+1.69,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F117",
+"t": "{{desp.ae.awb.sem}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+8.63,
+2.04,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F118",
+"t": "# AWB"
+}
+]
+},
+{
+"s": 5,
+"box": [
+2.99,
+2.52,
+1.67,
+0.3
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F119",
+"t": "AVANCE CAMPAÑA MA"
+}
+]
+},
+{
+"s": 5,
+"box": [
+2.99,
+2.82,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F120",
+"t": "{{desp.ma.pv.acu}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+2.99,
+3.17,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F121",
+"t": "# PV"
+}
+]
+},
+{
+"s": 5,
+"box": [
+4.87,
+2.52,
+1.67,
+0.3
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F122",
+"t": "SOLO SEM.{{sem}} MA"
+}
+]
+},
+{
+"s": 5,
+"box": [
+4.87,
+2.82,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F123",
+"t": "{{desp.ma.pv.sem}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+4.87,
+3.17,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F124",
+"t": "# PV"
+}
+]
+},
+{
+"s": 5,
+"box": [
+6.75,
+2.52,
+1.67,
+0.3
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 12.0,
+"b": false,
+"i": false,
+"u": true,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F125",
+"t": "AVANCE CAMPAÑA MA"
+}
+]
+},
+{
+"s": 5,
+"box": [
+6.75,
+2.82,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F126",
+"t": "{{desp.ma}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+6.75,
+3.17,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F127",
 "t": "# FCL"
 }
 ]
@@ -3753,34 +4297,102 @@
 {
 "s": 5,
 "box": [
-4.8888,
-2.4971,
-1.5452,
-0.3366
+8.63,
+2.52,
+1.67,
+0.3
 ],
-"anchor": "top",
+"anchor": "middle",
 "ins": [
-0.1,
-0.05,
-0.1,
-0.05
+0.0,
+0.0,
+0.0,
+0.0
 ],
 "wrap": "none",
 "k": [
-1.000031,
-1.000033
+1.0,
+1.0
 ],
 "p": [
 {
-"sz": 14.0,
+"sz": 12.0,
 "b": false,
 "i": false,
 "u": true,
 "c": "000000",
 "font": "Abadi ExtraLight",
-"al": "left",
-"id": "F112",
-"t": "EJECUTADOS MA"
+"al": "center",
+"id": "F128",
+"t": "SOLO SEM.{{sem}} MA"
+}
+]
+},
+{
+"s": 5,
+"box": [
+8.63,
+2.82,
+1.67,
+0.38
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 24.0,
+"b": false,
+"i": false,
+"u": false,
+"c": "48BC65",
+"font": "Century Gothic",
+"al": "center",
+"id": "F129",
+"t": "{{desp.ma.fcl.sem}}"
+}
+]
+},
+{
+"s": 5,
+"box": [
+8.63,
+3.17,
+1.67,
+0.32
+],
+"anchor": "middle",
+"ins": [
+0.0,
+0.0,
+0.0,
+0.0
+],
+"wrap": "none",
+"k": [
+1.0,
+1.0
+],
+"p": [
+{
+"sz": 18.0,
+"b": true,
+"i": false,
+"u": false,
+"c": "000000",
+"font": "Abadi ExtraLight",
+"al": "center",
+"id": "F130",
+"t": "# FCL"
 }
 ]
 },
@@ -3813,7 +4425,7 @@
 "c": "FF0000",
 "font": "Century Gothic",
 "al": "center",
-"id": "F113",
+"id": "F131",
 "t": "{{mo.acu}}"
 }
 ]
@@ -3847,7 +4459,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F114",
+"id": "F132",
 "t": "{{mo.acu.dif}}"
 }
 ]
@@ -3881,7 +4493,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F115",
+"id": "F133",
 "t": "{{mo.sem.dif}}"
 }
 ]
@@ -3915,7 +4527,7 @@
 "c": "00B050",
 "font": "Century Gothic",
 "al": "center",
-"id": "F116",
+"id": "F134",
 "t": "{{mo.sem}}"
 }
 ]
@@ -3949,7 +4561,7 @@
 "c": "00B050",
 "font": "Century Gothic",
 "al": "left",
-"id": "F117",
+"id": "F135",
 "t": "{{mo.pers}}"
 }
 ]
@@ -3983,7 +4595,7 @@
 "c": "00B050",
 "font": "Century Gothic",
 "al": "left",
-"id": "F118",
+"id": "F136",
 "t": "{{recl.pct}}"
 }
 ]
@@ -4017,7 +4629,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F119",
+"id": "F137",
 "t": "{{recl.dif}}"
 }
 ]
@@ -4051,7 +4663,7 @@
 "c": "FF0000",
 "font": "Arial",
 "al": "left",
-"id": "F120",
+"id": "F138",
 "t": "{{recl.pen}}"
 }
 ]
@@ -4085,7 +4697,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F121",
+"id": "F139",
 "t": "{{recl.venta}}"
 }
 ]
@@ -4119,7 +4731,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F122",
+"id": "F140",
 "t": "Objetivo: {{mo.acu.obj}}"
 }
 ]
@@ -4153,7 +4765,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F123",
+"id": "F141",
 "t": "Objetivo: {{mo.sem.obj}}"
 }
 ]
@@ -4187,7 +4799,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F124",
+"id": "F142",
 "t": "Objetivo: {{recl.obj}}"
 }
 ]
@@ -4221,7 +4833,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F125",
+"id": "F143",
 "t": "4.  Mano de Obra – Calidad / Ratio de Reclamos"
 }
 ]
@@ -4255,7 +4867,7 @@
 "c": "000000",
 "font": "Aptos Light",
 "al": "left",
-"id": "F126",
+"id": "F144",
 "t": "PERSONAS PLANILLADAS"
 }
 ]
@@ -4289,7 +4901,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F127",
+"id": "F145",
 "t": "AVANCE DE CAMPAÑA"
 }
 ]
@@ -4323,7 +4935,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F128",
+"id": "F146",
 "t": "SOLO SEMANA {{sem}}"
 }
 ]
@@ -4357,7 +4969,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F129",
+"id": "F147",
 "t": "Mano de Obra/Personal – Calidad 2026"
 }
 ]
@@ -4391,7 +5003,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F130",
+"id": "F148",
 "t": "SEMANA {{sem}}"
 }
 ]
@@ -4425,7 +5037,7 @@
 "c": "000000",
 "font": "Aptos Light",
 "al": "left",
-"id": "F131",
+"id": "F149",
 "t": "MANO DE OBRA"
 }
 ]
@@ -4459,7 +5071,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F132",
+"id": "F150",
 "t": "AÑO 2026"
 }
 ]
@@ -4493,7 +5105,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F133",
+"id": "F151",
 "t": "Monto Penalizado"
 }
 ]
@@ -4527,7 +5139,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F134",
+"id": "F152",
 "t": "Ratio de reclamos penalizados – A 2026"
 }
 ]
@@ -4561,7 +5173,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F135",
+"id": "F153",
 "t": "Venta $"
 }
 ]
@@ -4595,7 +5207,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F136",
+"id": "F154",
 "t": "Venta"
 }
 ]
@@ -4629,7 +5241,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F137",
+"id": "F155",
 "t": "Penalizado $"
 }
 ]
@@ -4663,7 +5275,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F138",
+"id": "F156",
 "t": "*Indicadores extraídos de: 1.3 Informe Gerencial Reclamo de Clientes (JM). Información de {{recl.meses}}"
 }
 ]
@@ -4697,7 +5309,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F139",
+"id": "F157",
 "t": "*CMO avance de campaña hasta corte semana de {{sem}}"
 }
 ]
@@ -4731,7 +5343,7 @@
 "c": "080808",
 "font": "Arial",
 "al": "center",
-"id": "F140",
+"id": "F158",
 "t": "INDICADORES DE\nLA\nSEMANA {{sem}}"
 }
 ]
@@ -4765,7 +5377,7 @@
 "c": "080808",
 "font": "Arial",
 "al": "center",
-"id": "F141",
+"id": "F159",
 "t": "Aseguramiento de la Calidad Fresco"
 }
 ]
@@ -4799,7 +5411,7 @@
 "c": "388194",
 "font": "Arial",
 "al": "center",
-"id": "F142",
+"id": "F160",
 "t": "{{rec.sem}}"
 }
 ]
@@ -4833,7 +5445,7 @@
 "c": "388194",
 "font": "Arial",
 "al": "center",
-"id": "F143",
+"id": "F161",
 "t": "{{stock.n}}"
 }
 ]
@@ -4867,7 +5479,7 @@
 "c": "000000",
 "font": "ADLaM Display",
 "al": "center",
-"id": "F144",
+"id": "F162",
 "t": "KILOS RECEPCIONADOS – Sem. {{sem}}"
 }
 ]
@@ -4901,7 +5513,7 @@
 "c": "000000",
 "font": "ADLaM Display",
 "al": "center",
-"id": "F145",
+"id": "F163",
 "t": "KILOS EN STOCK – {{ddmm}}"
 }
 ]
@@ -4935,7 +5547,7 @@
 "c": "00B050",
 "font": "Candara",
 "al": "left",
-"id": "F146",
+"id": "F164",
 "t": "5.  Recepción de Espárrago "
 }
 ]
@@ -4969,7 +5581,7 @@
 "c": "388194",
 "font": "Arial",
 "al": "center",
-"id": "F147",
+"id": "F165",
 "t": "KILOS RECEPCIONADOS"
 }
 ]
@@ -5003,7 +5615,7 @@
 "c": "388194",
 "font": "Arial",
 "al": "center",
-"id": "F148",
+"id": "F166",
 "t": "KILOS EN STOCK"
 }
 ]
@@ -5031,7 +5643,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F149",
+"id": "F167",
 "t": "{{tz.1.0}}",
 "sz": 10,
 "b": false,
@@ -5066,7 +5678,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F150",
+"id": "F168",
 "t": "{{tz.1.1}}",
 "sz": 10,
 "b": false,
@@ -5101,7 +5713,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F151",
+"id": "F169",
 "t": "{{tz.1.2}}",
 "sz": 10,
 "b": false,
@@ -5136,7 +5748,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F152",
+"id": "F170",
 "t": "{{tz.2.0}}",
 "sz": 10,
 "b": false,
@@ -5171,7 +5783,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F153",
+"id": "F171",
 "t": "{{tz.2.1}}",
 "sz": 10,
 "b": false,
@@ -5206,7 +5818,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F154",
+"id": "F172",
 "t": "{{tz.2.2}}",
 "sz": 10,
 "b": false,
@@ -5241,7 +5853,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F155",
+"id": "F173",
 "t": "{{tz.3.0}}",
 "sz": 10,
 "b": false,
@@ -5276,7 +5888,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F156",
+"id": "F174",
 "t": "{{tz.3.1}}",
 "sz": 10,
 "b": false,
@@ -5311,7 +5923,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F157",
+"id": "F175",
 "t": "{{tz.3.2}}",
 "sz": 10,
 "b": false,
@@ -5346,7 +5958,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F158",
+"id": "F176",
 "t": "{{tz.4.0}}",
 "sz": 10,
 "b": true,
@@ -5381,7 +5993,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F159",
+"id": "F177",
 "t": "{{tz.4.1}}",
 "sz": 10,
 "b": true,
@@ -5416,7 +6028,7 @@
 "tabla": true,
 "p": [
 {
-"id": "F160",
+"id": "F178",
 "t": "{{tz.4.2}}",
 "sz": 10,
 "b": true,
@@ -5457,7 +6069,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F161",
+"id": "F179",
 "t": "Prom: {{f.compositan.elasmo.prom}}"
 }
 ]
@@ -5491,7 +6103,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F162",
+"id": "F180",
 "t": "Max: {{f.compositan.elasmo.max}}"
 }
 ]
@@ -5525,7 +6137,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F163",
+"id": "F181",
 "t": "Prom: {{f.compositan.posturas.prom}}"
 }
 ]
@@ -5559,7 +6171,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F164",
+"id": "F182",
 "t": "Max: {{f.compositan.posturas.max}}"
 }
 ]
@@ -5593,7 +6205,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F165",
+"id": "F183",
 "t": "Prom: {{f.compositan.larva.prom}}"
 }
 ]
@@ -5627,7 +6239,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F166",
+"id": "F184",
 "t": "Max: {{f.compositan.larva.max}}"
 }
 ]
@@ -5661,7 +6273,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F167",
+"id": "F185",
 "t": "Prom: {{f.compositan.prodi.prom}}"
 }
 ]
@@ -5695,7 +6307,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F168",
+"id": "F186",
 "t": "Max: {{f.compositan.prodi.max}}"
 }
 ]
@@ -5729,7 +6341,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F169",
+"id": "F187",
 "t": "{{c.compositan.sm.acu}}"
 }
 ]
@@ -5763,7 +6375,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F170",
+"id": "F188",
 "t": "{{c.compositan.sm.eje}}"
 }
 ]
@@ -5797,7 +6409,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F171",
+"id": "F189",
 "t": "{{c.compositan.lo.acu}}"
 }
 ]
@@ -5831,7 +6443,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F172",
+"id": "F190",
 "t": "{{c.compositan.lo.eje}}"
 }
 ]
@@ -5865,7 +6477,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F173",
+"id": "F191",
 "t": "{{c.compositan.cr.acu}}"
 }
 ]
@@ -5899,7 +6511,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F174",
+"id": "F192",
 "t": "{{c.compositan.cr.eje}}"
 }
 ]
@@ -5933,7 +6545,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F175",
+"id": "F193",
 "t": "2. Indicadores de Calidad MMPP   - COMPOSITAN"
 }
 ]
@@ -5967,7 +6579,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F176",
+"id": "F194",
 "t": "FITOSANITARIOS"
 }
 ]
@@ -6001,7 +6613,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F177",
+"id": "F195",
 "t": "*Información de avance de campaña: semana de {{sem}}"
 }
 ]
@@ -6035,7 +6647,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F178",
+"id": "F196",
 "t": "CALIDADES Y CALIBRES"
 }
 ]
@@ -6069,7 +6681,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F179",
+"id": "F197",
 "t": "*Información de avance de campaña hasta corte semana de {{sem}}"
 }
 ]
@@ -6103,7 +6715,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F180",
+"id": "F198",
 "t": "SMALL"
 }
 ]
@@ -6137,7 +6749,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F181",
+"id": "F199",
 "t": "Long >30"
 }
 ]
@@ -6171,7 +6783,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F182",
+"id": "F200",
 "t": "C- Y Ramas"
 }
 ]
@@ -6205,7 +6817,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F183",
+"id": "F201",
 "t": "Acumulado:"
 }
 ]
@@ -6239,7 +6851,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F184",
+"id": "F202",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -6273,7 +6885,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F185",
+"id": "F203",
 "t": "Acumulado:"
 }
 ]
@@ -6307,7 +6919,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F186",
+"id": "F204",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -6341,7 +6953,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F187",
+"id": "F205",
 "t": "Acumulado:"
 }
 ]
@@ -6375,7 +6987,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F188",
+"id": "F206",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -6409,7 +7021,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F189",
+"id": "F207",
 "t": "SEMAFORIZACIÓN ELASMOSPALPUS"
 }
 ]
@@ -6443,7 +7055,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F190",
+"id": "F208",
 "t": "POSTURAS"
 }
 ]
@@ -6477,7 +7089,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F191",
+"id": "F209",
 "t": "LEPIDOPTERA"
 }
 ]
@@ -6511,7 +7123,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F192",
+"id": "F210",
 "t": "PRODIPLOSIS"
 }
 ]
@@ -6545,7 +7157,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F193",
+"id": "F211",
 "t": "{{f.compositan.elasmo.lineas}}",
 "lineas": "f.compositan.elasmo"
 }
@@ -6580,7 +7192,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F194",
+"id": "F212",
 "t": "{{f.compositan.posturas.lineas}}",
 "lineas": "f.compositan.posturas"
 }
@@ -6615,7 +7227,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F195",
+"id": "F213",
 "t": "{{f.compositan.larva.lineas}}",
 "lineas": "f.compositan.larva"
 }
@@ -6650,7 +7262,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F196",
+"id": "F214",
 "t": "{{f.compositan.prodi.lineas}}",
 "lineas": "f.compositan.prodi"
 }
@@ -6685,7 +7297,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F197",
+"id": "F215",
 "t": "Prom: {{f.olmos.elasmo.prom}}"
 }
 ]
@@ -6719,7 +7331,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F198",
+"id": "F216",
 "t": "Max: {{f.olmos.elasmo.max}}"
 }
 ]
@@ -6753,7 +7365,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F199",
+"id": "F217",
 "t": "Prom: {{f.olmos.posturas.prom}}"
 }
 ]
@@ -6787,7 +7399,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F200",
+"id": "F218",
 "t": "Max: {{f.olmos.posturas.max}}"
 }
 ]
@@ -6821,7 +7433,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F201",
+"id": "F219",
 "t": "Prom: {{f.olmos.larva.prom}}"
 }
 ]
@@ -6855,7 +7467,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F202",
+"id": "F220",
 "t": "Max: {{f.olmos.larva.max}}"
 }
 ]
@@ -6889,7 +7501,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F203",
+"id": "F221",
 "t": "Prom: {{f.olmos.prodi.prom}}"
 }
 ]
@@ -6923,7 +7535,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F204",
+"id": "F222",
 "t": "Max: {{f.olmos.prodi.max}}"
 }
 ]
@@ -6957,7 +7569,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F205",
+"id": "F223",
 "t": "{{c.olmos.sm.acu}}"
 }
 ]
@@ -6991,7 +7603,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F206",
+"id": "F224",
 "t": "{{c.olmos.sm.eje}}"
 }
 ]
@@ -7025,7 +7637,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F207",
+"id": "F225",
 "t": "{{c.olmos.lo.acu}}"
 }
 ]
@@ -7059,7 +7671,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F208",
+"id": "F226",
 "t": "{{c.olmos.lo.eje}}"
 }
 ]
@@ -7093,7 +7705,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F209",
+"id": "F227",
 "t": "{{c.olmos.cr.acu}}"
 }
 ]
@@ -7127,7 +7739,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F210",
+"id": "F228",
 "t": "{{c.olmos.cr.eje}}"
 }
 ]
@@ -7161,7 +7773,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F211",
+"id": "F229",
 "t": "2. Indicadores de Calidad MMPP   - OLMOS"
 }
 ]
@@ -7195,7 +7807,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F212",
+"id": "F230",
 "t": "FITOSANITARIOS"
 }
 ]
@@ -7229,7 +7841,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F213",
+"id": "F231",
 "t": "*Información de avance de campaña: semana de {{sem}}"
 }
 ]
@@ -7263,7 +7875,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F214",
+"id": "F232",
 "t": "CALIDADES Y CALIBRES"
 }
 ]
@@ -7297,7 +7909,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F215",
+"id": "F233",
 "t": "*Información de avance de campaña hasta corte semana de {{sem}}"
 }
 ]
@@ -7331,7 +7943,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F216",
+"id": "F234",
 "t": "SMALL"
 }
 ]
@@ -7365,7 +7977,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F217",
+"id": "F235",
 "t": "Long >30"
 }
 ]
@@ -7399,7 +8011,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F218",
+"id": "F236",
 "t": "C- Y Ramas"
 }
 ]
@@ -7433,7 +8045,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F219",
+"id": "F237",
 "t": "Acumulado:"
 }
 ]
@@ -7467,7 +8079,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F220",
+"id": "F238",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -7501,7 +8113,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F221",
+"id": "F239",
 "t": "Acumulado:"
 }
 ]
@@ -7535,7 +8147,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F222",
+"id": "F240",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -7569,7 +8181,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F223",
+"id": "F241",
 "t": "Acumulado:"
 }
 ]
@@ -7603,7 +8215,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F224",
+"id": "F242",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -7637,7 +8249,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F225",
+"id": "F243",
 "t": "SEMAFORIZACIÓN ELASMOSPALPUS"
 }
 ]
@@ -7671,7 +8283,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F226",
+"id": "F244",
 "t": "POSTURAS"
 }
 ]
@@ -7705,7 +8317,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F227",
+"id": "F245",
 "t": "LEPIDOPTERA"
 }
 ]
@@ -7739,7 +8351,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F228",
+"id": "F246",
 "t": "PRODIPLOSIS"
 }
 ]
@@ -7773,7 +8385,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F229",
+"id": "F247",
 "t": "{{f.olmos.elasmo.lineas}}",
 "lineas": "f.olmos.elasmo"
 }
@@ -7808,7 +8420,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F230",
+"id": "F248",
 "t": "{{f.olmos.posturas.lineas}}",
 "lineas": "f.olmos.posturas"
 }
@@ -7843,7 +8455,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F231",
+"id": "F249",
 "t": "{{f.olmos.larva.lineas}}",
 "lineas": "f.olmos.larva"
 }
@@ -7878,7 +8490,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F232",
+"id": "F250",
 "t": "{{f.olmos.prodi.lineas}}",
 "lineas": "f.olmos.prodi"
 }
@@ -7913,7 +8525,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F233",
+"id": "F251",
 "t": "Prom: {{f.terceros.elasmo.prom}}"
 }
 ]
@@ -7947,7 +8559,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F234",
+"id": "F252",
 "t": "Max: {{f.terceros.elasmo.max}}"
 }
 ]
@@ -7981,7 +8593,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F235",
+"id": "F253",
 "t": "Prom: {{f.terceros.posturas.prom}}"
 }
 ]
@@ -8015,7 +8627,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F236",
+"id": "F254",
 "t": "Max: {{f.terceros.posturas.max}}"
 }
 ]
@@ -8049,7 +8661,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F237",
+"id": "F255",
 "t": "Prom: {{f.terceros.larva.prom}}"
 }
 ]
@@ -8083,7 +8695,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F238",
+"id": "F256",
 "t": "Max: {{f.terceros.larva.max}}"
 }
 ]
@@ -8117,7 +8729,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F239",
+"id": "F257",
 "t": "Prom: {{f.terceros.prodi.prom}}"
 }
 ]
@@ -8151,7 +8763,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F240",
+"id": "F258",
 "t": "Max: {{f.terceros.prodi.max}}"
 }
 ]
@@ -8185,7 +8797,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F241",
+"id": "F259",
 "t": "{{c.terceros.sm.acu}}"
 }
 ]
@@ -8219,7 +8831,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F242",
+"id": "F260",
 "t": "{{c.terceros.sm.eje}}"
 }
 ]
@@ -8253,7 +8865,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F243",
+"id": "F261",
 "t": "{{c.terceros.lo.acu}}"
 }
 ]
@@ -8287,7 +8899,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F244",
+"id": "F262",
 "t": "{{c.terceros.lo.eje}}"
 }
 ]
@@ -8321,7 +8933,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F245",
+"id": "F263",
 "t": "{{c.terceros.cr.acu}}"
 }
 ]
@@ -8355,7 +8967,7 @@
 "c": "4E5E2C",
 "font": "Century Gothic",
 "al": "left",
-"id": "F246",
+"id": "F264",
 "t": "{{c.terceros.cr.eje}}"
 }
 ]
@@ -8389,7 +9001,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F247",
+"id": "F265",
 "t": "2. Indicadores de Calidad MMPP   - TERCEROS"
 }
 ]
@@ -8423,7 +9035,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F248",
+"id": "F266",
 "t": "FITOSANITARIOS"
 }
 ]
@@ -8457,7 +9069,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F249",
+"id": "F267",
 "t": "*Información de avance de campaña: semana de {{sem}}"
 }
 ]
@@ -8491,7 +9103,7 @@
 "c": "000000",
 "font": "Calibri",
 "al": "center",
-"id": "F250",
+"id": "F268",
 "t": "CALIDADES Y CALIBRES"
 }
 ]
@@ -8525,7 +9137,7 @@
 "c": "000000",
 "font": "Arial",
 "al": "left",
-"id": "F251",
+"id": "F269",
 "t": "*Información de avance de campaña hasta corte semana de {{sem}}"
 }
 ]
@@ -8559,7 +9171,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F252",
+"id": "F270",
 "t": "SMALL"
 }
 ]
@@ -8593,7 +9205,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F253",
+"id": "F271",
 "t": "Long >30"
 }
 ]
@@ -8627,7 +9239,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F254",
+"id": "F272",
 "t": "C- Y Ramas"
 }
 ]
@@ -8661,7 +9273,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F255",
+"id": "F273",
 "t": "Acumulado:"
 }
 ]
@@ -8695,7 +9307,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F256",
+"id": "F274",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -8729,7 +9341,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F257",
+"id": "F275",
 "t": "Acumulado:"
 }
 ]
@@ -8763,7 +9375,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F258",
+"id": "F276",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -8797,7 +9409,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F259",
+"id": "F277",
 "t": "Acumulado:"
 }
 ]
@@ -8831,7 +9443,7 @@
 "c": "93CDDD",
 "font": "Century Gothic",
 "al": "left",
-"id": "F260",
+"id": "F278",
 "t": "Ejec. Sem{{sem}}:"
 }
 ]
@@ -8865,7 +9477,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F261",
+"id": "F279",
 "t": "SEMAFORIZACIÓN ELASMOSPALPUS"
 }
 ]
@@ -8899,7 +9511,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F262",
+"id": "F280",
 "t": "POSTURAS"
 }
 ]
@@ -8933,7 +9545,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F263",
+"id": "F281",
 "t": "LEPIDOPTERA"
 }
 ]
@@ -8967,7 +9579,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "center",
-"id": "F264",
+"id": "F282",
 "t": "PRODIPLOSIS"
 }
 ]
@@ -9001,7 +9613,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F265",
+"id": "F283",
 "t": "{{f.terceros.elasmo.lineas}}",
 "lineas": "f.terceros.elasmo"
 }
@@ -9036,7 +9648,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F266",
+"id": "F284",
 "t": "{{f.terceros.posturas.lineas}}",
 "lineas": "f.terceros.posturas"
 }
@@ -9071,7 +9683,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F267",
+"id": "F285",
 "t": "{{f.terceros.larva.lineas}}",
 "lineas": "f.terceros.larva"
 }
@@ -9106,7 +9718,7 @@
 "c": "000000",
 "font": "Abadi ExtraLight",
 "al": "left",
-"id": "F268",
+"id": "F286",
 "t": "{{f.terceros.prodi.lineas}}",
 "lineas": "f.terceros.prodi"
 }
@@ -9141,7 +9753,7 @@
 "c": "388194",
 "font": "Arial",
 "al": "center",
-"id": "F269",
+"id": "F287",
 "t": "{{insp.n}}"
 }
 ]
@@ -9175,7 +9787,7 @@
 "c": "000000",
 "font": "ADLaM Display",
 "al": "center",
-"id": "F270",
+"id": "F288",
 "t": "INSPECTORES EN EL DÍA – {{dia}} {{ddmm}}"
 }
 ]
@@ -9209,7 +9821,7 @@
 "c": "12781C",
 "font": "Candara",
 "al": "left",
-"id": "F271",
+"id": "F289",
 "t": "9.  Seguimiento del Inspector de Calidad"
 }
 ]
@@ -9243,7 +9855,7 @@
 "c": "388194",
 "font": "Arial",
 "al": "left",
-"id": "F272",
+"id": "F290",
 "t": "N° DE INSPECTORES"
 }
 ]
@@ -9277,7 +9889,7 @@
 "c": "292929",
 "font": "Arial",
 "al": "left",
-"id": "F273",
+"id": "F291",
 "t": "Danper"
 }
 ]
@@ -9311,7 +9923,7 @@
 "c": "292929",
 "font": "Arial",
 "al": "left",
-"id": "F274",
+"id": "F292",
 "t": "danper.com"
 }
 ]

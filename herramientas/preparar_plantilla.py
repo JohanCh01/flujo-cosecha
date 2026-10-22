@@ -37,7 +37,7 @@ MAPA = {
         105: ["{{p.ef.acu.dif}}"], 107: ["{{p.ef.sem}}"], 113: ["{{p.ef.sem.dif}}"], 115: ["{{p.eg.sem}}"]},
     4: {28: ["{{rec.proy}}"], 20: ["{{rec.eje}}"], 47: ["{{rec.sem}}"], 80: ["{{rec.avance}}"],
         77: ["{{dren.proy}}"], 50: ["{{dren.eje}}"], 46: ["{{dren.avance}}"], 33: ["{{dren.sem}}"], 122: ["{{obs.acu}}"], 123: ["{{obs.acu.dif}}"], 118: ["{{obs.sem}}"], 119: ["{{obs.sem.dif}}"]},
-    5: {49: ["{{desp.proy}}"], 39: ["{{desp.ae}}"], 31: ["{{desp.av}}"], 9: ["{{desp.ma}}"]},
+    5: {49: ["{{desp.proy}}"], 31: ["{{desp.av}}"]},
     6: {47: ["{{mo.acu}}"], 51: ["{{mo.acu.dif}}"], 40: ["{{mo.sem.dif}}"], 22: ["{{mo.sem}}"], 25: ["{{mo.pers}}"], 52: ["{{recl.pct}}"], 56: ["{{recl.dif}}"], 16: ["{{recl.pen}}"], 20: ["{{recl.venta}}"],
         49: ["Objetivo: {{mo.acu.obj}}"], 39: ["Objetivo: {{mo.sem.obj}}"], 54: ["Objetivo: {{recl.obj}}"]},
     8: {15: ["{{rec.sem}}"], 30: ["{{stock.n}}"], 19: ["KILOS RECEPCIONADOS – Sem. {{sem}}"], 21: ["KILOS EN STOCK – {{ddmm}}"]},
@@ -70,6 +70,13 @@ PROM_MAX = [(100, 102), (104, 106), (125, 127), (129, 131)]
 # diapositiva 3, fila de arriba (Eficiencia Global, Eficiencia, Mano de Obra – Producción):
 # (recuadro, valor, objetivo, diferencia) → dentro de cada recuadro: valor (Aptos Light 36, sin negrita), objetivo (16) y diferencia (16), centrados
 FILA3 = [(16, 99, 27, 29), (20, 115, 35, 39), (18, 101, 103, 105), (22, 107, 109, 113), (61, 52, 54, 56), (67, 69, 70, 71)]
+# diapositiva 5 (Despachos): Proyectados a la izquierda, 8 recuadros (AE arriba, MA abajo) y Avance de campaña a la derecha
+DESP_RECUADROS = [   # (columna, fila, rótulo, unidad, marca del valor)
+    (0, 0, "AVANCE CAMPAÑA AE", "# PV", "{{desp.ae.pv.acu}}"), (1, 0, "SOLO SEM.{{sem}} AE", "# PV", "{{desp.ae.pv.sem}}"),
+    (2, 0, "AVANCE CAMPAÑA AE", "# AWB", "{{desp.ae}}"), (3, 0, "SOLO SEM.{{sem}} AE", "# AWB", "{{desp.ae.awb.sem}}"),
+    (0, 1, "AVANCE CAMPAÑA MA", "# PV", "{{desp.ma.pv.acu}}"), (1, 1, "SOLO SEM.{{sem}} MA", "# PV", "{{desp.ma.pv.sem}}"),
+    (2, 1, "AVANCE CAMPAÑA MA", "# FCL", "{{desp.ma}}"), (3, 1, "SOLO SEM.{{sem}} MA", "# FCL", "{{desp.ma.fcl.sem}}")]
+DESP_X0, DESP_PASO, DESP_W, DESP_H, DESP_FILAS = 2.95, 1.88, 1.75, 1.03, (1.36, 2.49)
 # imágenes con datos viejos (pantallazos de Power BI): se quitan
 QUITAR = {3: [119], 6: [7], 8: [26], 12: [8]}
 # donde estaba el pantallazo va un recuadro punteado gris "Imagen N" (ahí irá una imagen)
@@ -313,6 +320,58 @@ def acomodar_fila3(d):
                 poner_en(d[sid], [x + 0.04, y + dy, w - 0.08, alto], sz=sz, font=font, negrita=neg)
 
 
+def poner_suelto(el, box):
+    """Para una forma que está suelta en la diapositiva (no en un grupo): la pone en la caja absoluta box."""
+    xf = el.find(".//" + A + "xfrm")
+    xf.find(A + "off").set("x", str(int(box[0] * EMU))); xf.find(A + "off").set("y", str(int(box[1] * EMU)))
+    xf.find(A + "ext").set("cx", str(int(box[2] * EMU))); xf.find(A + "ext").set("cy", str(int(box[3] * EMU)))
+
+
+def texto_centrado(el, texto, sz=None):
+    ps = parrafos(el)
+    for p_ in ps[1:]:
+        p_.getparent().remove(p_)
+    poner_texto(ps[0], texto)
+    ppr = ps[0].find(A + "pPr")
+    if ppr is None:
+        ppr = etree.Element(A + "pPr"); ps[0].insert(0, ppr)
+    ppr.set("algn", "ctr")
+    bp = el.find(".//" + A + "bodyPr")
+    if bp is not None:
+        bp.set("wrap", "none"); bp.set("anchor", "ctr")
+        for k in ("lIns", "rIns", "tIns", "bIns"):
+            bp.set(k, "0")
+    if sz:
+        for r_ in el.iter(A + "rPr"):
+            r_.set("sz", str(int(sz * 100)))
+
+
+def rehacer_despachos(presen, d, nid0):
+    """Despachos: mueve Proyectados, Avance de campaña, la banda y las notas; quita los 2 recuadros viejos y dibuja los 8 nuevos."""
+    modelo = {k: copy.deepcopy(d[sid]._element) for k, sid in (("caja", 35), ("rot", 37), ("val", 39), ("uni", 41))}
+    for sid in (10, 26, 29, 9, 23):                     # recuadros viejos de EJECUTADOS AE / MA
+        if sid in d and d[sid]._element.getparent() is not None:
+            d[sid]._element.getparent().remove(d[sid]._element)
+    poner_en(d[13], [0.9, 0.85, 12.0, 0.45])            # banda DESPACHOS a todo el ancho
+    x, y, w, h = abs_xfrm(d[7]); poner_en(d[7], [0.9, 1.75, w, h], centro=False)           # Proyectados
+    x, y, w, h = abs_xfrm(d[21]); poner_en(d[21], [DESP_X0 + 4 * DESP_PASO + 0.2, 1.73, w, h], centro=False)   # Avance de campaña
+    poner_en(d[8], [0.9, 3.6, 1.81, 0.34], centro=False)
+    poner_en(d[16], [DESP_X0, 3.6, 3.78, 0.34], centro=False)
+    nid = nid0
+    for col, fila, rot, uni, marca in DESP_RECUADROS:
+        X, Y = DESP_X0 + col * DESP_PASO, DESP_FILAS[fila]
+        for k, caja, texto, sz in (("caja", [X, Y, DESP_W, DESP_H], None, None),
+                                   ("rot", [X + 0.04, Y + 0.03, DESP_W - 0.08, 0.3], rot, 12),
+                                   ("val", [X + 0.04, Y + 0.33, DESP_W - 0.08, 0.38], marca, None),
+                                   ("uni", [X + 0.04, Y + 0.68, DESP_W - 0.08, 0.32], uni, None)):
+            el = copy.deepcopy(modelo[k])
+            nv = el.find(".//" + P + "cNvPr"); nv.set("id", str(nid)); nid += 1
+            poner_suelto(el, caja)
+            if texto is not None:
+                texto_centrado(el, texto, sz)
+            presen.shapes._spTree.append(el)
+
+
 def tabla_xml(x, y, cols, alto, filas, nid):
     """Tabla nativa (Zona | Kg | %) en lugar del pantallazo."""
     w = sum(cols)
@@ -459,6 +518,10 @@ def main(origen, destino):
             barras.extend({"s": i, "z": ZONAS[i], "ind": ind, "box": [x, y, w, h]} for ind, x, y, w, h in BARRAS)
         if i == 3:
             acomodar_fila3(por_id); acomodar_fila3(por_id_f)
+        if i == 5:
+            rehacer_despachos(sl, por_id, 850); rehacer_despachos(sf, por_id_f, 850)
+            por_id = {sh.shape_id: sh for sh in todas(sl.shapes)}
+            por_id_f = {sh.shape_id: sh for sh in todas(sf.shapes)}
         # 2) valores mapeados
         for sid, textos in MAPA.get(i, {}).items():
             if sid in por_id and por_id[sid].has_text_frame:

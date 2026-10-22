@@ -204,6 +204,7 @@ table.prod .dif { font-size: 12px; margin-top: 2px; } .dif.ok { color: #1e8e3e; 
 .quitar-img { height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: #c0392b; font: inherit; font-size: 12.5px; cursor: pointer; }
 .quitar-img:hover { border-color: #c0392b; }
 .soltar.img img { max-width: 100%; max-height: 260px; display: block; }
+.kpis.desp-k { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .desp-tablas { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
 table.desp { border-collapse: collapse; min-width: 300px; font-size: 14px; font-variant-numeric: tabular-nums; background: var(--surface); }
 table.desp th, table.desp td { border: 1px solid #333; padding: 5px 12px; }
@@ -339,8 +340,8 @@ html.locked .ppt { display: none !important; }
   <section class="sec" aria-labelledby="t-desp">
     <div class="sec-h"><h2 id="t-desp">Despachos · Mercado</h2><p id="despNota"></p></div>
     <div class="band">DESPACHOS</div>
-    <div class="kpis rec" id="gridDespk"></div>
-    <div class="band">MERCADO (N° FCLS · AÉREO POR MERCADO · MARÍTIMO POR CLIENTE)</div>
+    <div class="kpis desp-k" id="gridDespk"></div>
+    <div class="band">PROYECCIÓN DE MERCADO</div>
     <label class="soltar" id="despSoltar" for="despArchivo">
       <input type="file" id="despArchivo" accept=".xlsx,.xlsm,.xls" hidden>
       <b>Arrastra aquí el Excel</b> o haz clic para seleccionarlo
@@ -1195,13 +1196,17 @@ html.locked .ppt { display: none !important; }
     z.addEventListener('drop', function (e) { var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) subirVentas(f); });
   })();
   // despachos (diapositiva 4): por ahora se escriben aquí, por semana de corte
-  var DESPK = [{ k: 'proy', t: 'Proyectados', u: '#FCL' }, { k: 'ae', t: 'Ejecutados AE', u: '# AWB' }, { k: 'ma', t: 'Ejecutados MA', u: '# FCL' }, { k: 'av', t: 'Avance de campaña', u: '%' }];
+  var DESPK = [{ k: 'proy', t: 'Proyectados', u: '#FCL' },
+    { k: 'ae.pv.acu', t: 'Avance campaña AE', u: '# PV' }, { k: 'ae.pv.sem', t: 'Solo sem. AE', u: '# PV' }, { k: 'ae', t: 'Avance campaña AE', u: '# AWB' }, { k: 'ae.awb.sem', t: 'Solo sem. AE', u: '# AWB' },
+    { k: 'ma.pv.acu', t: 'Avance campaña MA', u: '# PV' }, { k: 'ma.pv.sem', t: 'Solo sem. MA', u: '# PV' }, { k: 'ma', t: 'Avance campaña MA', u: '# FCL' }, { k: 'ma.fcl.sem', t: 'Solo sem. MA', u: '# FCL' },
+    { k: 'av', t: 'Avance de campaña', u: '%' }];
   function claveDespk() { return 'rpt.despk.' + state.anio + '.' + state.sem; }
   function despk() { return lsGet(claveDespk()) || {}; }
   function renderDespk() {
     var V = despk();
     $('gridDespk').innerHTML = DESPK.map(function (d) {
-      return '<article class="card kpi"><h3>' + d.t + '</h3><input class="proy-in" data-despk="' + d.k + '" type="text" inputmode="decimal" autocomplete="off" value="' + esc(V[d.k] || '') + '" aria-label="' + d.t + '"><div class="lbl">' + d.u + '</div></article>';
+      var t = d.t.replace('Solo sem.', 'Solo sem. ' + state.sem);
+      return '<article class="card kpi"><h3>' + t + '</h3><input class="proy-in" data-despk="' + d.k + '" type="text" inputmode="decimal" autocomplete="off" value="' + esc(V[d.k] || '') + '" aria-label="' + t + ' ' + d.u + '"><div class="lbl">' + d.u + '</div></article>';
     }).join('');
   }
   document.addEventListener('change', function (e) {
@@ -1515,6 +1520,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610201130"></script>
+<script src="reporte_ppt.js?v=202610220900"></script>
 </body>
 </html>

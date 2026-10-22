@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610201130';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610220900';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -126,7 +126,7 @@
     var ST = R.stock ? R.stock() : {}; v['stock.n'] = ST.ver || '';
     // despachos (diapositiva 4): lo que se escribe en la página
     var DK = R.despk ? R.despk() : {};
-    v['desp.proy'] = DK.proy || ''; v['desp.ae'] = DK.ae || ''; v['desp.ma'] = DK.ma || '';
+    ['proy', 'ae', 'ma', 'ae.pv.acu', 'ae.pv.sem', 'ae.awb.sem', 'ma.pv.acu', 'ma.pv.sem', 'ma.fcl.sem'].forEach(function (k) { v['desp.' + k] = DK[k] || ''; });
     v['desp.av'] = DK.av ? (/%/.test(DK.av) ? DK.av : DK.av + '%') : '';
     // fitosanitarios y calidades por zona
     R.ZONAS.forEach(function (Z) {
@@ -207,7 +207,7 @@
     if (n !== DESP_S) return '';
     var ts = despTablas(); if (!ts) return '';
     var b = DESP_BANDA, f = "font-family:Calibri,Carlito,Arial,sans-serif;color:#000;";
-    var h = '<div style="position:absolute;left:' + b[0] * PX + 'px;top:' + b[1] * PX + 'px;width:' + b[2] * PX + 'px;height:' + b[3] * PX + 'px;background:#F2F0EB;display:flex;align-items:center;justify-content:center;' + f + 'font-weight:700;font-size:' + 16 * PX / 72 + 'px">MERCADO</div>';
+    var h = '<div style="position:absolute;left:' + b[0] * PX + 'px;top:' + b[1] * PX + 'px;width:' + b[2] * PX + 'px;height:' + b[3] * PX + 'px;background:#F2F0EB;display:flex;align-items:center;justify-content:center;' + f + 'font-weight:700;font-size:' + 16 * PX / 72 + 'px">PROYECCIÓN DE MERCADO</div>';
     ts.forEach(function (t) {
       var ra = despAlto(t), fs = Math.min(14, ra * 72 * 0.5) * PX / 72, td = 'border:1px solid #000;padding:0 ' + 0.08 * PX + 'px;height:' + ra * PX + 'px;box-sizing:border-box;';
       h += '<table style="position:absolute;left:' + t.x * PX + 'px;top:' + DESP_Y * PX + 'px;border-collapse:collapse;table-layout:fixed;width:' + (DESP_COLS[0] + DESP_COLS[1] + DESP_COLS[2]) * PX + 'px;' + f + 'font-size:' + fs + 'px">' +
@@ -224,7 +224,7 @@
     var E = 914400, b = DESP_BANDA, out = '';
     var run = function (txt, sz, neg) { return '<a:r><a:rPr lang="es-PE" sz="' + Math.round(sz * 100) + '" b="' + (neg ? 1 : 0) + '"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Calibri"/></a:rPr><a:t>' + xmlEsc(txt) + '</a:t></a:r>'; };
     out += '<p:sp><p:nvSpPr><p:cNvPr id="8100" name="Banda MERCADO"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="' + Math.round(b[0] * E) + '" y="' + Math.round(b[1] * E) + '"/><a:ext cx="' + Math.round(b[2] * E) + '" cy="' + Math.round(b[3] * E) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="F2F0EB"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr>' +
-      '<p:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/>' + run('MERCADO', 16, true) + '</a:p></p:txBody></p:sp>';
+      '<p:txBody><a:bodyPr anchor="ctr"/><a:lstStyle/><a:p><a:pPr algn="ctr"/>' + run('PROYECCIÓN DE MERCADO', 16, true) + '</a:p></p:txBody></p:sp>';
     ts.forEach(function (t, k) {
       var ra = despAlto(t), sz = Math.min(14, ra * 72 * 0.5), ln = ['lnL', 'lnR', 'lnT', 'lnB'].map(function (l) { return '<a:' + l + ' w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:' + l + '>'; }).join('');
       var celda = function (txt, opc) {
