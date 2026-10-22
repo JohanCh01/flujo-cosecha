@@ -1015,7 +1015,7 @@ html.locked .ppt { display: none !important; }
     };
     html += '<article class="card kpi obs"><h3>P.T. observado · avance de campaña</h3>' + ob('obsAcu', d.obsAcu, 1, d.obj) +
       (!d.ovr.obsAcu && !d.ovr.eje && d.kgObsAcu != null && d.eje != null ? '<p class="foot">' + Math.round(d.kgObsAcu).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.eje).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
-    html += '<article class="card kpi obs"><h3>P.T. observado · semana ' + state.sem + '</h3>' + ob('obsSem', d.obsSem, 2, d.obj) +
+    html += '<article class="card kpi obs"><h3>P.T. observado · semana ' + state.sem + '</h3>' + ob('obsSem', d.obsSem, 1, d.obj) +
       (!d.ovr.obsSem && !d.ovr.per && d.kgObsSem != null && d.per ? '<p class="foot">' + Math.round(d.kgObsSem).toLocaleString('es-PE') + ' kg obs. ÷ ' + Math.round(d.per).toLocaleString('es-PE') + ' kg prod.</p>' : '') + '</article>';
     $('gridDren').innerHTML = html;
   }
@@ -1585,6 +1585,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610221150"></script>
+<script src="reporte_ppt.js?v=202610221205"></script>
 </body>
 </html>

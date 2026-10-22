@@ -2009,7 +2009,7 @@
 "i": false,
 "u": false,
 "c": "002060",
-"font": "Arial",
+"font": "Century Gothic",
 "al": "center",
 "id": "F60",
 "t": "{{rec.proy}}"
@@ -2281,7 +2281,7 @@
 "i": false,
 "u": false,
 "c": "FF0000",
-"font": "Arial",
+"font": "Century Gothic",
 "al": "left",
 "id": "F68",
 "t": "{{obs.acu}}"
@@ -2349,7 +2349,7 @@
 "i": false,
 "u": false,
 "c": "00B050",
-"font": "Arial",
+"font": "Century Gothic",
 "al": "left",
 "id": "F70",
 "t": "{{obs.sem}}"
@@ -4661,7 +4661,7 @@
 "i": false,
 "u": false,
 "c": "FF0000",
-"font": "Arial",
+"font": "Century Gothic",
 "al": "left",
 "id": "F138",
 "t": "{{recl.pen}}"
@@ -4690,12 +4690,12 @@
 ],
 "p": [
 {
-"sz": 32.0,
+"sz": 28,
 "b": false,
 "i": false,
 "u": false,
 "c": "000000",
-"font": "Arial",
+"font": "Century Gothic",
 "al": "left",
 "id": "F139",
 "t": "{{recl.venta}}"

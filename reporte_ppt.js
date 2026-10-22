@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221150';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610221205';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -81,7 +81,7 @@
     var dif = function (x, o) { var d = (x - o) * 100; return '(' + (d >= 0 ? '+' : '-') + Math.abs(d).toFixed(arguments[2] || 1) + ')'; };
     v['obs.obj'] = dr.obj != null ? (dr.obj * 100).toFixed(2) + '%' : '3.50%';
     if (dr.obsAcu != null) { v['obs.acu'] = (dr.obsAcu * 100).toFixed(1) + '%'; v['obs.acu.dif'] = dif(dr.obsAcu, dr.obj, 1); }
-    if (dr.obsSem != null) { v['obs.sem'] = (dr.obsSem * 100).toFixed(2) + '%'; v['obs.sem.dif'] = dif(dr.obsSem, dr.obj, 2); }
+    if (dr.obsSem != null) { v['obs.sem'] = (dr.obsSem * 100).toFixed(1) + '%'; v['obs.sem.dif'] = dif(dr.obsSem, dr.obj, 1); }
     // color del número: verde si está en el objetivo o por debajo, rojo si lo pasa
     if (dr.obsAcu != null) v['obs.acu.c'] = dr.obsAcu <= dr.obj ? '00B050' : 'FF0000';
     if (dr.obsSem != null) v['obs.sem.c'] = dr.obsSem <= dr.obj ? '00B050' : 'FF0000';

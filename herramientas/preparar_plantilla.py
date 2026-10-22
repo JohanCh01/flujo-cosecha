@@ -77,6 +77,8 @@ DESP_RECUADROS = [   # (columna, fila, rótulo, unidad, marca del valor)
     (0, 1, "AVANCE CAMPAÑA MA", "# PV", "{{desp.ma.pv.acu}}"), (1, 1, "SOLO SEM.{{sem}} MA", "# PV", "{{desp.ma.pv.sem}}"),
     (2, 1, "AVANCE CAMPAÑA MA", "# FCL", "{{desp.ma}}"), (3, 1, "SOLO SEM.{{sem}} MA", "# FCL", "{{desp.ma.fcl.sem}}")]
 DESP_X0, DESP_PASO, DESP_W, DESP_H, DESP_FILAS = 2.95, 1.88, 1.75, 1.03, (1.36, 2.49)
+# valores que en tu PPT venían en Arial y deben ir en Century Gothic como los demás (sin negrita)
+CENTURY = {"{{rec.proy}}", "{{obs.acu}}", "{{obs.sem}}", "{{recl.pen}}", "{{recl.venta}}"}
 # imágenes con datos viejos (pantallazos de Power BI): se quitan
 QUITAR = {3: [119], 6: [7], 8: [26], 12: [8]}
 # donde estaba el pantallazo va un recuadro punteado gris "Imagen N" (ahí irá una imagen)
@@ -433,6 +435,22 @@ def main(origen, destino):
                     if rpr is None:
                         rpr = etree.Element(A + "rPr"); r_.insert(0, rpr)
                     rpr.set("sz", "1600")
+            if textos[j] in CENTURY:
+                st.update({"font": "Century Gothic", "b": False})
+                if textos[j] == "{{recl.venta}}":
+                    st["sz"] = 28                       # 65,382,433 en Century Gothic: a 28 entra en su recuadro
+                for r_ in p_.findall(A + "r"):
+                    rpr = r_.find(A + "rPr")
+                    if rpr is None:
+                        rpr = etree.Element(A + "rPr"); r_.insert(0, rpr)
+                    rpr.set("b", "0")
+                    if textos[j] == "{{recl.venta}}":
+                        rpr.set("sz", "2800")
+                    for v in rpr.findall(A + "latin"):
+                        rpr.remove(v)
+                    lat = etree.Element(A + "latin"); lat.set("typeface", "Century Gothic")
+                    sig = [h for h in rpr if h.tag in (A + "ea", A + "cs", A + "sym", A + "hlinkClick", A + "hlinkMouseOver", A + "rtl", A + "extLst")]
+                    (sig[0].addprevious(lat) if sig else rpr.append(lat))
             if sl_i in ZONAS and re.match(r"(Acumulado|Ejec\.)", textos[j].lstrip()):
                 # rótulos «Acumulado:» y «Ejec. Sem N:» de calidades: verde oscuro y negrita
                 st.update({"c": "1E5631", "b": True})
