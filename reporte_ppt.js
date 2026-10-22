@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221300';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610221310';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -453,7 +453,7 @@
   $('pptEdit').onclick = function () {
     editando = !editando; this.setAttribute('aria-pressed', String(editando)); this.textContent = editando ? 'Terminar edición' : 'Editar';
     $('pptGuardar').hidden = !editando; $('fmtNuevo').hidden = !editando; selP = null; selC = null; pintar(); marcarSel();
-    msg(editando ? 'Haz clic en un texto para cambiarlo; arriba eliges fuente, tamaño, negrita y cursiva; arrastra el botón ✥ para moverlo. Se guarda en este navegador.' : '');
+    msg(editando ? 'Haz clic en un texto para cambiarlo; arriba eliges fuente, tamaño, negrita y cursiva; arrastra el botón ✥ para moverlo. Se guarda para todos.' : '');
   };
   var selP = null, selC = null;                    // párrafo y cuadro elegidos
   function campoDe(id) { var cs = campos(); for (var i = 0; i < cs.length; i++) for (var j = 0; j < cs[i].p.length; j++) if (cs[i].p[j].id === id) return cs[i].p[j]; return null; }
@@ -483,7 +483,7 @@
   $('pptView').addEventListener('input', function (e) {
     var el = e.target.closest('[data-f]'); if (!el) return;
     ed.t[el.getAttribute('data-f')] = el.innerText.replace(/\n$/, '');
-    guardarEd(); msg('Cambios guardados en este navegador.');
+    guardarEd(); msg('Cambios guardados (los ven todos).');
   });
   function cambiarFmt(cambio) {
     if (!selP) return;
@@ -524,11 +524,11 @@
       cp.style.left = (b[0] + dx) * PX + 'px'; cp.style.top = (b[1] + dy) * PX + 'px'; a.style.left = cp.style.left; a.style.top = cp.style.top;
       ed.m[clave] = [Math.round(dx * 1000) / 1000, Math.round(dy * 1000) / 1000];
     }
-    function soltar() { a.removeEventListener('pointermove', mover); a.removeEventListener('pointerup', soltar); guardarEd(); miniaturas(); msg('Cuadro movido (guardado en este navegador).'); }
+    function soltar() { a.removeEventListener('pointermove', mover); a.removeEventListener('pointerup', soltar); guardarEd(); miniaturas(); msg('Cuadro movido (lo ven todos).'); }
     a.addEventListener('pointermove', mover); a.addEventListener('pointerup', soltar);
   });
   $('pptView').addEventListener('focusout', function () { setTimeout(miniaturas, 0); });
-  $('pptGuardar').onclick = function () { msg(guardarEd() ? 'Cambios guardados en este navegador.' : 'Este navegador no deja guardar (modo privado): los cambios se pierden al cerrar.'); };
+  $('pptGuardar').onclick = function () { msg(guardarEd() ? 'Cambios guardados (los ven todos).' : 'Este navegador no deja guardar (modo privado): los cambios se pierden al cerrar.'); };
   $('pptReset').onclick = function () {
     if (!Object.keys(ed.t).length && !Object.keys(ed.f).length && !Object.keys(ed.m).length && !ed.x.length) { msg('No hay cambios que descartar.'); return; }
     if (!confirm('¿Descartar todos los cambios de este reporte y volver a los valores calculados?')) return;
@@ -546,7 +546,7 @@
   }
   function nombreArchivo(ext) {
     var h = new Date(), dd = function (n) { return (n < 10 ? '0' : '') + n; };
-    return 'Reporte Espárrago ' + dd(h.getDate()) + '-' + dd(h.getMonth() + 1) + '-' + h.getFullYear() + '.' + ext;
+    return 'Reporte Espárrago (' + dd(h.getDate()) + '-' + dd(h.getMonth() + 1) + '-' + h.getFullYear() + ').' + ext;
   }
   function xmlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function ajustarRpr(rpr, f) {
@@ -754,5 +754,5 @@
       .then(function () { caja.remove(); b.disabled = false; });
   };
 
-  window.RPT_PPT = { refrescar: refrescar };
+  window.RPT_PPT = { refrescar: refrescar, editando: function () { return editando; } };
 })();

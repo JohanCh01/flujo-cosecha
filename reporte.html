@@ -430,7 +430,14 @@ html.locked .ppt { display: none !important; }
   // La clave y el token llegan dentro de fito.json (cifrado), los pone configurar_compartido.py.
   // En cada navegador se guarda además una copia (localStorage) para que la página abra rápido.
   var COMP = (function () {
-    var COMPARTIDO = /^rpt\.(proy|mo\.obj|recl\.obj|prod\.|pers\.|despk\.|despsap$|insp\.|stock\.|img[134]$)/;
+    var COMPARTIDO_RE = /^rpt\.(proy|mo\.obj|recl\.obj|prod\.|pers\.|despk\.|despsap$|insp\.|stock\.|img[134]$|ppt3\.)/;
+    // cambios de la Vista PPT (textos, formato, cuadros movidos): se comparten los de los últimos 30 días
+    function limitePpt() { var d = new Date(Date.now() - 5 * 3600000 - 30 * 86400000); return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(); }
+    var COMPARTIDO = { test: function (k) {
+      if (!COMPARTIDO_RE.test(k)) return false;
+      var m = /^rpt\.ppt3\.[^.]*\.[^.]*\.[^.]*\.(\d{8})\./.exec(k);
+      return !m || Number(m[1]) >= limitePpt();
+    } };
     var IMAGENES = { 'rpt.img1': 'man_img1.json', 'rpt.img3': 'man_img3.json', 'rpt.img4': 'man_img4.json' };
     var cfg = null, llave = null, remoto = {}, sha = {}, pend = {}, timer = null, callando = false, alCambiar = null, ultimo = '';
     var proto = Storage.prototype, setO = proto.setItem, remO = proto.removeItem;
@@ -495,6 +502,7 @@ html.locked .ppt { display: none !important; }
         remoto = Object.assign.apply(null, [{}].concat(partes));
         var M = meta(), cambiado = false;
         callando = true;
+        Object.keys(remoto).forEach(function (k) { if (!COMPARTIDO.test(k)) delete remoto[k]; });   // lo vencido ya no se guarda
         Object.keys(remoto).forEach(function (k) {
           var r = remoto[k]; if (!r || pend[k]) return;
           if (M[k] == null || r.t > M[k]) {
@@ -1522,7 +1530,7 @@ html.locked .ppt { display: none !important; }
   if (!enSitio) {
     if (EMBED) usePacked(EMBED);
     mostrar(false);
-    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); });
+    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT && !window.RPT_PPT.editando()) window.RPT_PPT.refrescar(); });
     $('btnAct').onclick = function () { mostrar(true); renderMeta('vista local: los datos nuevos se ven en el sitio publicado'); };
     return;
   }
@@ -1571,7 +1579,7 @@ html.locked .ppt { display: none !important; }
       } catch (e) { aviso = 'no se pudieron abrir los datos; recarga la página'; }
     }
     mostrar(conservar); if (aviso) renderMeta(aviso);
-    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT) window.RPT_PPT.refrescar(); });
+    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT && !window.RPT_PPT.editando()) window.RPT_PPT.refrescar(); });
     document.documentElement.classList.remove('locked');
   }
   $('btnAct').onclick = function () {
