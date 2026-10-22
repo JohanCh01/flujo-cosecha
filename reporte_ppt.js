@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221225';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610221250';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -295,6 +295,7 @@
   var panel = $('pptPanel'), split = $('split'), btn = $('btnPpt');
   panel.innerHTML =
     '<div class="ppt-bar"><strong>Vista PPT</strong><span class="ppt-n" id="pptN"></span><span class="ppt-sp"></span>' +
+      '<button class="btn sm ppt-show" id="pptShow" type="button" title="Presentar (pantalla completa)" aria-label="Presentar en pantalla completa"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="2" y="3" width="16" height="11" rx="1.2"/><path d="M10 14v3M7 17.5h6"/><path d="M8.5 6.4v4.2l3.6-2.1z" fill="currentColor"/></svg></button>' +
       '<button class="btn sm" id="pptPrev" type="button" aria-label="Diapositiva anterior">‹</button>' +
       '<button class="btn sm" id="pptNext" type="button" aria-label="Diapositiva siguiente">›</button>' +
       '<button class="btn sm" id="pptCerrar" type="button" aria-label="Cerrar la vista PPT">✕</button></div>' +
@@ -331,6 +332,9 @@
     '.slide.edit .cp.sel{outline:2px solid #e8912d;outline-offset:2px}' +
     '.slide .sw{display:inline-block;width:.62em;height:.62em;margin-right:.35em;vertical-align:.02em;border-radius:1px}' +
     '.slide .pimg{position:absolute;object-fit:contain;background:#fff}' +
+    '.ppt-show{display:inline-flex;align-items:center;justify-content:center;padding:0 8px}' +
+    '.ppt-pres{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;cursor:none}' +
+    '.ppt-pres .pres-in{position:relative;overflow:hidden;background:#fff}.ppt-pres .slide{cursor:none}' +
     '.slide .pr[data-ico]::after{content:attr(data-ico);font-size:.4em;font-weight:700;vertical-align:.9em;margin-left:.12em;color:inherit}' +
     '.slide .pbar{position:absolute}.slide .pbar>div{position:absolute;left:0;right:0;border-top:1px solid #fff;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 10.5px/1 Calibri,Carlito,Arial,sans-serif;color:#262626}' +
     '.slide .asa{position:absolute;width:26px;height:26px;margin:-30px 0 0 -30px;border-radius:6px;background:#e8912d;color:#fff;font:700 16px/26px Arial;text-align:center;cursor:move;user-select:none;touch-action:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}' +
@@ -338,6 +342,8 @@
 "@font-face{font-family:AbadiWeb;font-weight:400;src:url(lib/fuentes/encode-sans-semi-condensed-latin-200-normal.woff2) format('woff2')}" +
     "@font-face{font-family:AbadiWeb;font-weight:700;src:url(lib/fuentes/encode-sans-semi-condensed-latin-500-normal.woff2) format('woff2')}" +
     "@font-face{font-family:GothicWeb;src:url(lib/fuentes/didact-gothic-latin-400-normal.woff2) format('woff2')}" +
+    // el «%» de Didact Gothic trae una rayita pegada al círculo; se dibuja con el de Carlito (limpio, mismo grosor)
+    "@font-face{font-family:GothicWeb;src:url(lib/fuentes/carlito-latin-400-normal.woff2) format('woff2');unicode-range:U+25}" +
     "@font-face{font-family:Carlito;font-weight:400;src:url(lib/fuentes/carlito-latin-400-normal.woff2) format('woff2')}" +
     "@font-face{font-family:Carlito;font-weight:700;src:url(lib/fuentes/carlito-latin-700-normal.woff2) format('woff2')}" +
     "@font-face{font-family:Carlito;font-weight:400;font-style:italic;src:url(lib/fuentes/carlito-latin-400-italic.woff2) format('woff2')}" +
@@ -397,11 +403,51 @@
   $('pptNext').onclick = function () { paso(1); };
   $('pptThumbs').addEventListener('click', function (e) { var b = e.target.closest('.ppt-th'); if (b) { actual = Number(b.getAttribute('data-i')); pintar(); } });
   document.addEventListener('keydown', function (e) {
-    if (!abierto || editando || !plantilla || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || '')) return;
+    if (!abierto || editando || presentando || !plantilla || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName || '')) return;
     if (e.key === 'ArrowRight') paso(1);
     if (e.key === 'ArrowLeft') paso(-1);
   });
   window.addEventListener('resize', escalar);
+
+  // ---------- presentar: pantalla completa, desde la diapositiva que se está viendo
+  var presentando = null;                          // capa negra de la presentación (o null)
+  function presPintar() {
+    if (!presentando) return;
+    var w = window.innerWidth, h = window.innerHeight, k = Math.min(w / 1280, h / 720), caja = presentando.firstChild;
+    caja.style.width = Math.round(1280 * k) + 'px'; caja.style.height = Math.round(720 * k) + 'px';
+    caja.innerHTML = htmlSlide(actual, false);
+    var sl = caja.querySelector('.slide'); if (sl) sl.style.transform = 'scale(' + k + ')';
+  }
+  function presPaso(d) { var l = activas(), k = l.indexOf(actual) + d; if (k >= 0 && k < l.length) { actual = l[k]; presPintar(); } }
+  function presSalir() {
+    if (!presentando) return;
+    var capa = presentando; presentando = null; capa.remove();
+    document.removeEventListener('keydown', presTecla, true); window.removeEventListener('resize', presPintar);
+    if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
+    pintar();
+  }
+  function presTecla(e) {
+    var k = e.key;
+    if (/^(ArrowRight|ArrowDown|PageDown| |Enter)$/.test(k)) presPaso(1);
+    else if (/^(ArrowLeft|ArrowUp|PageUp|Backspace)$/.test(k)) presPaso(-1);
+    else if (k === 'Home') { actual = activas()[0]; presPintar(); }
+    else if (k === 'End') { var l = activas(); actual = l[l.length - 1]; presPintar(); }
+    else if (k === 'Escape') presSalir();
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  }
+  $('pptShow').onclick = function () {
+    if (!plantilla || presentando) return;
+    if (editando) $('pptEdit').click();             // se presenta sin los marcos de edición
+    var capa = document.createElement('div'); capa.className = 'ppt-pres'; capa.innerHTML = '<div class="pres-in"></div>';
+    capa.addEventListener('click', function (e) { presPaso(e.clientX < window.innerWidth / 3 ? -1 : 1); });
+    capa.addEventListener('contextmenu', function (e) { e.preventDefault(); presPaso(-1); });
+    document.body.appendChild(capa); presentando = capa;
+    document.addEventListener('keydown', presTecla, true); window.addEventListener('resize', presPintar);
+    presPintar();
+    if (capa.requestFullscreen) capa.requestFullscreen().catch(function () {});
+  };
+  document.addEventListener('fullscreenchange', function () { if (!document.fullscreenElement && presentando) presSalir(); });
 
   // ---------- edición
   $('pptEdit').onclick = function () {
@@ -498,7 +544,10 @@
       document.head.appendChild(s);
     });
   }
-  function nombreArchivo(ext) { return 'Reporte_ESPARRAGO_' + valores.fecha.replace(/\//g, '-') + '.' + ext; }
+  function nombreArchivo(ext) {
+    var h = new Date(), dd = function (n) { return (n < 10 ? '0' : '') + n; };
+    return 'Reporte Espárrago ' + dd(h.getDate()) + '-' + dd(h.getMonth() + 1) + '-' + h.getFullYear() + '.' + ext;
+  }
   function xmlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function ajustarRpr(rpr, f) {
     // rpr = etiqueta <a:rPr ...> o <a:rPr .../> completa con su contenido

@@ -338,7 +338,7 @@ html.locked .ppt { display: none !important; }
   </section>
 
   <section class="sec" aria-labelledby="t-desp">
-    <div class="sec-h"><h2 id="t-desp">Despachos · Mercado</h2><p id="despNota"></p></div>
+    <div class="sec-h"><h2 id="t-desp">Despachos · Mercado</h2></div>
     <div class="band">DESPACHOS</div>
     <div class="soltar" id="sapSoltar" tabindex="0" role="button" aria-label="Subir el Excel de despachos de SAP">
       <input type="file" id="sapArchivo" accept=".xlsx,.xlsm,.xls" hidden>
@@ -349,7 +349,7 @@ html.locked .ppt { display: none !important; }
     <div class="band">PROYECCIÓN DE MERCADO</div>
     <label class="soltar" id="despSoltar" for="despArchivo">
       <input type="file" id="despArchivo" accept=".xlsx,.xlsm,.xls" hidden>
-      <b>Seleccionar Excel</b>
+      <b>Seleccionar Excel</b><small id="despArch"></small>
     </label>
     <p class="aviso" id="despMsg" hidden></p>
     <div class="desp-tablas" id="despTablas"></div>
@@ -1281,7 +1281,7 @@ html.locked .ppt { display: none !important; }
   })();
   function renderDesp() {
     var d = desp();
-    $('despNota').textContent = d.archivo ? '«' + d.archivo + '» · ' + (d.origen === 'navegador' ? 'subido en este navegador' : 'cargado') + ' el ' + String(d.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : '';
+    $('despArch').textContent = d.archivo ? 'Cargado: «' + d.archivo + '» · ' + String(d.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') + (d.origen === 'navegador' ? ' (en este navegador)' : '') : '';
     if (!d.hay) { $('despTablas').innerHTML = d.otroAnio ? '<p class="aviso">Ese Excel no tiene embarques de ' + state.anio + '.</p>' : ''; return; }
     function tabla(tit, col, filas, total) {
       return '<table class="desp"><tr><th rowspan="1"></th><th>' + col + '</th><th>N° Fcls</th></tr>' +

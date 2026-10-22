@@ -201,6 +201,7 @@ def body(sh):
 
 
 GRIS_NOTA, AZUL_CORTE, VERDE_TITULO = "525252", "4472C4", "12781C"
+NEGRO_SUAVE = "262626"      # «Objetivo: …» y «(dif)»: un tono menos que el negro
 
 
 def color_runs(parrafo, hexa):
@@ -485,6 +486,8 @@ def main(origen, destino):
                 estilo_nota(p_, hexa)
             elif textos[j].lstrip().startswith("Información extraída de los indicadores"):
                 st["c"] = GRIS_NOTA; color_runs(p_, GRIS_NOTA)
+            elif ((sl_i == 3 and box[1] < 3.6) or sl_i == 4) and (textos[j].lstrip().startswith("Objetivo") or textos[j].endswith(".dif}}")):
+                st["c"] = NEGRO_SUAVE; color_runs(p_, NEGRO_SUAVE)
             elif sl_i == 3 and textos[j].lstrip().startswith("1."):
                 st["c"] = VERDE_TITULO; color_runs(p_, VERDE_TITULO)     # título en el mismo verde de las demás
             cen = CENTRAR.get(sl_i, {}).get(sh.shape_id)
