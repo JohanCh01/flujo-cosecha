@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221250';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610221300';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -315,8 +315,8 @@
       '</span>' +
       '<button class="btn sm" id="fmtNuevo" type="button" hidden title="Agrega un cuadro de texto nuevo en esta diapositiva">+ Texto</button>' +
       '<span class="ppt-sp"></span>' +
-      '<button class="ico-dl" id="pptPdf" type="button" title="Descargar PDF" aria-label="Descargar PDF"><svg viewBox="0 0 32 36" width="26" height="30" aria-hidden="true"><path d="M3 2h18l8 8v24H3z" fill="#fff" stroke="#D93025" stroke-width="2" stroke-linejoin="round"/><path d="M21 2v8h8" fill="none" stroke="#D93025" stroke-width="2" stroke-linejoin="round"/><rect x="0" y="17" width="27" height="12" rx="2" fill="#D93025"/><text x="13.5" y="26.3" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="9" fill="#fff">PDF</text></svg></button>' +
-      '<button class="ico-dl" id="pptPptx" type="button" title="Descargar PowerPoint" aria-label="Descargar PowerPoint"><svg viewBox="0 0 32 36" width="26" height="30" aria-hidden="true"><path d="M3 2h18l8 8v24H3z" fill="#fff" stroke="#C43E1C" stroke-width="2" stroke-linejoin="round"/><path d="M21 2v8h8" fill="none" stroke="#C43E1C" stroke-width="2" stroke-linejoin="round"/><rect x="0" y="17" width="27" height="12" rx="2" fill="#C43E1C"/><text x="13.5" y="26.3" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="9" fill="#fff">PPT</text></svg></button></div>' +
+      '<button class="ico-dl" id="pptPdf" type="button" title="Descargar PDF" aria-label="Descargar PDF"><img src="lib/ico_pdf.png?v=' + V + '" width="30" height="30" alt=""></button>' +
+      '<button class="ico-dl" id="pptPptx" type="button" title="Descargar PowerPoint" aria-label="Descargar PowerPoint"><img src="lib/ico_ppt.png?v=' + V + '" width="30" height="30" alt=""></button></div>' +
     '<p class="ppt-msg" id="pptMsg" aria-live="polite"></p>' +
     '<div class="ppt-thumbs" id="pptThumbs"></div>';
   var css = document.createElement('style');
