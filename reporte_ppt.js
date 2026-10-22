@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221205';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610221225';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -118,7 +118,11 @@
         v['p.' + k + '.' + q] = fv(p[q]);
         var df = R.difProd(p[q], p.obj, p.pct);
         v['p.' + k + '.' + q + '.dif'] = df ? df.txt : '';
-        if (df) v['p.' + k + '.' + q + '.c'] = (p.mas ? df.d >= 0 : df.d <= 0) ? '00B050' : 'FF0000';
+        if (df) {
+          var cumple = p.mas ? df.d >= 0 : df.d <= 0;
+          v['p.' + k + '.' + q + '.c'] = cumple ? '00B050' : 'FF0000';
+          v['p.' + k + '.' + q + '.ico'] = cumple ? '✓' : '!';          // ícono pequeño al costado del valor
+        }
       });
     });
     // seguimiento del inspector de calidad (diapositiva 12): N° de inspectores del día (se escribe en la página)
@@ -262,7 +266,8 @@
           var cols = valores[p.lineas + '.colores'] || [];
           cuerpo = txt.split('\n').map(function (l, k) { return (cols[k] ? '<span class="sw" contenteditable="false" style="background:#' + cols[k] + '"></span>' : '') + esc(l); }).join('\n');
         }
-        h += '<div class="pr' + (corto ? ' nw1' : '') + '" data-f="' + p.id + '"' + (editable ? ' contenteditable="true" spellcheck="false"' : '') + ' style="font-size:' + f.sz * PX / 72 + 'px;color:#' + colorDe(p) +
+        var mIco = p.t.match(/^\{\{([^}#]+)\}\}$/), ico = mIco && valores[mIco[1] + '.ico'] && txt ? valores[mIco[1] + '.ico'] : '';
+        h += '<div class="pr' + (corto ? ' nw1' : '') + '" data-f="' + p.id + '"' + (ico ? ' data-ico="' + ico + '"' : '') + (editable ? ' contenteditable="true" spellcheck="false"' : '') + ' style="font-size:' + f.sz * PX / 72 + 'px;color:#' + colorDe(p) +
           ';text-align:' + p.al + ';font-family:' + familia(f.font) + ';font-weight:' + (f.b ? 700 : 400) + ';font-style:' + (f.i ? 'italic' : 'normal') + ';' + (p.u ? 'text-decoration:underline;' : '') + '">' + cuerpo + '</div>';
       });
       h += '</div>';
@@ -326,6 +331,7 @@
     '.slide.edit .cp.sel{outline:2px solid #e8912d;outline-offset:2px}' +
     '.slide .sw{display:inline-block;width:.62em;height:.62em;margin-right:.35em;vertical-align:.02em;border-radius:1px}' +
     '.slide .pimg{position:absolute;object-fit:contain;background:#fff}' +
+    '.slide .pr[data-ico]::after{content:attr(data-ico);font-size:.4em;font-weight:700;vertical-align:.9em;margin-left:.12em;color:inherit}' +
     '.slide .pbar{position:absolute}.slide .pbar>div{position:absolute;left:0;right:0;border-top:1px solid #fff;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 10.5px/1 Calibri,Carlito,Arial,sans-serif;color:#262626}' +
     '.slide .asa{position:absolute;width:26px;height:26px;margin:-30px 0 0 -30px;border-radius:6px;background:#e8912d;color:#fff;font:700 16px/26px Arial;text-align:center;cursor:move;user-select:none;touch-action:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}' +
     '.ppt-fmt{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}.sel.sm{height:30px;min-width:0;padding:0 24px 0 8px;font-size:12.5px}' +
@@ -564,6 +570,18 @@
   }
   function llenarXml(xml, textos, n) {
     xml = aplicarFormatos(xml);
+    plantilla.campos.forEach(function (c) {           // ícono pequeño (✓ / !) al costado de los valores que lo llevan
+      if (c.s !== n) return;
+      c.p.forEach(function (p) {
+        var m = p.t.match(/^\{\{([^}#]+)\}\}$/), ico = m && valores[m[1] + '.ico'];
+        if (!ico || !textos[p.id]) return;
+        var tok = '{{#' + p.id + '}}', i = xml.indexOf(tok); if (i < 0) return;
+        var fin = xml.indexOf('</a:r>', i); if (fin < 0) return;
+        var sz = Math.round(fmt(p).sz * 0.4 * 100), col = valores[m[1] + '.c'] || p.c;
+        var run = '<a:r><a:rPr lang="es-PE" sz="' + sz + '" b="1" baseline="60000"><a:solidFill><a:srgbClr val="' + col + '"/></a:solidFill></a:rPr><a:t>' + ico + '</a:t></a:r>';
+        xml = xml.slice(0, fin + 6) + run + xml.slice(fin + 6);
+      });
+    });
     plantilla.campos.forEach(function (c) {           // colores que dependen del dato
       if (c.s !== n) return;
       c.p.forEach(function (p) {

@@ -200,8 +200,23 @@ def body(sh):
     return anchor, [g("lIns", 0.1), g("tIns", 0.05), g("rIns", 0.1), g("bIns", 0.05)]
 
 
-def estilo_nota(parrafo):
-    """Notas que empiezan con '*': negro, Arial 13, sin negrita ni cursiva (en el PPT)."""
+GRIS_NOTA, AZUL_CORTE, VERDE_TITULO = "525252", "4472C4", "12781C"
+
+
+def color_runs(parrafo, hexa):
+    for r in parrafo.findall(A + "r"):
+        rpr = r.find(A + "rPr")
+        if rpr is None:
+            rpr = etree.Element(A + "rPr"); r.insert(0, rpr)
+        for t in list(rpr):
+            if etree.QName(t).localname in ("solidFill", "gradFill", "noFill"):
+                rpr.remove(t)
+        fill = etree.Element(A + "solidFill"); etree.SubElement(fill, A + "srgbClr").set("val", hexa)
+        ln_ = rpr.find(A + "ln"); (ln_.addnext(fill) if ln_ is not None else rpr.insert(0, fill))
+
+
+def estilo_nota(parrafo, hexa="000000"):
+    """Notas que empiezan con '*': Arial 13, sin negrita ni cursiva, en el color dado (en el PPT)."""
     for r in parrafo.findall(A + "r"):
         rpr = r.find(A + "rPr")
         if rpr is None:
@@ -211,7 +226,7 @@ def estilo_nota(parrafo):
         for t in list(rpr):
             if etree.QName(t).localname in ("solidFill", "gradFill", "noFill", "latin"):
                 rpr.remove(t)
-        fill = etree.Element(A + "solidFill"); etree.SubElement(fill, A + "srgbClr").set("val", "000000")
+        fill = etree.Element(A + "solidFill"); etree.SubElement(fill, A + "srgbClr").set("val", hexa)
         rpr.insert(0, fill)
         pos = next((k for k, t in enumerate(rpr) if etree.QName(t).localname in ("ea", "cs", "sym", "hlinkClick", "rtl", "extLst")), len(rpr))
         etree.Element(A + "latin")
@@ -464,8 +479,14 @@ def main(origen, destino):
                     sf_ = etree.Element(A + "solidFill"); etree.SubElement(sf_, A + "srgbClr").set("val", "1E5631")
                     ln_ = rpr.find(A + "ln"); (ln_.addnext(sf_) if ln_ is not None else rpr.insert(0, sf_))
             if textos[j].lstrip().startswith("*"):
-                st.update({"c": "000000", "b": False, "i": False, "u": False, "font": "Arial", "sz": 13})
-                estilo_nota(p_)
+                # notas: gris #525252; en la diapositiva de producción, «*Corte semana» en azul #4472C4
+                hexa = AZUL_CORTE if sl_i == 3 and textos[j].lstrip().startswith("*Corte") else GRIS_NOTA
+                st.update({"c": hexa, "b": False, "i": False, "u": False, "font": "Arial", "sz": 13})
+                estilo_nota(p_, hexa)
+            elif textos[j].lstrip().startswith("Información extraída de los indicadores"):
+                st["c"] = GRIS_NOTA; color_runs(p_, GRIS_NOTA)
+            elif sl_i == 3 and textos[j].lstrip().startswith("1."):
+                st["c"] = VERDE_TITULO; color_runs(p_, VERDE_TITULO)     # título en el mismo verde de las demás
             cen = CENTRAR.get(sl_i, {}).get(sh.shape_id)
             if cen:
                 st["al"] = "center"
