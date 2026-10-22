@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221310';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610221610';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -185,7 +185,7 @@
   var FUENTES = ['Abadi ExtraLight', 'Century Gothic', 'Calibri', 'Candara', 'Arial', 'Aptos Light', 'Times New Roman', 'Verdana', 'Tahoma'];
   function familia(f) { return "'" + f + "'" + (SUSTITUTA[f] ? ",'" + SUSTITUTA[f] + "'" : '') + ",'Carlito',Arial,sans-serif"; }
   // color que depende del dato (p. ej. observado: verde o rojo según el objetivo): valores['<marca>.c']
-  function colorDe(p) { var m = p.t.match(/^\{\{([^}#]+)\}\}$/); return m && valores[m[1] + '.c'] ? valores[m[1] + '.c'] : p.c; }
+  function colorDe(p) { var o = ed.f[p.id]; if (o && o.c) return o.c; var m = p.t.match(/^\{\{([^}#]+)\}\}$/); return m && valores[m[1] + '.c'] ? valores[m[1] + '.c'] : p.c; }
   function fmt(p) { var o = ed.f[p.id] || {}; return { sz: o.sz || p.sz, b: o.b != null ? o.b : p.b, i: o.i != null ? o.i : p.i, font: o.font || p.font }; }
 
   // imágenes que llegan de los datos: «Imagen 2» = gráfico de penalidad del Power BI de reclamos
@@ -310,10 +310,13 @@
         '<button class="btn sm" id="fmtMas" type="button" title="Letra más grande">A+</button>' +
         '<button class="btn sm" id="fmtB" type="button" title="Negrita"><b>N</b></button>' +
         '<button class="btn sm" id="fmtI" type="button" title="Cursiva"><i>K</i></button>' +
-        '<button class="btn sm" id="fmtOrig" type="button" title="Vuelve este cuadro a su formato y lugar original">Original</button>' +
+        '<button class="btn sm" id="fmtOrig" type="button" title="Vuelve este cuadro a su formato, color y lugar original">Original</button>' +
         '<button class="btn sm" id="fmtQuitar" type="button" hidden title="Quita este texto agregado">Quitar texto</button>' +
       '</span>' +
-      '<button class="btn sm" id="fmtNuevo" type="button" hidden title="Agrega un cuadro de texto nuevo en esta diapositiva">+ Texto</button>' +
+      '<button class="btn sm" id="fmtNuevo" type="button" hidden title="Agrega un cuadro de texto nuevo en esta diapositiva" aria-label="Agregar texto">+A</button>' +
+      '<span class="fmt-col" id="fmtColWrap" hidden><button class="fmt-circ" id="fmtColor" type="button" title="Color del texto" aria-label="Color del texto" aria-expanded="false"><i id="fmtColAct"></i></button>' +
+        '<span class="fmt-pop" id="fmtPop" hidden><span class="fmt-sw" id="fmtSw"></span>' +
+        '<label class="fmt-mas">Más colores <input type="color" id="fmtColIn"></label></span></span>' +
       '<span class="ppt-sp"></span>' +
       '<button class="ico-dl" id="pptPdf" type="button" title="Descargar PDF" aria-label="Descargar PDF"><img src="lib/ico_pdf.png?v=' + V + '" width="30" height="30" alt=""></button>' +
       '<button class="ico-dl" id="pptPptx" type="button" title="Descargar PowerPoint" aria-label="Descargar PowerPoint"><img src="lib/ico_ppt.png?v=' + V + '" width="30" height="30" alt=""></button></div>' +
@@ -332,6 +335,13 @@
     '.slide.edit .cp.sel{outline:2px solid #e8912d;outline-offset:2px}' +
     '.slide .sw{display:inline-block;width:.62em;height:.62em;margin-right:.35em;vertical-align:.02em;border-radius:1px}' +
     '.slide .pimg{position:absolute;object-fit:contain;background:#fff}' +
+    '.fmt-col{position:relative;display:inline-flex}' +
+    '.fmt-circ{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);padding:0;cursor:pointer;background:conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#00acc1,#1e88e5,#8e24aa,#e53935);display:inline-flex;align-items:center;justify-content:center}' +
+    '.fmt-circ i{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}.fmt-circ:hover{box-shadow:0 0 0 2px var(--accent-soft)}' +
+    '.fmt-pop{position:absolute;bottom:38px;left:0;z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:10px;width:186px;display:flex;flex-direction:column;gap:8px}' +
+    '.fmt-pop[hidden]{display:none}.fmt-sw{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}' +
+    '.fmt-sw button{width:24px;height:24px;border-radius:50%;border:1px solid rgba(0,0,0,.15);padding:0;cursor:pointer}.fmt-sw button:hover{transform:scale(1.15)}.fmt-sw button[aria-pressed="true"]{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--accent)}' +
+    '.fmt-mas{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--muted);cursor:pointer}.fmt-mas input{width:34px;height:26px;border:0;padding:0;background:none;cursor:pointer}' +
     '.ppt-show{display:inline-flex;align-items:center;justify-content:center;padding:0 8px}' +
     '.ppt-pres{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;cursor:none}' +
     '.ppt-pres .pres-in{position:relative;overflow:hidden;background:#fff}.ppt-pres .slide{cursor:none}' +
@@ -453,14 +463,14 @@
   $('pptEdit').onclick = function () {
     editando = !editando; this.setAttribute('aria-pressed', String(editando)); this.textContent = editando ? 'Terminar edición' : 'Editar';
     $('pptGuardar').hidden = !editando; $('fmtNuevo').hidden = !editando; selP = null; selC = null; pintar(); marcarSel();
-    msg(editando ? 'Haz clic en un texto para cambiarlo; arriba eliges fuente, tamaño, negrita y cursiva; arrastra el botón ✥ para moverlo. Se guarda para todos.' : '');
+    msg(editando ? 'Haz clic en un texto para cambiarlo; arriba eliges fuente, tamaño, negrita, cursiva y color (circulito); arrastra el botón ✥ para moverlo. Se guarda para todos.' : '');
   };
   var selP = null, selC = null;                    // párrafo y cuadro elegidos
   function campoDe(id) { var cs = campos(); for (var i = 0; i < cs.length; i++) for (var j = 0; j < cs[i].p.length; j++) if (cs[i].p[j].id === id) return cs[i].p[j]; return null; }
   function marcarSel() {
     Array.prototype.forEach.call(document.querySelectorAll('#pptView .cp.sel'), function (x) { x.classList.remove('sel'); });
     var asa = document.querySelector('#pptView .asa'); if (asa) asa.remove();
-    $('pptFmt').hidden = !editando || !selP;
+    $('pptFmt').hidden = !editando || !selP; $('fmtColWrap').hidden = !editando || !selP; if ($('fmtColWrap').hidden) cerrarPop();
     if (!editando || selC == null) return;
     var cp = document.querySelector('#pptView .cp[data-c="' + selC + '"]'); if (!cp) return;
     cp.classList.add('sel');
@@ -472,6 +482,8 @@
     var p = campoDe(selP); if (!p) return;
     var f = fmt(p);
     $('fmtSz').textContent = (Math.round(f.sz * 2) / 2) + ' pt';
+    var cAct = colorDe(p); $('fmtColAct').style.background = '#' + cAct; $('fmtColIn').value = '#' + cAct.toLowerCase();
+    Array.prototype.forEach.call(document.querySelectorAll('#fmtSw button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-c') === cAct.toUpperCase())); });
     $('fmtB').setAttribute('aria-pressed', String(!!f.b)); $('fmtI').setAttribute('aria-pressed', String(!!f.i));
     var opciones = FUENTES.indexOf(f.font) < 0 ? [f.font].concat(FUENTES) : FUENTES;
     $('fmtFont').innerHTML = opciones.map(function (x) { return '<option' + (x === f.font ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('');
@@ -497,6 +509,22 @@
   $('fmtB').onclick = function () { cambiarFmt(function (o, f) { o.b = !f.b; }); };
   $('fmtI').onclick = function () { cambiarFmt(function (o, f) { o.i = !f.i; }); };
   $('fmtFont').onchange = function () { var v = this.value; cambiarFmt(function (o) { o.font = v; }); };
+  // color del texto: circulito de colores → colores del reporte o «Más colores»
+  var COLORES = ['000000', '262626', '525252', '808080', 'BFBFBF', 'FFFFFF', '12781C', '1E5631', '00B050', '92D050', 'FF0000', 'C00000',
+    'FFC000', 'ED7D31', '4472C4', '002060', '00B0F0', '7030A0'];
+  $('fmtSw').innerHTML = COLORES.map(function (c) { return '<button type="button" data-c="' + c + '" style="background:#' + c + '" title="#' + c + '" aria-label="Color #' + c + '"></button>'; }).join('');
+  function cerrarPop() { $('fmtPop').hidden = true; $('fmtColor').setAttribute('aria-expanded', 'false'); }
+  function ponerColor(hex) { hex = hex.replace('#', '').toUpperCase(); cambiarFmt(function (o) { o.c = hex; }); }
+  $('fmtColor').addEventListener('mousedown', function (e) { e.preventDefault(); });      // no le quita el foco al texto elegido
+  $('fmtColor').onclick = function () { var abrir = $('fmtPop').hidden; $('fmtPop').hidden = !abrir; this.setAttribute('aria-expanded', String(abrir)); };
+  $('fmtSw').addEventListener('mousedown', function (e) { e.preventDefault(); });
+  $('fmtSw').addEventListener('click', function (e) { var b = e.target.closest('button[data-c]'); if (b) { ponerColor(b.getAttribute('data-c')); cerrarPop(); } });
+  $('fmtColIn').addEventListener('input', function () {                                  // vista en vivo mientras mueves el selector
+    var el = selP && document.querySelector('#pptView [data-f="' + selP + '"]'); if (el) el.style.color = this.value;
+    $('fmtColAct').style.background = this.value;
+  });
+  $('fmtColIn').addEventListener('change', function () { ponerColor(this.value); cerrarPop(); });
+  document.addEventListener('mousedown', function (e) { if (!$('fmtPop').hidden && !e.target.closest('#fmtColWrap')) cerrarPop(); });
   $('fmtOrig').onclick = function () { if (!selP) return; var c = campos()[selC]; c.p.forEach(function (p) { delete ed.f[p.id]; }); delete ed.m[claveMov(selC)]; cambiarFmt(function () {}); };
   // agregar / quitar un texto propio en la diapositiva que estás viendo
   $('fmtNuevo').onclick = function () {
@@ -610,7 +638,7 @@
       if (!c.extra || c.s !== n) return;
       var p = c.p[0], f = fmt(p), m = ed.m[claveMov(ci)] || [0, 0], b = c.box;
       var lineas = String(textos[p.id] != null ? textos[p.id] : '').split('\n');
-      var rpr = '<a:rPr lang="es-PE" sz="' + Math.round(f.sz * 100) + '" b="' + (f.b ? 1 : 0) + '" i="' + (f.i ? 1 : 0) + '"><a:solidFill><a:srgbClr val="' + p.c + '"/></a:solidFill><a:latin typeface="' + xmlEsc(f.font) + '"/></a:rPr>';
+      var rpr = '<a:rPr lang="es-PE" sz="' + Math.round(f.sz * 100) + '" b="' + (f.b ? 1 : 0) + '" i="' + (f.i ? 1 : 0) + '"><a:solidFill><a:srgbClr val="' + colorDe(p) + '"/></a:solidFill><a:latin typeface="' + xmlEsc(f.font) + '"/></a:rPr>';
       out += '<p:sp><p:nvSpPr><p:cNvPr id="' + (id++) + '" name="Texto agregado"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="' + Math.round((b[0] + m[0]) * E) + '" y="' + Math.round((b[1] + m[1]) * E) + '"/><a:ext cx="' + Math.round(b[2] * E) + '" cy="' + Math.round(b[3] * E) + '"/></a:xfrm>' +
         '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr><p:txBody><a:bodyPr wrap="none" lIns="54864" tIns="27432" rIns="54864" bIns="27432"><a:spAutoFit/></a:bodyPr><a:lstStyle/>' +
         lineas.map(function (l) { return '<a:p><a:r>' + rpr + '<a:t>' + xmlEsc(l) + '</a:t></a:r></a:p>'; }).join('') + '</p:txBody></p:sp>';
@@ -626,7 +654,7 @@
         if (!ico || !textos[p.id]) return;
         var tok = '{{#' + p.id + '}}', i = xml.indexOf(tok); if (i < 0) return;
         var fin = xml.indexOf('</a:r>', i); if (fin < 0) return;
-        var sz = Math.round(fmt(p).sz * 0.4 * 100), col = valores[m[1] + '.c'] || p.c;
+        var sz = Math.round(fmt(p).sz * 0.4 * 100), col = colorDe(p);
         var run = '<a:r><a:rPr lang="es-PE" sz="' + sz + '" b="1" baseline="60000"><a:solidFill><a:srgbClr val="' + col + '"/></a:solidFill></a:rPr><a:t>' + ico + '</a:t></a:r>';
         xml = xml.slice(0, fin + 6) + run + xml.slice(fin + 6);
       });
