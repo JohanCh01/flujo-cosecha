@@ -433,6 +433,18 @@ def main(origen, destino):
                     if rpr is None:
                         rpr = etree.Element(A + "rPr"); r_.insert(0, rpr)
                     rpr.set("sz", "1600")
+            if sl_i in ZONAS and re.match(r"(Acumulado|Ejec\.)", textos[j].lstrip()):
+                # rótulos «Acumulado:» y «Ejec. Sem N:» de calidades: verde oscuro y negrita
+                st.update({"c": "1E5631", "b": True})
+                for r_ in p_.findall(A + "r"):
+                    rpr = r_.find(A + "rPr")
+                    if rpr is None:
+                        rpr = etree.Element(A + "rPr"); r_.insert(0, rpr)
+                    rpr.set("b", "1")
+                    for fill in rpr.findall(A + "solidFill"):
+                        rpr.remove(fill)
+                    sf_ = etree.Element(A + "solidFill"); etree.SubElement(sf_, A + "srgbClr").set("val", "1E5631")
+                    ln_ = rpr.find(A + "ln"); (ln_.addnext(sf_) if ln_ is not None else rpr.insert(0, sf_))
             if textos[j].lstrip().startswith("*"):
                 st.update({"c": "000000", "b": False, "i": False, "u": False, "font": "Arial", "sz": 13})
                 estilo_nota(p_)

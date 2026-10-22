@@ -342,14 +342,14 @@ html.locked .ppt { display: none !important; }
     <div class="band">DESPACHOS</div>
     <div class="soltar" id="sapSoltar" tabindex="0" role="button" aria-label="Subir el Excel de despachos de SAP">
       <input type="file" id="sapArchivo" accept=".xlsx,.xlsm,.xls" hidden>
-      <b>Arrastra aquí el Excel de despachos (SAP)</b> o haz clic para seleccionarlo
+      <b>Seleccionar Excel</b><small id="sapArch"></small>
     </div>
     <p class="aviso" id="sapMsg" hidden></p>
     <div class="kpis desp-k" id="gridDespk"></div>
     <div class="band">PROYECCIÓN DE MERCADO</div>
     <label class="soltar" id="despSoltar" for="despArchivo">
       <input type="file" id="despArchivo" accept=".xlsx,.xlsm,.xls" hidden>
-      <b>Arrastra aquí el Excel</b> o haz clic para seleccionarlo
+      <b>Seleccionar Excel</b>
     </label>
     <p class="aviso" id="despMsg" hidden></p>
     <div class="desp-tablas" id="despTablas"></div>
@@ -381,12 +381,6 @@ html.locked .ppt { display: none !important; }
     <p class="aviso" id="inspMsg" hidden></p>
   </section>
 
-  <section class="sec" aria-labelledby="t-pend">
-    <div class="sec-h"><h2 id="t-pend">Próximas secciones</h2></div>
-    <div class="pendiente">
-      <div><b>Producción y despachos</b>Bases del área de Producción</div>
-    </div>
-  </section>
 </div>
 </div>
 <div class="tip" id="tip" hidden></div>
@@ -1263,7 +1257,7 @@ html.locked .ppt { display: none !important; }
     $('gridDespk').innerHTML = C.map(function (c) {
       return '<article class="card kpi"><h3>' + c[1] + '</h3><div class="big">' + (V[c[0]] != null ? esc(V[c[0]]) : '—') + '</div><div class="lbl">' + c[2] + '</div></article>';
     }).join('');
-    $('sapSoltar').querySelector('b').textContent = S && S.v2 ? 'Excel de despachos: «' + S.archivo + '»' : S ? 'Vuelve a subir el Excel de despachos (SAP)' : 'Arrastra aquí el Excel de despachos (SAP)';
+    $('sapArch').textContent = S && S.v2 ? 'Cargado: «' + S.archivo + '» · ' + String(S.fecha).replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2 $4') : S ? 'Vuelve a subir el Excel de despachos' : '';
   }
   function subirSap(archivo) {
     var m = $('sapMsg'); m.hidden = false; m.textContent = 'Leyendo «' + archivo.name + '»… (es pesado, puede tardar unos segundos)';
@@ -1591,6 +1585,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610220900"></script>
+<script src="reporte_ppt.js?v=202610221150"></script>
 </body>
 </html>
