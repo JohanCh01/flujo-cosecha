@@ -328,7 +328,7 @@ tr.tot td .n { color: inherit; opacity: .8; }
     $('kTot').innerHTML = nf1.format(d.total) + ' <small>kg</small>';
     $('kUa').textContent = nf0.format(g.length);
     $('kPal').textContent = nf0.format(totN);
-    $('tMeta').textContent = 'Actualizado ' + fGen(d.gen) + ' · ' + nf0.format(d.filasExcel) + ' filas en el Excel';
+    $('tMeta').textContent = 'Actualizado ' + fGen(d.gen);
     if (!d.tabla.length) {
       $('tabla').innerHTML = '<div class="vacio">' + (d.filasExcel ? 'El reporte trajo ' + nf0.format(d.filasExcel) + ' paletas, pero ninguna con Stock = SI y Proceso FRESCO.' : 'La búsqueda no trajo paletas para esas fechas.') + '</div>';
       return;
@@ -390,7 +390,7 @@ tr.tot td .n { color: inherit; opacity: .8; }
     var tick = function () {
       var t = Date.now() - S.t0, n = t < 25000 ? 0 : t < 60000 ? 1 : t < 150000 ? 2 : 3;
       pasos(n);
-      estado('Trabajando en GitHub… <b>' + mmss(t) + '</b>. Puedes dejar la página abierta; se actualiza sola.', '', true);
+      estado('Trabajando en GitHub… <b>' + mmss(t) + '</b>', '', true);
     };
     tick(); S.timer = setInterval(tick, 1000);
     revisar();

@@ -5,6 +5,11 @@ name: Stock de paletas
 # Entra a la intranet, descarga el Reporte Lanzado de Paletas (ayer → hoy) y deja la tabla en paletas.json.
 
 on:
+  schedule:
+    # la hora va en UTC (Lima + 5 h): 08:00 UTC = 3 a. m. y 09:00 UTC = 4 a. m. de Lima.
+    # GitHub puede arrancar estas tareas con algunos minutos de retraso.
+    - cron: "0 8 * * *"
+    - cron: "0 9 * * *"
   push:
     paths:
       - solicitud_paletas.json
