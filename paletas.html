@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock de paletas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+:root {
+  --bg: #f2f4ef; --surface: #ffffff; --surface-2: #f7f9f5; --ink: #17201a; --ink-soft: #47554c; --muted: #5c6a60;
+  --line: #d9dfd6; --line-soft: #e9ede6; --accent: #2c6a3b; --accent-ink: #ffffff; --accent-soft: #e0eee1;
+  --danger: #a3301f; --danger-soft: #fbe7e3; --warn: #8a5a00; --warn-soft: #fbf0d6;
+  --g-ua: #eef3ea; --g-sub: #e2eadc; --g-tot: #2c6a3b; --g-tot-ink: #ffffff;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
+    --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
+    --danger: #f08a78; --danger-soft: #3a1d18; --warn: #e7bf6a; --warn-soft: #33290f;
+    --g-ua: #1c241e; --g-sub: #24302a; --g-tot: #2f5a39; --g-tot-ink: #e9f3ea;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
+  --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
+  --danger: #f08a78; --danger-soft: #3a1d18; --warn: #e7bf6a; --warn-soft: #33290f;
+  --g-ua: #1c241e; --g-sub: #24302a; --g-tot: #2f5a39; --g-tot-ink: #e9f3ea;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.4; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 920px; margin: 0 auto; padding: 14px 16px 32px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- encabezado */
+.head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.head .tit { flex: 1; min-width: 200px; }
+.head h1 { margin: 0; font-family: var(--font-cond); font-weight: 600; font-size: 22px; line-height: 1.15; }
+.meta { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 500; text-decoration: none; color: var(--ink); font-size: 14px; }
+.btn svg { width: 17px; height: 17px; flex: none; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(.93); }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+.btn.icono { width: 38px; padding: 0; }
+.user { position: relative; }
+.user-m { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.15); padding: 6px; min-width: 170px; z-index: 20; }
+.user-m p { margin: 4px 8px 8px; color: var(--muted); font-size: 12.5px; }
+.user-m button { width: 100%; text-align: left; border: 0; background: none; padding: 8px; border-radius: 6px; cursor: pointer; }
+.user-m button:hover { background: var(--surface-2); }
+
+/* ---------- panel Iniciar */
+.run { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.run-fila { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.run .btn.primary { height: 48px; padding: 0 22px; font-size: 16px; border-radius: 11px; }
+.run .btn.primary svg { width: 20px; height: 20px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--ink-soft); white-space: nowrap; }
+.chip b { font-weight: 600; color: var(--ink); }
+.estado { font-size: 13.5px; color: var(--ink-soft); display: flex; gap: 8px; align-items: flex-start; }
+.estado.err { color: var(--danger); }
+.estado.warn { color: var(--warn); }
+.estado .spin { width: 16px; height: 16px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: gira .9s linear infinite; flex: none; margin-top: 2px; }
+@keyframes gira { to { transform: rotate(360deg); } }
+.pasos { display: flex; gap: 6px; flex-wrap: wrap; }
+.paso { font-size: 12px; padding: 3px 9px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
+.paso.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.paso.ok { color: var(--accent); }
+
+/* ---------- cifras */
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.kpi .k { font-size: 12px; color: var(--muted); }
+.kpi .v { font-family: var(--font-cond); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.kpi .v small { font-size: 14px; font-weight: 500; color: var(--muted); }
+
+/* ---------- tabla */
+.tabla-c { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.tabla-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tabla-h h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.tabla-h .meta { margin: 0; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-2); position: sticky; top: 0; }
+td.num, th.num { text-align: right; }
+tr.ua-row td { background: var(--g-ua); font-weight: 600; cursor: pointer; }
+tr.ua-row td:first-child::before { content: "▾"; display: inline-block; width: 14px; color: var(--muted); }
+tr.ua-row.cerrado td:first-child::before { content: "▸"; }
+tr.cat td:first-child { padding-left: 34px; color: var(--ink-soft); }
+tr.tot td { background: var(--g-tot); color: var(--g-tot-ink); font-weight: 600; border-bottom: 0; }
+td .n { color: var(--muted); font-size: 12px; margin-left: 6px; }
+tr.tot td .n { color: inherit; opacity: .8; }
+.vacio { padding: 34px 16px; text-align: center; color: var(--muted); }
+
+/* ---------- ingreso */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login form { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 12px; }
+.login h1 { margin: 0; font-family: var(--font-cond); font-size: 22px; }
+.login label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-soft); }
+.login input[type=text], .login input[type=password] { height: 42px; border: 1px solid var(--line); border-radius: 9px; padding: 0 12px; background: var(--surface-2); font-size: 16px; }
+.login .check { display: flex; gap: 8px; align-items: center; }
+.login .msg { color: var(--danger); font-size: 13px; min-height: 18px; margin: 0; }
+.login .btn { height: 44px; }
+.gate { min-height: 100vh; display: grid; place-items: center; color: var(--muted); }
+
+@media (max-width: 560px) {
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpis .kpi:first-child { grid-column: 1 / -1; }
+  th, td { padding: 7px 10px; }
+  tr.cat td:first-child { padding-left: 26px; }
+  .run .btn.primary { width: 100%; }
+  .head-actions .txt { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">Comprobando acceso…</div>
+
+<div class="login" id="login" hidden>
+  <form id="lf" autocomplete="off">
+    <h1>Stock de paletas</h1>
+    <p class="meta" style="margin:0">Ingresa con tu DNI (usuario y contraseña).</p>
+    <label>Usuario<input type="text" id="lu" inputmode="numeric" autocomplete="username"></label>
+    <label>Contraseña<input type="password" id="lp" inputmode="numeric" autocomplete="current-password"></label>
+    <label class="check"><input type="checkbox" id="lk"> Mantener sesión iniciada</label>
+    <p class="msg" id="lm"></p>
+    <button class="btn primary" id="lb" type="submit">Ingresar</button>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
+  <header class="head">
+    <div class="tit">
+      <h1>Stock de paletas</h1>
+      <p class="meta">Reporte Lanzado de Paletas · Planta Muchik</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn" id="btnXls" type="button" disabled title="Descargar la tabla en Excel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>
+        <span class="txt">Excel</span>
+      </button>
+      <div class="user">
+        <button class="btn icono" id="userB" type="button" aria-label="Usuario" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg>
+        </button>
+        <div class="user-m" id="userM" hidden>
+          <p id="userW"></p>
+          <a class="btn" style="width:100%;justify-content:flex-start;border:0;height:34px;padding:0 8px" href="./">Ir al Flujo de cosecha</a>
+          <button type="button" id="userOut">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="run" aria-label="Actualizar">
+    <div class="run-fila">
+      <button class="btn primary" id="btnIni" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+        Iniciar
+      </button>
+      <div class="filtros" id="filtros"></div>
+    </div>
+    <div class="estado" id="estado"></div>
+    <div class="pasos" id="pasos" hidden>
+      <span class="paso" data-p="0">Pedido enviado</span>
+      <span class="paso" data-p="1">Entrando al intranet</span>
+      <span class="paso" data-p="2">Buscando y descargando</span>
+      <span class="paso" data-p="3">Armando la tabla</span>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis" hidden>
+    <div class="kpi"><div class="k">Peso neto en stock · Fresco</div><div class="v" id="kTot">—</div></div>
+    <div class="kpi"><div class="k">Unidades agrícolas</div><div class="v" id="kUa">—</div></div>
+    <div class="kpi"><div class="k">Paletas</div><div class="v" id="kPal">—</div></div>
+  </section>
+
+  <section class="tabla-c">
+    <div class="tabla-h">
+      <h2>Stock = SI · Proceso FRESCO</h2>
+      <p class="meta" id="tMeta"></p>
+    </div>
+    <div class="scroll" id="tabla"><div class="vacio">Todavía no hay datos. Presiona <b>Iniciar</b> para traerlos del intranet.</div></div>
+  </section>
+</div>
+
+<script src="lib/xlsx.full.min.js" defer></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var REPO = 'JohanCh01/flujo-cosecha';
+  var te = new TextEncoder(), td = new TextDecoder();
+  var S = { bits: null, who: '', tok: null, datos: null, cab: null, solSha: null, esperando: null, t0: 0, timer: null, cerrados: new Set() };
+
+  // ---------- utilidades
+  function b64(u8) { var s = '', i; u8 = new Uint8Array(u8); for (i = 0; i < u8.length; i += 32768) s += String.fromCharCode.apply(null, u8.subarray(i, i + 32768)); return btoa(s); }
+  function unb64(str) { var t = atob(str), u = new Uint8Array(t.length); for (var i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function read(st, k) { try { return st.getItem(k); } catch (e) { return null; } }
+  function cleanDni(v) { return String(v == null ? '' : v).toUpperCase().replace(/[^0-9A-Z]/g, ''); }
+  function keyDni(v) { var d = cleanDni(v); return /^\d+$/.test(d) ? d.replace(/^0+(?=\d)/, '') : d; }
+  var nf1 = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  var nf0 = new Intl.NumberFormat('es-PE');
+  function fFecha(iso) { if (!iso) return ''; var p = iso.slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+  function fGen(g) { return g ? fFecha(g) + (g.length > 10 ? ' ' + g.slice(11, 16) : '') : ''; }
+  function mmss(ms) { var s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function hoyLima() { return new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10); }
+  function ayer(iso) { return new Date(Date.parse(iso + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10); }
+
+  // ---------- cifrado (mismo esquema que el Flujo de cosecha)
+  async function dniBits(dni, salt, it) {
+    var base = await crypto.subtle.importKey('raw', te.encode(dni), 'PBKDF2', false, ['deriveBits']);
+    return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: it, hash: 'SHA-256' }, base, 256));
+  }
+  async function admKey(pass, pk) {
+    var base = await crypto.subtle.importKey('raw', te.encode('adm:' + pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: unb64(pk.adm.s), iterations: pk.it, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  }
+  function dec(key, iv, data) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(data)); }
+  async function llave(pk) {                       // la llave de datos del archivo, o null si esta sesión no lo abre
+    if (S.bits && pk.keys) {
+      var dk = await crypto.subtle.importKey('raw', S.bits, 'AES-GCM', false, ['decrypt']);
+      for (var i = 0; i < pk.keys.length; i++) { try { return new Uint8Array(await dec(dk, pk.keys[i].i, pk.keys[i].c)); } catch (e) { /* otra cerradura */ } }
+    }
+    var adm = read(localStorage, 'fc.adm');
+    if (adm && pk.adm) { try { return unb64(JSON.parse(td.decode(await dec(await admKey(adm, pk), pk.adm.i, pk.adm.c))).k); } catch (e) { /* clave vieja */ } }
+    return null;
+  }
+  async function abrir(pk) {                       // contenido descifrado o null
+    if (!pk || !pk.data) return null;
+    var raw = await llave(pk); if (!raw) return null;
+    var k = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    var plano = new Uint8Array(await dec(k, pk.iv, pk.data));
+    if (pk.z) plano = new Uint8Array(await new Response(new Blob([plano]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    return JSON.parse(td.decode(plano));
+  }
+
+  // ---------- archivos del repositorio
+  function getPages(name) { return fetch(name + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function api(ruta, op) {
+    op = op || {}; op.cache = 'no-store';
+    op.headers = Object.assign({ Authorization: 'Bearer ' + S.tok, Accept: 'application/vnd.github+json' }, op.headers || {});
+    return fetch('https://api.github.com/repos/' + REPO + '/contents/' + ruta, op);
+  }
+  async function getApi(name) {                    // {json, sha} directo de GitHub (sin esperar la publicación del sitio)
+    var r = await api(name + '?t=' + Date.now(), { headers: { Accept: 'application/vnd.github.raw' } });
+    if (r.status === 404) return { json: null, sha: null };
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    return { json: JSON.parse(await r.text()), sha: null };
+  }
+  async function shaDe(name) {
+    var r = await api(name + '?t=' + Date.now());
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    return (await r.json()).sha;
+  }
+  async function leerPaletas() {
+    if (S.tok) { try { return (await getApi('paletas.json')).json; } catch (e) { /* se usa la copia del sitio */ } }
+    return getPages('paletas.json');
+  }
+
+  // ---------- ingreso por DNI (la misma sesión del Flujo de cosecha)
+  var DATOS = null;
+  function guardarSes(keep) {
+    try { localStorage.removeItem('fc.ses'); sessionStorage.removeItem('fc.ses'); } catch (e) { /* nada */ }
+    try { (keep ? localStorage : sessionStorage).setItem('fc.ses', JSON.stringify({ k: b64(S.bits), s: DATOS.salt, w: S.who })); } catch (e) { /* sin almacenamiento */ }
+  }
+  async function puedeAbrirDatos() { return !!(await llave(DATOS)); }
+  function mostrarLogin(msg) { $('gate').hidden = true; $('app').hidden = true; $('login').hidden = false; $('lm').textContent = msg || ''; $('lu').focus(); }
+  $('lf').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var u = keyDni($('lu').value), p = keyDni($('lp').value);
+    $('lm').textContent = '';
+    if (!u || u !== p) { $('lm').textContent = 'Acceso denegado'; return; }
+    $('lb').disabled = true; $('lb').textContent = 'Comprobando…';
+    try {
+      S.bits = await dniBits(u, unb64(DATOS.salt), DATOS.it);
+      if (!(await puedeAbrirDatos())) { S.bits = null; $('lm').textContent = 'Acceso denegado'; return; }
+      S.who = 'DNI •••' + u.slice(-3);
+      guardarSes($('lk').checked);
+      await entrar();
+    } catch (err) { $('lm').textContent = 'No se pudo comprobar el acceso. Intenta otra vez.'; }
+    finally { $('lb').disabled = false; $('lb').textContent = 'Ingresar'; }
+  });
+  function salir() { try { localStorage.removeItem('fc.ses'); sessionStorage.removeItem('fc.ses'); } catch (e) { /* nada */ } location.reload(); }
+  $('userOut').onclick = salir;
+  $('userB').onclick = function (e) { e.stopPropagation(); var m = $('userM'); m.hidden = !m.hidden; this.setAttribute('aria-expanded', String(!m.hidden)); };
+  document.addEventListener('click', function (e) { if (!e.target.closest('.user')) { $('userM').hidden = true; $('userB').setAttribute('aria-expanded', 'false'); } });
+
+  // ---------- token para el botón Iniciar: el compartido de fito.json o el del administrador
+  async function buscarToken() {
+    try { var f = await abrir(await getPages('fito.json')); if (f && f.comp && f.comp.gh) return f.comp.gh; } catch (e) { /* sin compartido */ }
+    return read(localStorage, 'fc.tok') || null;
+  }
+
+  // ---------- pintar
+  function pintarFiltros() {
+    var h = hoyLima(), d = S.datos;
+    var desde = d ? d.desde : ayer(h), hasta = d ? d.hasta : h;
+    $('filtros').innerHTML = ['<span class="chip">Cultivo <b>ESPÁRRAGO</b></span>', '<span class="chip">MP <b>ESPÁRRAGO VERDE</b></span>',
+      '<span class="chip">Recepción <b>PLANTA MUCHIK</b></span>', '<span class="chip"><b>' + fFecha(desde) + '</b> → <b>' + fFecha(hasta) + '</b></span>'].join('');
+  }
+  function grupos() {
+    var g = [], porUa = {};
+    (S.datos ? S.datos.tabla : []).forEach(function (x) {
+      if (!porUa[x.ua]) { porUa[x.ua] = { ua: x.ua, kg: 0, n: 0, cats: [] }; g.push(porUa[x.ua]); }
+      porUa[x.ua].kg += x.kg; porUa[x.ua].n += x.n; porUa[x.ua].cats.push(x);
+    });
+    return g;
+  }
+  function pintar() {
+    pintarFiltros();
+    var d = S.datos;
+    $('btnXls').disabled = !(d && d.tabla.length);
+    if (!d) return;
+    var g = grupos(), totN = g.reduce(function (s, x) { return s + x.n; }, 0);
+    $('kpis').hidden = false;
+    $('kTot').innerHTML = nf1.format(d.total) + ' <small>kg</small>';
+    $('kUa').textContent = nf0.format(g.length);
+    $('kPal').textContent = nf0.format(totN);
+    $('tMeta').textContent = 'Actualizado ' + fGen(d.gen) + ' · ' + nf0.format(d.filasExcel) + ' filas en el Excel';
+    if (!d.tabla.length) {
+      $('tabla').innerHTML = '<div class="vacio">' + (d.filasExcel ? 'El reporte trajo ' + nf0.format(d.filasExcel) + ' paletas, pero ninguna con Stock = SI y Proceso FRESCO.' : 'La búsqueda no trajo paletas para esas fechas.') + '</div>';
+      return;
+    }
+    var h = ['<table><thead><tr><th>Unidad agrícola / Categoría</th><th class="num">Peso neto paleta (kg)</th></tr></thead><tbody>'];
+    g.forEach(function (x, i) {
+      var c = S.cerrados.has(x.ua);
+      h.push('<tr class="ua-row' + (c ? ' cerrado' : '') + '" data-ua="' + i + '"><td>' + esc(x.ua) + '<span class="n">' + x.n + ' pal.</span></td><td class="num">' + nf1.format(x.kg) + '</td></tr>');
+      if (!c) x.cats.forEach(function (k) { h.push('<tr class="cat"><td>' + esc(k.cat) + '<span class="n">' + k.n + ' pal.</span></td><td class="num">' + nf1.format(k.kg) + '</td></tr>'); });
+    });
+    h.push('<tr class="tot"><td>Total FRESCO<span class="n">' + totN + ' pal.</span></td><td class="num">' + nf1.format(d.total) + '</td></tr></tbody></table>');
+    $('tabla').innerHTML = h.join('');
+  }
+  $('tabla').addEventListener('click', function (e) {
+    var tr = e.target.closest('tr.ua-row'); if (!tr) return;
+    var ua = grupos()[Number(tr.dataset.ua)].ua;
+    if (S.cerrados.has(ua)) S.cerrados.delete(ua); else S.cerrados.add(ua);
+    pintar();
+  });
+
+  function estado(txt, tipo, girando) {
+    $('estado').className = 'estado' + (tipo ? ' ' + tipo : '');
+    $('estado').innerHTML = (girando ? '<span class="spin" aria-hidden="true"></span>' : '') + '<span>' + txt + '</span>';
+  }
+  function estadoReposo() {
+    var c = S.cab;
+    if (!S.tok) { estado('Para usar <b>Iniciar</b> falta el permiso de guardado del sitio (configurar_compartido.py). Puedes ver la última tabla.', 'warn'); $('btnIni').disabled = true; return; }
+    $('btnIni').disabled = false;
+    if (c && c.estado === 'error') estado('La última corrida (' + fGen(c.gen) + ') no terminó: ' + esc(c.msg) + (S.datos ? ' Se muestra la tabla anterior.' : ''), 'err');
+    else if (S.datos) estado('Última actualización: <b>' + fGen(S.datos.gen) + '</b>. Presiona <b>Iniciar</b> para traer lo más reciente.');
+    else estado('Presiona <b>Iniciar</b>: entra al intranet, descarga el reporte y arma la tabla (tarda unos 2 a 4 minutos).');
+  }
+  function pasos(n) {
+    $('pasos').hidden = n < 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.paso'), function (p) { var i = Number(p.dataset.p); p.className = 'paso' + (i < n ? ' ok' : i === n ? ' on' : ''); });
+  }
+
+  // ---------- Iniciar: guarda la solicitud en el repositorio; eso arranca la tarea en GitHub
+  $('btnIni').onclick = async function () {
+    var b = this; b.disabled = true;
+    estado('Enviando el pedido…', '', true); pasos(0);
+    try {
+      var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      var sha = await shaDe('solicitud_paletas.json');
+      var cuerpo = { message: 'Pedido de stock de paletas', content: b64(te.encode(JSON.stringify({ id: id, t: new Date().toISOString(), w: S.who }) + '\n')) };
+      if (sha) cuerpo.sha = sha;
+      var r = await api('solicitud_paletas.json', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+      if (!r.ok) throw new Error(r.status === 401 ? 'el permiso de guardado venció' : 'GitHub respondió ' + r.status);
+      try { localStorage.setItem('pal.sol', JSON.stringify({ id: id, t: Date.now() })); } catch (e) { /* nada */ }
+      esperar(id, Date.now());
+    } catch (e) {
+      pasos(-1); b.disabled = false;
+      estado('No se pudo enviar el pedido (' + esc(e.message) + '). Intenta de nuevo.', 'err');
+    }
+  };
+  function esperar(id, t0) {
+    S.esperando = id; S.t0 = t0; $('btnIni').disabled = true;
+    clearInterval(S.timer);
+    var tick = function () {
+      var t = Date.now() - S.t0, n = t < 25000 ? 0 : t < 60000 ? 1 : t < 150000 ? 2 : 3;
+      pasos(n);
+      estado('Trabajando en GitHub… <b>' + mmss(t) + '</b>. Puedes dejar la página abierta; se actualiza sola.', '', true);
+    };
+    tick(); S.timer = setInterval(tick, 1000);
+    revisar();
+  }
+  async function revisar() {
+    if (!S.esperando) return;
+    var pk = null;
+    try { pk = (await getApi('paletas.json')).json; } catch (e) { /* se reintenta */ }
+    if (pk && pk.sol === S.esperando) {
+      clearInterval(S.timer); S.esperando = null; pasos(-1);
+      try { localStorage.removeItem('pal.sol'); } catch (e) { /* nada */ }
+      await cargar(pk);
+      if (pk.estado === 'error') estado('No se pudo completar: ' + esc(pk.msg) + (S.datos ? ' Se muestra la tabla anterior.' : ''), 'err');
+      else estado('Listo: tabla actualizada (' + fGen(pk.gen) + ').');
+      $('btnIni').disabled = false;
+      return;
+    }
+    if (Date.now() - S.t0 > 20 * 60000) {
+      clearInterval(S.timer); S.esperando = null; pasos(-1); $('btnIni').disabled = false;
+      try { localStorage.removeItem('pal.sol'); } catch (e) { /* nada */ }
+      estado('La tarea tardó más de 20 minutos. Revisa en GitHub → Actions → «Stock de paletas» o vuelve a presionar Iniciar.', 'err');
+      return;
+    }
+    setTimeout(revisar, 10000);
+  }
+  async function cargar(pk) {
+    S.cab = pk;
+    if (pk && pk.data) { try { S.datos = await abrir(pk); } catch (e) { S.datos = null; } }
+    pintar();
+  }
+
+  // ---------- Excel con la misma forma de la tabla dinámica
+  $('btnXls').onclick = function () {
+    if (!window.XLSX || !S.datos) return;
+    var d = S.datos, filas = [['Proceso', 'Unidad Agricola', 'Categoria', 'Suma de Peso Neto Paleta']];
+    grupos().forEach(function (x) {
+      x.cats.forEach(function (k, i) { filas.push(['FRESCO', i ? '' : x.ua, k.cat, k.kg]); });
+      filas.push(['', 'Total ' + x.ua, '', Math.round(x.kg * 100) / 100]);
+    });
+    filas.push(['Total FRESCO', '', '', d.total]);
+    filas.push([]);
+    filas.push(['Filtros: Stock = SI · Proceso = FRESCO · ESPÁRRAGO / ESPÁRRAGO VERDE · PLANTA MUCHIK · ' + fFecha(d.desde) + ' al ' + fFecha(d.hasta)]);
+    filas.push(['Actualizado: ' + fGen(d.gen)]);
+    var ws = XLSX.utils.aoa_to_sheet(filas);
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 16 }, { wch: 24 }];
+    for (var r = 1; r < filas.length; r++) { var c = ws[XLSX.utils.encode_cell({ r: r, c: 3 })]; if (c && typeof c.v === 'number') c.z = '#,##0.0'; }
+    var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Stock paletas');
+    XLSX.writeFile(wb, 'Stock_Paletas_' + d.hasta + '.xlsx');
+  };
+
+  // ---------- arranque
+  async function entrar() {
+    $('login').hidden = true; $('gate').hidden = false;
+    $('userW').textContent = S.who || 'Administrador';
+    S.tok = await buscarToken();
+    await cargar(await leerPaletas());
+    $('gate').hidden = true; $('app').hidden = false;
+    estadoReposo();
+    var p = null; try { p = JSON.parse(read(localStorage, 'pal.sol') || 'null'); } catch (e) { p = null; }
+    if (p && p.id && S.tok && (!S.cab || S.cab.sol !== p.id) && Date.now() - p.t < 20 * 60000) esperar(p.id, p.t);   // un pedido que seguía en curso
+  }
+  (async function () {
+    if (!window.crypto || !crypto.subtle || !window.DecompressionStream) { $('gate').textContent = 'Este navegador no puede abrir la página. Usa Chrome o Edge actualizados.'; return; }
+    DATOS = await getPages('datos.json');
+    if (!DATOS || !DATOS.salt) { $('gate').textContent = 'No se pudo leer la lista de accesos. Revisa tu conexión y recarga.'; return; }
+    var o = null;
+    try { o = JSON.parse(read(sessionStorage, 'fc.ses') || read(localStorage, 'fc.ses') || 'null'); } catch (e) { o = null; }
+    if (o && o.k) { S.bits = unb64(o.k); S.who = o.w || 'DNI'; }
+    if ((S.bits || read(localStorage, 'fc.adm')) && await puedeAbrirDatos()) return entrar();
+    S.bits = null; mostrarLogin();
+  })().catch(function () { mostrarLogin('No se pudo comprobar el acceso. Intenta otra vez.'); });
+})();
+</script>
+</body>
+</html>

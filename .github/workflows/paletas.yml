@@ -1,0 +1,58 @@
+name: Stock de paletas
+
+# Corre cuando presionas «Iniciar» en paletas.html: la página guarda solicitud_paletas.json en el
+# repositorio y ese cambio arranca esta tarea. También se puede correr a mano con «Run workflow».
+# Entra a la intranet, descarga el Reporte Lanzado de Paletas (ayer → hoy) y deja la tabla en paletas.json.
+
+on:
+  push:
+    paths:
+      - solicitud_paletas.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stock-paletas
+  cancel-in-progress: false
+
+jobs:
+  paletas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar lo necesario
+        run: pip install --quiet selenium openpyxl cryptography python-calamine
+
+      - name: Descargar de la intranet y armar la tabla
+        env:
+          INTRANET_USUARIO: ${{ secrets.INTRANET_USUARIO }}
+          INTRANET_CLAVE: ${{ secrets.INTRANET_CLAVE }}
+          ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
+          DESCARGAS_DIR: ${{ runner.temp }}/descargas
+        run: python paletas.py
+
+      # Se guarda aunque el paso anterior falle: así la página muestra el aviso de error
+      - name: Guardar el resultado
+        if: always()
+        run: |
+          if [ ! -f paletas.json ]; then echo "No hay nada que guardar."; exit 0; fi
+          git add paletas.json
+          if git diff --cached --quiet; then echo "Sin cambios que guardar."; exit 0; fi
+          git config user.name "actualizacion-automatica"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "Stock de paletas ($(TZ=America/Lima date '+%d/%m/%Y %H:%M'))"
+          # si otra actualización publicó al mismo tiempo, se trae su cambio y se vuelve a intentar
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase -q
+          done
+          echo "No se pudo guardar después de 5 intentos."; exit 1
