@@ -5,11 +5,13 @@ name: Stock de paletas
 # Entra a la intranet, descarga el Reporte Lanzado de Paletas (ayer → hoy) y deja la tabla en paletas.json.
 
 on:
+  # Corridas automáticas: 3:02 a. m. y 4:05 a. m. (Lima). GitHub NO arranca las tareas programadas a la
+  # hora exacta (a veces con retraso, y rara vez se salta una), por eso se programan varios avisos de
+  # 3:02 a 6:50 a. m. Cada aviso mira la hora de Lima y solo corre si ya toca y todavía no se hizo;
+  # si una corrida falla, el siguiente aviso la vuelve a intentar. Los demás terminan en segundos.
+  # Para cambiar las horas, edita HORA_1 y HORA_2 en el paso «Ver si toca correr ahora».
   schedule:
-    # la hora va en UTC (Lima + 5 h): 08:00 UTC = 3 a. m. y 09:00 UTC = 4 a. m. de Lima.
-    # GitHub puede arrancar estas tareas con algunos minutos de retraso.
-    - cron: "0 8 * * *"
-    - cron: "0 9 * * *"
+    - cron: "2,5,20,35,50 8-11 * * *"   # la hora va en UTC (Lima + 5 h): 8:02 UTC = 3:02 a. m. de Lima
   push:
     paths:
       - solicitud_paletas.json
@@ -29,14 +31,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ver si toca correr ahora
+        id: turno
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Pedido desde la página o a mano: se corre ahora."; echo "correr=si" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Horas de Lima (24 horas, HH:MM) desde las que toca cada corrida automática
+          HORA_1="03:02"
+          HORA_2="04:05"
+          ahora=$(TZ=America/Lima date +%H:%M)
+          dia=$(TZ=America/Lima date +%F)
+          echo "En Lima son las $ahora del $dia."
+          if [ ! "$ahora" \< "$HORA_2" ]; then turno=$HORA_2
+          elif [ ! "$ahora" \< "$HORA_1" ]; then turno=$HORA_1
+          else echo "Todavía no son las $HORA_1: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          marca="$dia-$turno"
+          if [ "$(cat ultima_paletas.txt 2>/dev/null)" = "$marca" ]; then
+            echo "La corrida de las $turno de hoy ya se hizo: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "Toca la corrida de las $turno."
+          echo "correr=si" >> "$GITHUB_OUTPUT"
+          echo "marca=$marca" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-python@v5
+        if: steps.turno.outputs.correr == 'si'
         with:
           python-version: "3.12"
 
       - name: Instalar lo necesario
+        if: steps.turno.outputs.correr == 'si'
         run: pip install --quiet selenium openpyxl cryptography python-calamine
 
       - name: Descargar de la intranet y armar la tabla
+        id: descarga
+        if: steps.turno.outputs.correr == 'si'
         env:
           INTRANET_USUARIO: ${{ secrets.INTRANET_USUARIO }}
           INTRANET_CLAVE: ${{ secrets.INTRANET_CLAVE }}
@@ -46,9 +76,12 @@ jobs:
 
       # Se guarda aunque el paso anterior falle: así la página muestra el aviso de error
       - name: Guardar el resultado
-        if: always()
+        if: always() && steps.turno.outputs.correr == 'si'
         run: |
           if [ ! -f paletas.json ]; then echo "No hay nada que guardar."; exit 0; fi
+          # la corrida automática queda anotada solo si salió bien (si falló, el siguiente aviso la repite)
+          marca="${{ steps.turno.outputs.marca }}"
+          if [ -n "$marca" ] && [ "${{ steps.descarga.outcome }}" = "success" ]; then echo "$marca" > ultima_paletas.txt; git add ultima_paletas.txt; fi
           git add paletas.json
           if git diff --cached --quiet; then echo "Sin cambios que guardar."; exit 0; fi
           git config user.name "actualizacion-automatica"
