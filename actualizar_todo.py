@@ -1,10 +1,11 @@
 """
 Actualiza TODO lo que se sube desde tu laptop al Reporte diario, uno detrás de otro:
 
-  1. recepcion_sql.py   Kilos recepcionados (SQL)
-  2. drenados_pbi.py    Kilos drenados y Producto terminado observado (Power BI)
-  3. mano_obra_pbi.py   Mano de obra – CMO (Power BI)
-  4. reclamos_pbi.py    Ratio de reclamos penalizados (Power BI)
+  1. bases_locales.py   Bases de FOSFINA, CALIDADES Y CALIBRES y LONGITUDES (Escritorio/SEGUIMIENTO DE MMPP)
+  2. recepcion_sql.py   Kilos recepcionados (SQL)
+  3. drenados_pbi.py    Kilos drenados y Producto terminado observado (Power BI)
+  4. mano_obra_pbi.py   Mano de obra – CMO (Power BI)
+  5. reclamos_pbi.py    Ratio de reclamos penalizados (Power BI)
 
 El Excel de ventas (Proyección de mercado) y el de despachos de SAP se suben en la página, con «Seleccionar Excel».
 
@@ -13,6 +14,7 @@ Si uno falla, sigue con los demás y al final te dice cuáles salieron bien y cu
 Uso (en Git Bash, dentro de la carpeta flujo-cosecha):
     python actualizar_todo.py
     python actualizar_todo.py --solo drenados mano_obra   (solo esos)
+    python actualizar_todo.py --solo bases                (solo las 3 bases de tu Escritorio)
 """
 
 import argparse
@@ -24,6 +26,7 @@ from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
 PASOS = [
+    ("bases", "bases_locales.py", "Bases de SEGUIMIENTO DE MMPP (fosfina, calidades, longitudes)"),
     ("recepcion", "recepcion_sql.py", "Kilos recepcionados (SQL)"),
     ("drenados", "drenados_pbi.py", "Kilos drenados y producto observado"),
     ("mano_obra", "mano_obra_pbi.py", "Mano de obra – CMO"),

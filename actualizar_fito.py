@@ -602,9 +602,11 @@ def guardar_fito(contenido, dnis, clave_admin, iteraciones, sal):
 # 4. DESCARGA DE LA BASE DE FOSFINA DESDE GOOGLE DRIVE (como bd.py)
 # ============================================================
 
-def descargar_fosfina(carpeta, buscar=None, archivo="fosfina.xlsx"):
+def descargar_fosfina(carpeta, buscar=None, archivo="fosfina.xlsx", no_antes_de=None):
     """Baja de la carpeta de Drive el archivo más reciente cuyo nombre contenga `buscar` (por defecto NOMBRE_FOSFINA).
-    Devuelve (ruta, nombre) o (None, None)."""
+    Devuelve (ruta, nombre) o (None, None).
+    no_antes_de = fecha UTC «AAAA-MM-DDTHH:MM» de la base que se subió desde la laptop (bases_locales.py):
+    si el archivo de Drive no es más nuevo que esa, no se baja (así no se tapa la de la laptop con una vieja)."""
     buscar = buscar or NOMBRE_FOSFINA
     cred_txt = os.environ.get("GOOGLE_CREDENCIALES", "").strip()
     carpeta_id = os.environ.get("DRIVE_CARPETA_ID", "").strip()
@@ -628,6 +630,9 @@ def descargar_fosfina(carpeta, buscar=None, archivo="fosfina.xlsx"):
         return None, None
     info = archivos[0]
     log(f"Drive: '{info['name']}' (modificado {info.get('modifiedTime')}).")
+    if no_antes_de and str(info.get("modifiedTime") or "")[:16] <= no_antes_de:
+        log(f"La base «{buscar}» que se subió desde la laptop ({no_antes_de} UTC) es más nueva que la de Drive: se conserva.")
+        return None, None
     if info.get("mimeType") == "application/vnd.google-apps.spreadsheet":   # hoja de Google: se exporta como Excel
         pedido = servicio.files().export_media(fileId=info["id"], mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     else:
@@ -685,12 +690,20 @@ def main():
         log("Aviso: no hay Excel de recepción de esta corrida; se conserva la recepción ya guardada.")
     rec = empacar_recepcion(rec_dias)
 
+    # bases subidas desde la laptop (bases_locales.py): Drive solo las reemplaza si su archivo es más nuevo
+    fuentes = dict(anterior.get("fuentes") or {})
+    def desde_laptop(k):
+        f = fuentes.get(k) or {}
+        return f.get("utc") if f.get("origen") == "laptop" else None
+
     # --- fosfina: se reemplaza completa
     fito, nombre_fito = None, None
     try:
-        ruta_fos, nombre_fito = (Path(a.fosfina), Path(a.fosfina).stem) if a.fosfina else descargar_fosfina(carpeta)
+        ruta_fos, nombre_fito = (Path(a.fosfina), Path(a.fosfina).stem) if a.fosfina else descargar_fosfina(carpeta, no_antes_de=desde_laptop("fito"))
         if ruta_fos:
             fito = leer_fosfina(ruta_fos)
+            fito["name"] = "Base fitosanitaria (Drive)"
+            fuentes.pop("fito", None)
             log(f"Fosfina: {fito['nRows']} evaluaciones de {len(fito['fields'])} campos, hasta el {str(fito['maxYmd'])[6:]}/{str(fito['maxYmd'])[4:6]}/{str(fito['maxYmd'])[:4]}.")
     except Detener:
         raise
@@ -700,7 +713,7 @@ def main():
         fito = anterior.get("fito")
     if not fito or not rec:
         raise Detener("Todavía falta " + ("la base de fosfina" if not fito else "la recepción") + ": no se publica fito.json.")
-    fito["name"] = "Base fitosanitaria (Drive)"
+    fito.setdefault("name", "Base fitosanitaria (Drive)")
     rec["name"] = "Recepción de materia prima (intranet)"
 
     # --- calidades y longitudes (Reporte diario): si algo falla, se conserva lo anterior y lo demás sigue
@@ -708,8 +721,10 @@ def main():
     for clave, buscar, archivo, leer, local in (("cal", NOMBRE_CALIDADES, "calidades.xlsx", leer_calidades, a.calidades),
                                                  ("lon", NOMBRE_LONGITUDES, "longitudes.xlsx", leer_longitudes, a.longitudes)):
         try:
-            ruta = Path(local) if local else descargar_fosfina(carpeta / "drive", buscar, archivo)[0]
+            ruta = Path(local) if local else descargar_fosfina(carpeta / "drive", buscar, archivo, no_antes_de=desde_laptop(clave))[0]
             extra[clave] = leer(ruta) if ruta else None
+            if extra[clave] is not None:
+                fuentes.pop(clave, None)
         except Exception as e:
             log(f"Aviso: no se pudo leer la base de {buscar} ({type(e).__name__}: {e}). Se conserva la anterior.")
             extra[clave] = None
@@ -719,13 +734,15 @@ def main():
             del extra[clave]
 
     contenido = {"v": 1, "fito": fito, "rec": rec, **extra}
+    if fuentes:
+        contenido["fuentes"] = fuentes
     # bloques que se suben desde la laptop (aquí solo se conservan):
     #   rsql = kilos recepcionados del SQL (recepcion_sql.py) · dren = kilos drenados del Power BI (drenados_pbi.py)
     #   mo = mano de obra CMO del Power BI (mano_obra_pbi.py) · recl = ratio de reclamos (reclamos_pbi.py)
     for k in ("rsql", "dren", "mo", "recl", "desp", "comp"):
         if anterior.get(k):
             contenido[k] = anterior[k]
-    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon", "rsql", "dren", "mo", "recl", "desp", "comp") if k in anterior or k in contenido} == contenido
+    igual = {k: anterior.get(k) for k in ("v", "fito", "rec", "cal", "lon", "fuentes", "rsql", "dren", "mo", "recl", "desp", "comp") if k in anterior or k in contenido} == contenido
     if igual and firma_anterior == _firma(dnis, sal, it):
         log("fito.json ya estaba al día: no se cambia nada.")
         return 0
