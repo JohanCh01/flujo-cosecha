@@ -19,6 +19,7 @@ Uso (en Git Bash, dentro de la carpeta flujo-cosecha):
     python bases_locales.py --carpeta "C:/Users/jchinguel/Desktop/SEGUIMIENTO DE MMPP"   (si está en otra ruta)
     python bases_locales.py --forzar                (vuelve a leer aunque el Excel no haya cambiado)
     python bases_locales.py --sin-subir             (solo lee y muestra; no sube nada)
+    python bases_locales.py --revisar               (revisa la base de FOSFINA: columnas y semanas que entran al reporte)
 Necesita: pip install openpyxl python-calamine
 """
 
@@ -61,12 +62,43 @@ def fecha_archivo(f):
     return datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%dT%H:%M")
 
 
+def revisar(raiz):
+    """Muestra qué columnas trae la base de FOSFINA y cuántas evaluaciones entran al Reporte diario por semana y zona."""
+    from collections import Counter
+    f = excel_mas_reciente(raiz / "FOSFINA")
+    if not f:
+        sys.exit(f"No hay Excel en {raiz / 'FOSFINA'}")
+    log(f"Revisando «{f.name}»…")
+    d = af.leer_fosfina(f)
+    print("\nColumnas del Excel:", " | ".join(d["headers"]))
+    print("Columnas que usa el reporte y SÍ encontró:", ", ".join(d["indCols"]) or "(ninguna)")
+    print("Valores de STATUS:", d["statuses"])
+    W, ind, ev = d["indW"], d["ind"], d["ev"]
+    cuenta, sin_fresco, sin_valor = Counter(), Counter(), Counter()
+    zona = lambda ua: "COMPOSITAN" if "COMPOSITAN" in ua else "OLMOS" if "OLMOS" in ua else "TERCEROS"
+    for i in range(len(ev) // 8):
+        sem, ua, st = ev[i * 8 + 7], d["fields"][ev[i * 8]][0], d["statuses"][ev[i * 8 + 2]]
+        anio = int(str(af._sumar_dias(d["base"], ev[i * 8 + 1]))[:4])
+        if anio != datetime.now().year or sem < 40:
+            continue
+        k = (sem, zona(ua), st or "(vacío)")
+        cuenta[k] += 1
+        if not ind[i * W + 6]:
+            sin_fresco[k] += 1
+        elif all(v < 0 for v in ind[i * W + 2:i * W + 6]):
+            sin_valor[k] += 1
+    print("\nSemana · zona · STATUS → evaluaciones (no FRESCO / sin valores)")
+    for k in sorted(cuenta):
+        print(f"   sem {k[0]:>2} · {k[1]:<10} · {k[2]:<12} → {cuenta[k]:>4}   ({sin_fresco[k]} no FRESCO, {sin_valor[k]} sin valores)")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Sube a la web las bases de fosfina, calidades y longitudes de tu laptop")
     ap.add_argument("--carpeta", help="carpeta SEGUIMIENTO DE MMPP (si no, la busca en tu Escritorio)")
     ap.add_argument("--solo", nargs="+", choices=[b[3] for b in BASES], help="solo estas bases")
     ap.add_argument("--forzar", action="store_true", help="leer aunque el Excel no haya cambiado")
     ap.add_argument("--sin-subir", action="store_true", help="solo leer y mostrar; no sube nada")
+    ap.add_argument("--revisar", action="store_true", help="revisa la base de FOSFINA (no sube nada)")
     a = ap.parse_args()
 
     raiz = carpeta_mmpp(a.carpeta)
@@ -74,6 +106,8 @@ def main():
         sys.exit(f"No encuentro la carpeta {raiz}.\n"
                  'Ponla entre comillas, por ejemplo:  python bases_locales.py --carpeta "C:/Users/jchinguel/Desktop/SEGUIMIENTO DE MMPP"')
     log(f"Carpeta: {raiz}")
+    if a.revisar:
+        return revisar(raiz)
 
     clave = None if a.sin_subir else rs.clave_admin()
     if clave:
