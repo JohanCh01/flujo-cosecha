@@ -359,14 +359,34 @@ VAR_TAMANO = "Tamaño de Muestra#Tamaño de Muestra"
 
 
 def leer_qm(conn, cartilla, anio_desde):
+    # Se filtra por fecha y por cada variable por separado (sin YEAR() ni concatenar en el WHERE),
+    # así el servidor puede usar sus índices y la consulta es más rápida. El resultado es el mismo.
+    variables = [v.split("#", 1) for v in (VAR_PEDIDO, VAR_SEMILLADO, VAR_TAMANO)]
     q = ("SELECT InspeccionID, GrupoVariable + '#' + VariableNombre AS Combinada, "
          "VariableValor, NroMuestra "
          "FROM HECHO_DATOS_QMCLOUD_CALIDAD "
          "WHERE NombreCartilla = ? AND NombreTipoCartilla = ? "
-         "AND YEAR(FechaHoraMuestra) >= ? "
-         "AND GrupoVariable + '#' + VariableNombre IN (?, ?, ?)")
-    return pd.read_sql(q, conn, params=[cartilla, TIPO_CARTILLA, anio_desde,
-                                        VAR_PEDIDO, VAR_SEMILLADO, VAR_TAMANO])
+         "AND FechaHoraMuestra >= ? "
+         "AND (" + " OR ".join(["(GrupoVariable = ? AND VariableNombre = ?)"] * len(variables)) + ")")
+    params = [cartilla, TIPO_CARTILLA, datetime(anio_desde, 1, 1)] + [x for g in variables for x in g]
+    return pd.read_sql(q, conn, params=params)
+
+
+SQL_TIEMPO_MAX = 900   # segundos por consulta; si el servidor tarda más, se detiene con un aviso
+
+
+def consulta(nombre, funcion, *args):
+    log(f"  {nombre}…")
+    t0 = datetime.now()
+    try:
+        df = funcion(*args)
+    except Exception as e:
+        if "HYT00" in str(e) or "timeout" in str(e).lower():
+            raise RuntimeError(f"El SQL tardó más de {SQL_TIEMPO_MAX // 60} minutos en «{nombre}». "
+                               "Puede estar muy ocupado o la conexión está lenta: inténtalo más tarde, conectado al wifi de Danper.")
+        raise
+    log(f"    listo: {len(df):,} filas en {(datetime.now() - t0).seconds} s")
+    return df
 
 
 def armar_inspeccion(df, decimales):
@@ -663,9 +683,13 @@ def main():
     log("Consultando SQL...")
     conn = conectar_sql()
     try:
-        prod = leer_produccion(conn)
-        qm_pt = leer_qm(conn, CARTILLA_PT, ANIO_DESDE_PT)
-        qm_em = leer_qm(conn, CARTILLA_EM, ANIO_DESDE_EM)
+        conn.timeout = SQL_TIEMPO_MAX
+    except Exception:
+        pass
+    try:
+        prod = consulta("Producción (HECHO_RESUMEN_PRODUCCION)", leer_produccion, conn)
+        qm_pt = consulta("Inspección PT (QM Cloud)", leer_qm, conn, CARTILLA_PT, ANIO_DESDE_PT)
+        qm_em = consulta("Inspección de empaque (QM Cloud)", leer_qm, conn, CARTILLA_EM, ANIO_DESDE_EM)
     finally:
         conn.close()
 
