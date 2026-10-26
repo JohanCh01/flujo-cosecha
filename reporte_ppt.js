@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610221615';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610261030';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -152,8 +152,10 @@
         v['f.' + z + '.' + id + '.colores'] = colores;
         barras[z + '.' + id] = segs;
       });
-      var c = R.cal(Z), kgRec = (rc.zonas || []).filter(function (x) { return x.z === Z; }).reduce(function (a, x) { return a + x.kg; }, 0);
-      v['hay.' + z] = kgRec > 0 || (c.per && c.per.kg > 0) || R.fito(Z).some(function (f) { return f.res && f.res.n > 0; });
+      var c = R.cal(Z);
+      // la diapositiva de la zona (9, 10, 11) va solo si en la base fitosanitaria hay evaluaciones de esa zona en la semana elegida
+      // (PROCESO = FRESCO, ya filtrado al leer la base); si esa semana la zona no tuvo, la diapositiva no se incluye
+      v['hay.' + z] = R.fito(Z).some(function (f) { return f.res && f.res.n > 0; });
       [['sm', 'sm'], ['lo', 'lo'], ['cr', 'cr']].forEach(function (q) {
         v['c.' + z + '.' + q[0] + '.acu'] = pc(c.acu[q[1]], true);
         v['c.' + z + '.' + q[0] + '.eje'] = c.per[q[1]] == null ? '' : ' ' + pc(c.per[q[1]]);
@@ -161,7 +163,7 @@
     });
     return v;
   }
-  // diapositivas que van: si una zona (Compositan, Olmos, Terceros) no tiene datos en el periodo, su diapositiva no se incluye
+  // diapositivas que van: si una zona (Compositan, Olmos, Terceros) no tiene evaluaciones fitosanitarias FRESCO en la semana, su diapositiva no se incluye
   // cuadros: los de la plantilla + los textos que agregues con «+ Texto»
   function campos() {
     return plantilla.campos.concat((ed.x || []).map(function (x) {
