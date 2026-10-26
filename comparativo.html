@@ -447,8 +447,19 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   function refrescar() { armarFiltros(); render(); }
 
   // ---------- tabla
+  // Sin dato ≠ 0 %: si el pedido no tiene producción (procedencia/días) o no tiene inspección, el valor es "–"
+  function grupoDe(k) {
+    return /^% (Compositan|Olmos|Terceros|Re-proceso)$/.test(k) ? 'proc' : /^% \dD$/.test(k) ? 'dias' : / PT$/.test(k) ? 'pt' : / EM$/.test(k) ? 'em' : null;
+  }
+  function valorConDato(r, k) {
+    var g = grupoDe(k);
+    if (g === 'proc' && !sumaProc(r)) return null;
+    if (g === 'dias' && !sumaDias(r)) return null;
+    if ((g === 'pt' || g === 'em') && !conInsp(r, g.toUpperCase())) return null;
+    return r[k];
+  }
   function celda(r, c, g, primera) {
-    var v = r[c[0]], cls = g.id + (primera ? ' sep' : ''), t = c[2];
+    var v = valorConDato(r, c[0]), cls = g.id + (primera ? ' sep' : ''), t = c[2];
     if (t === 'h' || t === 'p') {
       if (v == null) return '<td class="' + cls + ' vacio">–</td>';
       if (!v) return '<td class="' + cls + ' cero">0 %</td>';
@@ -528,7 +539,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       var colFecha = { 0: 1 };
       state.vista.forEach(function (r) {
         var f = [serial(r.fd), r.pv], ci = 2;
-        GRUPOS.forEach(function (g) { g.cols.forEach(function (c) { var v = r[c[0]]; if (c[2] === 'd') { colFecha[ci] = 1; v = serial(v); } f.push(v == null ? null : v); ci++; }); });
+        GRUPOS.forEach(function (g) { g.cols.forEach(function (c) { var v = valorConDato(r, c[0]); if (c[2] === 'd') { colFecha[ci] = 1; v = serial(v); } f.push(v == null ? null : v); ci++; }); });
         f.push(r.conteo || null); fil.push(f);
       });
       var ws = XLSX.utils.aoa_to_sheet([enc].concat(fil));
@@ -726,10 +737,11 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     function p(v) { return v == null ? '' : Math.round(v * 100); }
     function t(v) { return String(v == null ? '' : v).replace(/[;\n\r]/g, ' '); }
     return [cab.join(';')].concat(state.vista.map(function (r) {
+      function q(k) { return p(valorConDato(r, k)); }
       var f = [fecha(r.fd), r.pv, t(r.cli), t(r.tipo), t(r.fcl), fecha(r.eta), t(r.reclamo), t(r['Status Final']), t(r['Resultados Inspección']),
-        p(r['% Compositan']), p(r['% Olmos']), p(r['% Terceros']), p(r['% Re-proceso'])];
-      for (var d = 1; d <= 8; d++) f.push(p(r['% ' + d + 'D']));
-      f.push(p(r['Prom C-% PT']), p(r['Máx C-% PT']), p(r['Mín C-% PT']), p(r['Prom C-% EM']), p(r['Máx C-% EM']), p(r['Mín C-% EM']), t(r['Vida Útil']), t(r['Con Tolerancia']), t(r.conteo));
+        q('% Compositan'), q('% Olmos'), q('% Terceros'), q('% Re-proceso')];
+      for (var d = 1; d <= 8; d++) f.push(q('% ' + d + 'D'));
+      f.push(q('Prom C-% PT'), q('Máx C-% PT'), q('Mín C-% PT'), q('Prom C-% EM'), q('Máx C-% EM'), q('Mín C-% EM'), t(r['Vida Útil']), t(r['Con Tolerancia']), t(r.conteo));
       return f.join(';');
     })).join('\n');
   }
@@ -1068,7 +1080,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       if (y > H - 12) { y = cabDetalle(); fdPrev = null; }
       var xx = M;
       cols.forEach(function (c) {
-        var v = r[c[1]], s, f = fondoCol(c);
+        var v = valorConDato(r, c[1]), s, f = fondoCol(c);
         if (f) { fill(f); doc.rect(xx, y - 3.4, c[3], 4.8, 'F'); }
         if (c[2] === 'd') s = v ? fecha(v) : '-';
         else if (c[2] === 'p') s = v == null ? '-' : Math.round(v * 100) + '%';
