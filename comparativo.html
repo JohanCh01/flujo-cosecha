@@ -406,7 +406,12 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var ix = {}; d.cols.forEach(function (c, i) { ix[c] = i; });
     state.rows = d.rows.map(function (r) { var o = {}; for (var k in ix) o[k] = r[ix[k]]; return o; });
     state.rows.sort(function (a, b) { return (b.fd || '').localeCompare(a.fd || '') || String(b.pv).localeCompare(String(a.pv)); });
+    // los pedidos que todavía no tienen ningún dato (ni producción ni inspección) no se muestran
+    var todos = state.rows;
+    state.rows = todos.filter(tieneDatos);
+    state.sinDatos = todos.length - state.rows.length;
   }
+  function tieneDatos(r) { return sumaProc(r) > 0 || sumaDias(r) > 0 || conInsp(r, 'PT') || conInsp(r, 'EM'); }
 
   // ---------- filtros
   function opciones(sel, valores, todas, valor) {
@@ -475,7 +480,8 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     var f = state.f;
     state.vista = state.rows.filter(function (r) { return pasa(r, f); });
     var V = state.vista;
-    $('conteo').textContent = V.length.toLocaleString('es-PE') + (V.length === 1 ? ' pedido' : ' pedidos');
+    $('conteo').textContent = V.length.toLocaleString('es-PE') + (V.length === 1 ? ' pedido' : ' pedidos') +
+      (state.sinDatos ? '. No se muestran ' + state.sinDatos + (state.sinDatos === 1 ? ' pedido que aún no tiene' : ' pedidos que aún no tienen') + ' producción ni inspección.' : '');
     if (!state.data) { $('caja').innerHTML = '<div class="vacia"><strong>Todavía no hay datos</strong>Aparecen cuando el administrador corre la actualización.</div>'; return; }
     if (!V.length) { $('caja').innerHTML = '<div class="vacia"><strong>Ningún pedido con estos filtros</strong>Prueba quitando alguno o usa «Quitar filtros».</div>'; return; }
     var h = '<table class="cmp"><thead><tr class="g"><th class="fijo f1 gen" rowspan="2">Fecha<br>despacho</th><th class="fijo f2 gen" rowspan="2">Pedido Vta</th>';
