@@ -374,7 +374,7 @@ html.locked .ppt { display: none !important; }
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
             Generar tabla
           </button>
-          <button class="btn" id="palUlt" type="button" hidden>Pegar la última</button>
+          <button class="btn" id="palUlt" type="button" hidden>Volver a pegar</button>
           <p id="palEst"></p>
         </div></div>
       <div class="soltar img" id="img4Soltar" tabindex="0" role="button" aria-label="Pegar imagen de kilos en stock">
@@ -1506,27 +1506,46 @@ html.locked .ppt { display: none !important; }
 
   // ---------- «Generar tabla»: corre el Reporte Lanzado de Paletas en GitHub (paletas.py) y pega la tabla como Imagen 4.
   // Usa el mismo permiso de guardado compartido (state.comp.gh). «Pegar la última» usa la última corrida (p. ej. la de las 4:05 a. m.).
+  // Una sola corrida al día (la automática de las 6:00 o la primera con el botón): después el botón queda bloqueado
+  // hasta el día siguiente (GitHub también rechaza pedidos extra). La corrida del día se pega sola al abrir la página,
+  // una sola vez (marca compartida rpt.stock.pal.AAAAMMDD); si luego se edita a mano, no se vuelve a pisar.
   var PAL = { ult: null, ocupado: false };
   function palTok() { return (state.comp && state.comp.gh) || (function () { try { return localStorage.getItem('fc.tok'); } catch (e) { return null; } })(); }
   function palFecha(g) { return g ? g.slice(8, 10) + '/' + g.slice(5, 7) + ' ' + g.slice(11, 16) : ''; }
   function palEstado(txt, err) { var p = $('palEst'); p.textContent = txt || ''; p.className = err ? 'err' : ''; }
   function palMmss(ms) { var s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function palHoyIso() { return new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10); }
+  function palClaveMarca() { return 'rpt.stock.pal.' + hoyYmdPag(); }
+  function palHecha(res) {             // ¿la corrida de hoy ya se hizo bien?
+    var c = res && res.cab;
+    return !!(c && c.estado === 'ok' && !c.msg && String(c.gen || '').slice(0, 10) === palHoyIso());
+  }
+  function palBloquear() {
+    var h = palHecha(PAL.ult);
+    $('palIni').disabled = PAL.ocupado || h;
+    $('palIni').title = h ? 'La corrida del día ya se hizo; se habilita mañana' : 'Descarga el Reporte Lanzado de Paletas del intranet y pega la tabla';
+    return h;
+  }
   async function palPegar(res) {
     var d = res && res.datos;
     if (!d) { palEstado(res && res.cab && res.cab.estado === 'error' ? 'No se pudo: ' + res.cab.msg : 'No se pudo abrir la tabla con tu sesión.', true); return false; }
     if (!d.tabla.length) { palEstado('La corrida del ' + palFecha(d.gen) + ' no trajo paletas con Stock = SI y FRESCO.', true); return false; }
     var cv = await StockPaletas.dibujar(d);
     var ok = lsSet('rpt.img4', { src: cv.toDataURL('image/png'), w: cv.width, h: cv.height, fecha: hoyYmdPag() });
-    try { localStorage.setItem(claveStock(), String(Math.round(d.total * 10) / 10)); } catch (e) { /* sin almacenamiento */ }
+    try {
+      localStorage.setItem(claveStock(), String(Math.round(d.total * 10) / 10));
+      if (palHecha(res)) localStorage.setItem(palClaveMarca(), d.gen);       // la corrida de hoy ya quedó pegada
+    } catch (e) { /* sin almacenamiento */ }
     renderStock(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
-    palEstado(ok ? 'Tabla pegada · corrida del ' + palFecha(d.gen) : 'Este navegador no deja guardar la imagen.', !ok);
     PAL.ult = res; palBotonUlt();
+    palEstado(!ok ? 'Este navegador no deja guardar la imagen.' : palHecha(res) ? 'Corrida del día: ' + palFecha(d.gen) + ' · se habilita mañana' : 'Tabla pegada · corrida del ' + palFecha(d.gen), !ok);
     return ok;
   }
   function palBotonUlt() {
     var u = PAL.ult, b = $('palUlt');
     b.hidden = !(u && u.datos && u.datos.tabla && u.datos.tabla.length);
-    if (!b.hidden) b.textContent = 'Pegar la última (' + palFecha(u.datos.gen) + ')';
+    if (!b.hidden) b.textContent = 'Volver a pegar (' + palFecha(u.datos.gen) + ')';
+    palBloquear();
   }
   function palEsperar(tok, id, desde) {
     PAL.ocupado = true; $('palIni').disabled = true; $('palIni').classList.add('girando'); $('palUlt').disabled = true;
@@ -1536,17 +1555,21 @@ html.locked .ppt { display: none !important; }
         return palPegar(res);
       })
       .catch(function (e) { palEstado('No se pudo: ' + e.message, true); })
-      .then(function () { PAL.ocupado = false; $('palIni').disabled = false; $('palIni').classList.remove('girando'); $('palUlt').disabled = false; });
+      .then(function () { PAL.ocupado = false; $('palIni').classList.remove('girando'); $('palUlt').disabled = false; palBloquear(); });
   }
   $('palIni').onclick = async function () {
     var tok = palTok(); if (!tok || PAL.ocupado) return;
-    this.disabled = true; palEstado('Enviando el pedido…');
-    try { var id = await StockPaletas.pedir(tok, 'Reporte diario'); palEsperar(tok, id); }
-    catch (e) { this.disabled = false; palEstado('No se pudo enviar el pedido (' + e.message + ').', true); }
+    var b = this; b.disabled = true; palEstado('Revisando…');
+    try {
+      PAL.ult = await StockPaletas.leer(tok);                // por si otro ya corrió hoy (o la automática terminó)
+      if (palHecha(PAL.ult)) { palBotonUlt(); palEstado('La corrida del día ya se hizo (' + palFecha(PAL.ult.cab.gen) + '). Se habilita mañana.'); return; }
+      palEstado('Enviando el pedido…');
+      var id = await StockPaletas.pedir(tok, 'Reporte diario'); palEsperar(tok, id);
+    } catch (e) { b.disabled = false; palEstado('No se pudo enviar el pedido (' + e.message + ').', true); }
   };
   $('palUlt').onclick = function () { if (PAL.ult && !PAL.ocupado) palPegar(PAL.ult); };
-  async function palIniciar() {          // se llama cuando ya están los datos (y el permiso compartido)
-    if (!window.StockPaletas) { window.addEventListener('load', function () { if (window.StockPaletas) palIniciar(); }, { once: true }); return; }
+  async function palIniciar(sincro) {    // se llama cuando ya están los datos (y el permiso compartido)
+    if (!window.StockPaletas) { window.addEventListener('load', function () { if (window.StockPaletas) palIniciar(sincro); }, { once: true }); return; }
     var tok = palTok();
     if (!tok || !window.crypto || !crypto.subtle || !window.DecompressionStream) return;
     $('palCaja').hidden = false;
@@ -1554,7 +1577,13 @@ html.locked .ppt { display: none !important; }
     try { PAL.ult = await StockPaletas.leer(tok); } catch (e) { PAL.ult = null; }
     palBotonUlt();
     var p = StockPaletas.pendiente();
-    if (p && (!PAL.ult || !PAL.ult.cab || PAL.ult.cab.sol !== p.id)) palEsperar(tok, p.id, p.t);
+    if (p && (!PAL.ult || !PAL.ult.cab || PAL.ult.cab.sol !== p.id) && !palHecha(PAL.ult)) { palEsperar(tok, p.id, p.t); return; }
+    if (!palHecha(PAL.ult)) { palEstado(''); return; }
+    // corrida de hoy: se pega sola una vez (antes se espera lo guardado por los demás, para no pisar lo editado a mano)
+    try { await sincro; } catch (e) { /* sin guardado compartido */ }
+    var marca = null; try { marca = localStorage.getItem(palClaveMarca()); } catch (e) { marca = null; }
+    if (marca !== PAL.ult.cab.gen && PAL.ult.datos) await palPegar(PAL.ult);
+    else palEstado('Corrida del día: ' + palFecha(PAL.ult.cab.gen) + ' · se habilita mañana');
   }
 
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
@@ -1662,9 +1691,9 @@ html.locked .ppt { display: none !important; }
       } catch (e) { aviso = 'no se pudieron abrir los datos; recarga la página'; }
     }
     mostrar(conservar); if (aviso) renderMeta(aviso);
-    if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT && !window.RPT_PPT.editando()) window.RPT_PPT.refrescar(); });
+    var sincro = state.comp ? COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT && !window.RPT_PPT.editando()) window.RPT_PPT.refrescar(); }) : null;
     document.documentElement.classList.remove('locked');
-    palIniciar();
+    palIniciar(sincro);
   }
   $('btnAct').onclick = function () {
     var b = this; b.disabled = true; b.classList.add('girando');
