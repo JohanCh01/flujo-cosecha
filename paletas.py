@@ -1,5 +1,6 @@
 """
-Stock de paletas (Reporte Lanzado de Paletas) — se corre al presionar «Iniciar» en paletas.html.
+Stock de paletas (Reporte Lanzado de Paletas) — se corre al presionar «Generar tabla» en el Reporte diario
+(sección Kilos en stock) y solo a las 3:02 y 4:05 a. m.
 
 Qué hace, en orden:
 1. Entra a la intranet de Danper (mismo inicio de sesión que actualizar.py) y abre

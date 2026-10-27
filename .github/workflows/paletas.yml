@@ -1,6 +1,6 @@
 name: Stock de paletas
 
-# Corre cuando presionas «Iniciar» en paletas.html: la página guarda solicitud_paletas.json en el
+# Corre cuando presionas «Generar tabla» en el Reporte diario (Kilos en stock): la página guarda solicitud_paletas.json en el
 # repositorio y ese cambio arranca esta tarea. También se puede correr a mano con «Run workflow».
 # Entra a la intranet, descarga el Reporte Lanzado de Paletas (ayer → hoy) y deja la tabla en paletas.json.
 
