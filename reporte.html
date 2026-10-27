@@ -215,6 +215,11 @@ table.desp tr.tot td { background: #f2f2f2; font-weight: 600; }
 .kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
 .proy-in { width: 100%; box-sizing: border-box; margin-top: 6px; height: 46px; padding: 0 10px; font: 600 26px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
 .proy-in:hover { border-color: var(--accent); } .proy-in:focus { outline: 2px solid var(--accent); border-style: solid; }
+.stock-pal { display: grid; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.stock-pal .btn { justify-content: center; width: 100%; }
+.stock-pal .btn svg { width: 16px; height: 16px; flex: none; }
+.stock-pal p { margin: 0; font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.35; }
+.stock-pal p.err { color: var(--danger, #a3301f); }
 .stock-f { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .stock-f input { height: 36px; padding: 0 8px; font: 600 15px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
 .stock-f input:hover { border-color: var(--accent); } .stock-f input:focus { outline: 2px solid var(--accent); border-style: solid; }
@@ -363,7 +368,15 @@ html.locked .ppt { display: none !important; }
     <div class="band" id="stockBanda">KILOS EN STOCK</div>
     <div class="prod-wrap insp-wrap">
       <div class="card kpi"><h3>Kilos en stock</h3><input class="proy-in" id="stockIn" type="text" inputmode="decimal" autocomplete="off" aria-label="Kilos en stock del día">
-        <label class="stock-f">Fecha del stock<input type="date" id="stockFecha"></label></div>
+        <label class="stock-f">Fecha del stock<input type="date" id="stockFecha"></label>
+        <div class="stock-pal" id="palCaja" hidden>
+          <button class="btn primary" id="palIni" type="button" title="Descarga el Reporte Lanzado de Paletas del intranet y pega la tabla">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+            Generar tabla
+          </button>
+          <button class="btn" id="palUlt" type="button" hidden>Pegar la última</button>
+          <p id="palEst"></p>
+        </div></div>
       <div class="soltar img" id="img4Soltar" tabindex="0" role="button" aria-label="Pegar imagen de kilos en stock">
         <input type="file" id="img4Archivo" accept="image/*" hidden>
         <span id="img4Ver"><b>Pegar imagen</b></span>
@@ -1491,6 +1504,59 @@ html.locked .ppt { display: none !important; }
   });
   zonaImagen('img4Soltar', 'img4Archivo', 'rpt.img4', 'stockMsg', function () { renderStock(); });
 
+  // ---------- «Generar tabla»: corre el Reporte Lanzado de Paletas en GitHub (paletas.py) y pega la tabla como Imagen 4.
+  // Usa el mismo permiso de guardado compartido (state.comp.gh). «Pegar la última» usa la última corrida (p. ej. la de las 4:05 a. m.).
+  var PAL = { ult: null, ocupado: false };
+  function palTok() { return (state.comp && state.comp.gh) || (function () { try { return localStorage.getItem('fc.tok'); } catch (e) { return null; } })(); }
+  function palFecha(g) { return g ? g.slice(8, 10) + '/' + g.slice(5, 7) + ' ' + g.slice(11, 16) : ''; }
+  function palEstado(txt, err) { var p = $('palEst'); p.textContent = txt || ''; p.className = err ? 'err' : ''; }
+  function palMmss(ms) { var s = Math.max(0, Math.round(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  async function palPegar(res) {
+    var d = res && res.datos;
+    if (!d) { palEstado(res && res.cab && res.cab.estado === 'error' ? 'No se pudo: ' + res.cab.msg : 'No se pudo abrir la tabla con tu sesión.', true); return false; }
+    if (!d.tabla.length) { palEstado('La corrida del ' + palFecha(d.gen) + ' no trajo paletas con Stock = SI y FRESCO.', true); return false; }
+    var cv = await StockPaletas.dibujar(d);
+    var ok = lsSet('rpt.img4', { src: cv.toDataURL('image/png'), w: cv.width, h: cv.height, fecha: hoyYmdPag() });
+    try { localStorage.setItem(claveStock(), String(Math.round(d.total * 10) / 10)); } catch (e) { /* sin almacenamiento */ }
+    renderStock(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+    palEstado(ok ? 'Tabla pegada · corrida del ' + palFecha(d.gen) : 'Este navegador no deja guardar la imagen.', !ok);
+    PAL.ult = res; palBotonUlt();
+    return ok;
+  }
+  function palBotonUlt() {
+    var u = PAL.ult, b = $('palUlt');
+    b.hidden = !(u && u.datos && u.datos.tabla && u.datos.tabla.length);
+    if (!b.hidden) b.textContent = 'Pegar la última (' + palFecha(u.datos.gen) + ')';
+  }
+  function palEsperar(tok, id, desde) {
+    PAL.ocupado = true; $('palIni').disabled = true; $('palIni').classList.add('girando'); $('palUlt').disabled = true;
+    return StockPaletas.esperar(tok, id, function (ms) { palEstado('Trabajando en GitHub… ' + palMmss(ms)); }, desde)
+      .then(function (res) {
+        if (res.cab && res.cab.estado === 'error') { palEstado('No se pudo: ' + res.cab.msg, true); return; }
+        return palPegar(res);
+      })
+      .catch(function (e) { palEstado('No se pudo: ' + e.message, true); })
+      .then(function () { PAL.ocupado = false; $('palIni').disabled = false; $('palIni').classList.remove('girando'); $('palUlt').disabled = false; });
+  }
+  $('palIni').onclick = async function () {
+    var tok = palTok(); if (!tok || PAL.ocupado) return;
+    this.disabled = true; palEstado('Enviando el pedido…');
+    try { var id = await StockPaletas.pedir(tok, 'Reporte diario'); palEsperar(tok, id); }
+    catch (e) { this.disabled = false; palEstado('No se pudo enviar el pedido (' + e.message + ').', true); }
+  };
+  $('palUlt').onclick = function () { if (PAL.ult && !PAL.ocupado) palPegar(PAL.ult); };
+  async function palIniciar() {          // se llama cuando ya están los datos (y el permiso compartido)
+    if (!window.StockPaletas) { window.addEventListener('load', function () { if (window.StockPaletas) palIniciar(); }, { once: true }); return; }
+    var tok = palTok();
+    if (!tok || !window.crypto || !crypto.subtle || !window.DecompressionStream) return;
+    $('palCaja').hidden = false;
+    if (PAL.ocupado) return;
+    try { PAL.ult = await StockPaletas.leer(tok); } catch (e) { PAL.ult = null; }
+    palBotonUlt();
+    var p = StockPaletas.pendiente();
+    if (p && (!PAL.ult || !PAL.ult.cab || PAL.ult.cab.sol !== p.id)) palEsperar(tok, p.id, p.t);
+  }
+
   // ---------- datos para la vista PPT (reporte_ppt.js): los mismos cálculos que las tarjetas de la página
   window.RPT = {
     state: state, ZONAS: ZONAS, NOM_ZONA: NOM_ZONA, IND: IND, LON_CATS: LON_CATS, PROYECTADO: PROYECTADO, DIAS: DIAS,
@@ -1598,6 +1664,7 @@ html.locked .ppt { display: none !important; }
     mostrar(conservar); if (aviso) renderMeta(aviso);
     if (state.comp) COMP.iniciar(state.comp, function () { render(); if (window.RPT_PPT && !window.RPT_PPT.editando()) window.RPT_PPT.refrescar(); });
     document.documentElement.classList.remove('locked');
+    palIniciar();
   }
   $('btnAct').onclick = function () {
     var b = this; b.disabled = true; b.classList.add('girando');
@@ -1610,6 +1677,7 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
+<script src="lib/stock_paletas.js"></script>
 <script src="reporte_ppt.js?v=202610270840"></script>
 </body>
 </html>

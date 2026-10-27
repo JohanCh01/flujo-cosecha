@@ -194,6 +194,7 @@ tr.tot td .n { color: inherit; opacity: .8; }
   </section>
 </div>
 
+<script src="lib/stock_paletas.js"></script>
 <script>
 (function () {
   'use strict';
@@ -422,94 +423,12 @@ tr.tot td .n { color: inherit; opacity: .8; }
     pintar();
   }
 
-  // ---------- Imagen con el aspecto de la tabla dinámica de Excel
-  var FUENTE = 'Carlito, Calibri, Arial, sans-serif';
-  var fuentes = null;
-  function cargarFuentes() {
-    if (fuentes) return fuentes;
-    fuentes = Promise.all([['400', 'lib/fuentes/carlito-latin-400-normal.woff2'], ['700', 'lib/fuentes/carlito-latin-700-normal.woff2']].map(function (f) {
-      try { var ff = new FontFace('Carlito', 'url(' + f[1] + ')', { weight: f[0] }); return ff.load().then(function (x) { document.fonts.add(x); }).catch(function () {}); } catch (e) { return Promise.resolve(); }
-    }));
-    return fuentes;
-  }
-  function numXls(v) { var r = Math.round(v * 100) / 100; return String(r); }   // como «General» en Excel: 8493.4, 943
-  function dibujarImagen() {
-    var d = S.datos, g = grupos();
-    var C = { cab: '#8064A2', cabTxt: '#FFFFFF', proc: '#B1A0C7', ua: '#E4DFEC', subT: '#D9D9D9', totF: '#8064A2', totFTxt: '#FFFFFF',
-      blanco: '#FFFFFF', linea: '#9C88B8', lineaSuave: '#CFC6DD', txt: '#000000' };
-    var FILA = 20, PAD = 4, ESC = 2, TIT = 0;
-    var cv = document.createElement('canvas'), cx = cv.getContext('2d');
-    function f(peso) { return (peso || 400) + ' 14.5px ' + FUENTE; }
-    // anchos de columna según el texto más largo (como «Autoajustar» en Excel)
-    cx.font = f(700);
-    var w = [cx.measureText('⊟ FRESCO').width, cx.measureText('Unidad Agricola').width, cx.measureText('Categoria').width, cx.measureText('Suma de Peso Neto Paleta').width];
-    g.forEach(function (x) {
-      w[1] = Math.max(w[1], cx.measureText('⊟ ' + x.ua).width, cx.measureText('Total ' + x.ua).width);
-      x.cats.forEach(function (k) { w[2] = Math.max(w[2], cx.measureText(k.cat).width); });
-    });
-    w[0] = Math.max(w[0], cx.measureText('Total FRESCO').width); w[3] = Math.max(w[3], cx.measureText(numXls(d.total)).width);
-    w = w.map(function (v, i) { return Math.ceil(v + PAD * 2 + (i < 3 ? 22 : 8)); });
-    var X = [0, w[0], w[0] + w[1], w[0] + w[1] + w[2], w[0] + w[1] + w[2] + w[3]], ANCHO = X[4];
-    var nFilas = 1 + g.reduce(function (s, x) { return s + x.cats.length + 1; }, 0) + 2;
-    var M = 14, ALTO = TIT + nFilas * FILA;
-    cv.width = (ANCHO + M * 2) * ESC; cv.height = (ALTO + M * 2) * ESC;
-    cx.scale(ESC, ESC); cx.fillStyle = C.blanco; cx.fillRect(0, 0, ANCHO + M * 2, ALTO + M * 2);
-    cx.translate(M, M); cx.textBaseline = 'middle';
-    // solo la tabla: sin título ni línea de filtros
-
-    function celda(x0, x1, y, fondo) { cx.fillStyle = fondo; cx.fillRect(X[x0], y, X[x1] - X[x0], FILA); }
-    function texto(t, col, y, peso, color, der) {
-      cx.font = f(peso); cx.fillStyle = color || C.txt; cx.textAlign = der ? 'right' : 'left';
-      cx.fillText(t, der ? X[col + 1] - PAD : X[col] + PAD, y + FILA / 2 + 1);
-    }
-    function caja(x, y, color) {   // el «⊟» de Excel para contraer
-      cx.strokeStyle = color; cx.lineWidth = 1; cx.strokeRect(x + .5, y + 5.5, 9, 9);
-      cx.beginPath(); cx.moveTo(x + 2.5, y + 10); cx.lineTo(x + 7.5, y + 10); cx.stroke();
-    }
-    function hLinea(x0, x1, y, color) { cx.strokeStyle = color; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(X[x0], y + .5); cx.lineTo(X[x1], y + .5); cx.stroke(); }
-    function vLinea(x, y0, y1, color) { cx.strokeStyle = color; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(X[x] - .5, y0); cx.lineTo(X[x] - .5, y1); cx.stroke(); }
-
-    // encabezado
-    var y = 0;
-    celda(0, 4, y, C.cab);
-    ['Proceso', 'Unidad Agricola', 'Categoria', 'Suma de Peso Neto Paleta'].forEach(function (t, i) { texto(t, i, y, 400, C.cabTxt); if (i) vLinea(i, y, y + FILA, C.blanco); });
-    y += FILA;
-
-    // cuerpo: Proceso (FRESCO) a la izquierda, zonas con sus categorías y el total de cada zona
-    var yIni = y, yFin = y + g.reduce(function (s, x) { return s + x.cats.length + 1; }, 0) * FILA;
-    cx.fillStyle = C.proc; cx.fillRect(X[0], yIni, w[0], yFin - yIni);
-    caja(X[0] + PAD, yIni, '#FFFFFF'); cx.font = f(400); cx.fillStyle = '#FFFFFF'; cx.textAlign = 'left'; cx.fillText('FRESCO', X[0] + PAD + 14, yIni + FILA / 2 + 1);
-    g.forEach(function (x) {
-      var y0 = y;
-      cx.fillStyle = C.ua; cx.fillRect(X[1], y0, w[1], x.cats.length * FILA);
-      caja(X[1] + PAD, y0, '#555555'); cx.font = f(400); cx.fillStyle = C.txt; cx.textAlign = 'left'; cx.fillText(x.ua, X[1] + PAD + 14, y0 + FILA / 2 + 1);
-      x.cats.forEach(function (k, i) {
-        celda(2, 4, y, C.blanco);
-        texto(k.cat, 2, y, 400); texto(numXls(k.kg), 3, y, 400, null, true);
-        if (i) hLinea(2, 4, y, C.lineaSuave);
-        y += FILA;
-      });
-      celda(1, 4, y, C.subT); hLinea(1, 4, y, C.linea); hLinea(1, 4, y + FILA, C.linea);
-      texto('Total ' + x.ua, 1, y, 700); texto(numXls(x.kg), 3, y, 700, null, true);
-      y += FILA;
-      vLinea(2, y0, y - FILA, C.linea); vLinea(3, y0, y, C.linea);
-    });
-    vLinea(1, yIni, yFin, C.linea);
-
-    // Total FRESCO y Total general
-    celda(0, 4, y, C.totF); texto('Total FRESCO', 0, y, 700, C.totFTxt); texto(numXls(d.total), 3, y, 700, C.totFTxt, true);
-    y += FILA;
-    celda(0, 4, y, C.blanco); hLinea(0, 4, y, C.cab); hLinea(0, 4, y + FILA - 1, C.cab);
-    texto('Total general', 0, y, 700); texto(numXls(d.total), 3, y, 700, null, true);
-    vLinea(3, y, y + FILA, C.lineaSuave);
-    return cv;
-  }
+  // ---------- Imagen con el aspecto de la tabla dinámica de Excel (lib/stock_paletas.js)
   $('btnImg').onclick = async function () {
     if (!S.datos || !S.datos.tabla.length) return;
     var b = this; b.disabled = true;
     try {
-      await cargarFuentes();
-      var cv = dibujarImagen(), nombre = 'Stock_del_dia_' + (S.datos.gen || '').slice(0, 10) + '.png';
+      var cv = await StockPaletas.dibujar(S.datos), nombre = 'Stock_del_dia_' + (S.datos.gen || '').slice(0, 10) + '.png';
       var blob = await new Promise(function (ok) { cv.toBlob(ok, 'image/png'); });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre;
       document.body.appendChild(a); a.click(); a.remove();
