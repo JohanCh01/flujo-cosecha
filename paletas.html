@@ -437,7 +437,7 @@ tr.tot td .n { color: inherit; opacity: .8; }
     var d = S.datos, g = grupos();
     var C = { cab: '#8064A2', cabTxt: '#FFFFFF', proc: '#B1A0C7', ua: '#E4DFEC', subT: '#D9D9D9', totF: '#8064A2', totFTxt: '#FFFFFF',
       blanco: '#FFFFFF', linea: '#9C88B8', lineaSuave: '#CFC6DD', txt: '#000000' };
-    var FILA = 20, PAD = 4, ESC = 2, TIT = 46;
+    var FILA = 20, PAD = 4, ESC = 2, TIT = 0;
     var cv = document.createElement('canvas'), cx = cv.getContext('2d');
     function f(peso) { return (peso || 400) + ' 14.5px ' + FUENTE; }
     // anchos de columna según el texto más largo (como «Autoajustar» en Excel)
@@ -455,13 +455,7 @@ tr.tot td .n { color: inherit; opacity: .8; }
     cv.width = (ANCHO + M * 2) * ESC; cv.height = (ALTO + M * 2) * ESC;
     cx.scale(ESC, ESC); cx.fillStyle = C.blanco; cx.fillRect(0, 0, ANCHO + M * 2, ALTO + M * 2);
     cx.translate(M, M); cx.textBaseline = 'middle';
-
-    // título: Stock del día (fecha de la corrida)
-    cx.fillStyle = C.txt; cx.font = '700 22px ' + FUENTE; cx.textAlign = 'left';
-    cx.fillText('STOCK DEL DÍA ' + fFecha(d.gen), 0, 14);
-    cx.font = '400 13px ' + FUENTE; cx.fillStyle = '#555555';
-    cx.fillText('Corrido a las ' + (d.gen || '').slice(11, 16) + ' · Stock = SI · ESPÁRRAGO VERDE · PLANTA MUCHIK · ' + fFecha(d.desde) + ' al ' + fFecha(d.hasta), 0, 34);
-    cx.translate(0, TIT);
+    // solo la tabla: sin título ni línea de filtros
 
     function celda(x0, x1, y, fondo) { cx.fillStyle = fondo; cx.fillRect(X[x0], y, X[x1] - X[x0], FILA); }
     function texto(t, col, y, peso, color, der) {
