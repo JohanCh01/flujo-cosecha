@@ -12,7 +12,7 @@
   var R = window.RPT;
   if (!R) return;
   var $ = function (id) { return document.getElementById(id); };
-  var V = '202610261030';                                   // versión: obliga al navegador a bajar los archivos nuevos
+  var V = '202610270840';                                   // versión: obliga al navegador a bajar los archivos nuevos
   var PX = 96;                                     // 1 pulgada = 96 px → diapositiva de 1280 × 720
   var plantilla = null, abierto = false, actual = 0, editando = false, valores = {}, ed = { t: {}, f: {}, m: {}, x: [] };
 
@@ -127,7 +127,7 @@
     });
     // seguimiento del inspector de calidad (diapositiva 12): N° de inspectores del día (se escribe en la página)
     var IN = R.insp ? R.insp() : {}; v['insp.n'] = IN.n || '';
-    var ST = R.stock ? R.stock() : {}; v['stock.n'] = ST.ver || '';
+    var ST = R.stock ? R.stock() : {}; v['stock.n'] = ST.ver || ''; v['stock.ddmm'] = ST.ddmm || v.ddmm;
     // despachos (diapositiva 4): lo que se escribe en la página
     var DK = R.despk ? R.despk() : {};
     ['proy', 'ae', 'ma', 'ae.pv.acu', 'ae.pv.sem', 'ae.awb.sem', 'ma.pv.acu', 'ma.pv.sem', 'ma.fcl.sem'].forEach(function (k) { v['desp.' + k] = DK[k] || ''; });
@@ -397,7 +397,11 @@
 
   function cargarPlantilla() {
     if (plantilla) return Promise.resolve();
-    return fetch('lib/plantilla_campos.json?v=' + V, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('sin plantilla'); return r.json(); }).then(function (j) { plantilla = j; });
+    return fetch('lib/plantilla_campos.json?v=' + V, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('sin plantilla'); return r.json(); }).then(function (j) {
+      // «KILOS EN STOCK – dd/mm» lleva la fecha del stock (la que se elige en la página), no la del reporte
+      j.campos.forEach(function (c) { c.p.forEach(function (p) { if (p.t === 'KILOS EN STOCK – {{ddmm}}') p.t = 'KILOS EN STOCK – {{stock.ddmm}}'; }); });
+      plantilla = j;
+    });
   }
   function abrir(on) {
     abierto = on; panel.hidden = !on; split.classList.toggle('on', on); btn.setAttribute('aria-pressed', String(on));

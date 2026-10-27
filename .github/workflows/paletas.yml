@@ -5,17 +5,24 @@ name: Stock de paletas
 # Entra a la intranet, descarga el Reporte Lanzado de Paletas (ayer → hoy) y deja la tabla en paletas.json.
 
 on:
-  # Corridas automáticas: 3:02 a. m. y 4:05 a. m. (Lima). GitHub NO arranca las tareas programadas a la
-  # hora exacta (a veces con retraso, y rara vez se salta una), por eso se programan varios avisos de
-  # 3:02 a 6:50 a. m. Cada aviso mira la hora de Lima y solo corre si ya toca y todavía no se hizo;
-  # si una corrida falla, el siguiente aviso la vuelve a intentar. Los demás terminan en segundos.
-  # Para cambiar las horas, edita HORA_1 y HORA_2 en el paso «Ver si toca correr ahora».
+  # Corridas automáticas: 3:02, 4:05 y 6:00 a. m. (Lima). La de las 6:00 es la que se envía.
+  # GitHub NO arranca las tareas programadas a la hora exacta (puede tardar horas), por eso:
+  #   1. La de las 6:00 la arranca a la hora exacta un servicio externo (cron-job.org), con «Run workflow»
+  #      y turno = 06:00 (ver «workflow_dispatch» abajo).
+  #   2. Además quedan estos avisos de GitHub de respaldo: cada uno mira la hora de Lima y solo corre si ya
+  #      toca y todavía no se hizo; los demás terminan en segundos.
+  # Para cambiar las horas, edita HORA_1, HORA_2 y HORA_3 en el paso «Ver si toca correr ahora».
   schedule:
-    - cron: "2,5,20,35,50 8-11 * * *"   # la hora va en UTC (Lima + 5 h): 8:02 UTC = 3:02 a. m. de Lima
+    - cron: "2,5,20,35,50 8-13 * * *"   # la hora va en UTC (Lima + 5 h): 8:02 UTC = 3:02 a. m. de Lima
   push:
     paths:
       - solicitud_paletas.json
   workflow_dispatch:
+    inputs:
+      turno:
+        description: "Turno automático que se marca como hecho (HH:MM, por ejemplo 06:00). Vacío = corrida a mano."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -34,16 +41,24 @@ jobs:
       - name: Ver si toca correr ahora
         id: turno
         run: |
+          dia=$(TZ=America/Lima date +%F)
+          turno_pedido="${{ github.event.inputs.turno }}"
+          if [ -n "$turno_pedido" ]; then
+            # arrancada por el servicio externo a la hora exacta: queda anotada como el turno de hoy
+            echo "Corrida del turno $turno_pedido (servicio externo): se corre ahora."
+            echo "correr=si" >> "$GITHUB_OUTPUT"; echo "marca=$dia-$turno_pedido" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "Pedido desde la página o a mano: se corre ahora."; echo "correr=si" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # Horas de Lima (24 horas, HH:MM) desde las que toca cada corrida automática
           HORA_1="03:02"
           HORA_2="04:05"
+          HORA_3="06:00"
           ahora=$(TZ=America/Lima date +%H:%M)
-          dia=$(TZ=America/Lima date +%F)
           echo "En Lima son las $ahora del $dia."
-          if [ ! "$ahora" \< "$HORA_2" ]; then turno=$HORA_2
+          if [ ! "$ahora" \< "$HORA_3" ]; then turno=$HORA_3
+          elif [ ! "$ahora" \< "$HORA_2" ]; then turno=$HORA_2
           elif [ ! "$ahora" \< "$HORA_1" ]; then turno=$HORA_1
           else echo "Todavía no son las $HORA_1: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
           fi

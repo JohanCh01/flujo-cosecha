@@ -215,6 +215,9 @@ table.desp tr.tot td { background: #f2f2f2; font-weight: 600; }
 .kpi .big small { font-size: 18px; font-weight: 500; margin-left: 4px; }
 .proy-in { width: 100%; box-sizing: border-box; margin-top: 6px; height: 46px; padding: 0 10px; font: 600 26px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
 .proy-in:hover { border-color: var(--accent); } .proy-in:focus { outline: 2px solid var(--accent); border-style: solid; }
+.stock-f { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.stock-f input { height: 36px; padding: 0 8px; font: 600 15px/1 inherit; font-family: inherit; color: var(--band-ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
+.stock-f input:hover { border-color: var(--accent); } .stock-f input:focus { outline: 2px solid var(--accent); border-style: solid; }
 .proy-in::placeholder { color: var(--muted); font-weight: 400; font-size: 15px; }
 .kpi.zonas { grid-column: 1 / -1; }
 .split.on { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; }
@@ -359,7 +362,8 @@ html.locked .ppt { display: none !important; }
     <div class="sec-h"><h2 id="t-stock">Kilos en stock</h2></div>
     <div class="band" id="stockBanda">KILOS EN STOCK</div>
     <div class="prod-wrap insp-wrap">
-      <div class="card kpi"><h3>Kilos en stock</h3><input class="proy-in" id="stockIn" type="text" inputmode="decimal" autocomplete="off" aria-label="Kilos en stock del día"></div>
+      <div class="card kpi"><h3>Kilos en stock</h3><input class="proy-in" id="stockIn" type="text" inputmode="decimal" autocomplete="off" aria-label="Kilos en stock del día">
+        <label class="stock-f">Fecha del stock<input type="date" id="stockFecha"></label></div>
       <div class="soltar img" id="img4Soltar" tabindex="0" role="button" aria-label="Pegar imagen de kilos en stock">
         <input type="file" id="img4Archivo" accept="image/*" hidden>
         <span id="img4Ver"><b>Pegar imagen</b></span>
@@ -1459,17 +1463,30 @@ html.locked .ppt { display: none !important; }
     var kg = t ? leerKg(t) : null;
     var ver = !t ? '' : kg == null ? t : /[a-z]/i.test(t) ? t.trim().replace(/\s*(millones|millón|millon|mill|mll|mm|m)\.?$/i, ' mill').replace(/\s*(mil|k)\.?$/i, kg >= 1e6 ? ' mill' : ' mil') :
       kg >= 1e6 ? (kg / 1e6).toFixed(1) + ' mill' : kg >= 1e3 ? (kg / 1e3).toFixed(1) + ' mil' : String(Math.round(kg));
-    return { txt: t, kg: kg, ver: ver, img4: lsGet('rpt.img4') };
+    var f = fechaStock();
+    return { txt: t, kg: kg, ver: ver, img4: lsGet('rpt.img4'), fecha: f, ddmm: String(f).slice(6, 8) + '/' + String(f).slice(4, 6) };
+  }
+  // fecha que sale en «KILOS EN STOCK – dd/mm»: por defecto hoy; se puede cambiar (se guarda para todos, por día del reporte)
+  function claveStockFecha() { return 'rpt.stock.fecha.' + hoyYmdPag(); }
+  function fechaStock() {
+    var t = null; try { t = localStorage.getItem(claveStockFecha()); } catch (e) { t = null; }
+    return t && /^\d{8}$/.test(t) ? Number(t) : hoyYmdPag();
   }
   function renderStock() {
-    var d = stock(), h = hoyYmdPag();
-    $('stockBanda').textContent = 'KILOS EN STOCK – ' + String(h).slice(6, 8) + '/' + String(h).slice(4, 6);
+    var d = stock(), h = String(d.fecha);
+    $('stockBanda').textContent = 'KILOS EN STOCK – ' + d.ddmm;
+    var fe = $('stockFecha'); if (document.activeElement !== fe) fe.value = h.slice(0, 4) + '-' + h.slice(4, 6) + '-' + h.slice(6, 8);
     var inp = $('stockIn'); if (document.activeElement !== inp) inp.value = d.txt || '';
 
     $('img4Ver').innerHTML = d.img4 ? '<img alt="Imagen de kilos en stock" src="' + d.img4.src + '"><span class="img-acc"><button type="button" class="ico-img" data-recortar="rpt.img4" title="Recortar imagen" aria-label="Recortar imagen"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg></button><button type="button" class="quitar-img" data-quitar="rpt.img4">Borrar imagen</button></span>' : '<b>Pegar imagen</b>';
   }
   $('stockIn').addEventListener('change', function () {
     try { var v = this.value.trim(); if (v) localStorage.setItem(claveStock(), v); else localStorage.removeItem(claveStock()); } catch (e) { /* sin almacenamiento */ }
+    renderStock(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
+  });
+  $('stockFecha').addEventListener('change', function () {
+    var v = this.value.replace(/-/g, '');
+    try { if (/^\d{8}$/.test(v) && Number(v) !== hoyYmdPag()) localStorage.setItem(claveStockFecha(), v); else localStorage.removeItem(claveStockFecha()); } catch (e) { /* sin almacenamiento */ }
     renderStock(); if (window.RPT_PPT) window.RPT_PPT.refrescar();
   });
   zonaImagen('img4Soltar', 'img4Archivo', 'rpt.img4', 'stockMsg', function () { renderStock(); });
@@ -1593,6 +1610,6 @@ html.locked .ppt { display: none !important; }
   })().catch(toLogin);
 })();
 </script>
-<script src="reporte_ppt.js?v=202610261030"></script>
+<script src="reporte_ppt.js?v=202610270840"></script>
 </body>
 </html>
