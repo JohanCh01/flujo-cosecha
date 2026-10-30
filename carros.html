@@ -211,15 +211,15 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
       <section class="card"><h2>Carro de metal · chofer y puerta</h2><p class="sub" id="subGMetal"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMetal" role="img" aria-label="Temperatura del chofer y la puerta del carro de metal en el tiempo"></canvas></div></section>
-      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo</p>
-        <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
+      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
+        <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
       <section class="card"><h2>Carro de madera · rangos (°C)</h2><p class="sub" id="subTabMadera"></p><div id="tabMadera"></div></section>
       <section class="card"><h2>Carro de madera · chofer y puerta</h2><p class="sub" id="subGMadera"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMadera" role="img" aria-label="Temperatura del chofer y la puerta del carro de madera en el tiempo"></canvas></div></section>
-      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo</p>
-        <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
+      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
+        <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
     </div>
   </div>
@@ -314,11 +314,15 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
   function grafico(id, series, ejeX, titX, unidad) {
     var xs = []; series.forEach(function (d) { d.data.forEach(function (q) { xs.push(q.x); }); });
     var lo = Math.min.apply(null, xs), hi = Math.max.apply(null, xs), lim;
-    if (unidad === 'ms') { var H = 3600000, base = new Date(lo); base.setMinutes(0, 0, 0); lim = { min: base.getTime(), max: Math.ceil((hi - base.getTime()) / H) * H + base.getTime() }; lim.paso = (lim.max - lim.min) / H > 12 ? 2 * H : H; }
+    // el final se alarga hasta completar el último paso, así todas las marcas caen en horas exactas
+    if (unidad === 'ms') { var H = 3600000, base = new Date(lo); base.setMinutes(0, 0, 0); var nh = Math.ceil((hi - base.getTime()) / H), ph = nh > 12 ? 2 : 1;
+      lim = { min: base.getTime(), max: base.getTime() + Math.ceil(nh / ph) * ph * H, paso: ph * H }; }
+    else if (unidad === 'dia') { var a0 = Math.floor(lo), n = Math.ceil(hi) - a0, pd = n > 12 ? 2 : 1; lim = { min: a0, max: a0 + Math.ceil(n / pd) * pd, paso: pd }; }
     else lim = { min: 0, max: Math.ceil(hi), paso: 1 };
     graficos.push(new Chart($(id), { type: 'line', data: { datasets: series }, options: opciones(ejeX, titX, lim) }));
   }
   function reloj(v, largo) { return largo ? ddmm(v) + ' ' + hhmm(v) : hhmm(v); }
+  function horaDia(v) { var m = Math.round(v * 60), h = Math.floor(m / 60) % 24; return String(h).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
   function horas(v, largo) { var h = Math.floor(v + 1e-9), m = Math.round((v - h) * 60); if (m === 60) { h++; m = 0; } return largo ? h + ' h ' + String(m).padStart(2, '0') + ' min desde el inicio' : h + ' h'; }
 
   function pintar(D) {
@@ -335,10 +339,14 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
     graficos.forEach(function (g) { g.destroy(); }); graficos = [];
     grafico('gMetal', [serie('Chofer', tramo(M.chofer), cC, reloj_x), serie('Puerta', tramo(M.puerta), cP, reloj_x)], reloj, 'Hora', 'ms');
     grafico('gMadera', [serie('Chofer', tramo(W.chofer), cC, reloj_x), serie('Puerta', tramo(W.puerta), cP, reloj_x)], reloj, 'Hora', 'ms');
-    function desde(L) { var t0 = L[0].ms; return function (p) { return (p.ms - t0) / 3600000; }; }
+    Array.prototype.forEach.call(document.querySelectorAll('.ley-cmp'), function (l) {
+      l.innerHTML = '<span><i style="background:var(--c-metal)"></i>Metal (' + ddmm(rM.ini) + ')</span><span><i style="background:var(--c-madera)"></i>Madera (' + ddmm(rW.ini) + ')</span>';
+    });
+    // comparativos: cada carro en la hora del día (los dos viajes fueron en días distintos)
+    function delDia(p) { var d = new Date(p.ms); return d.getHours() + d.getMinutes() / 60; }
     var pM = tramo(M.puerta), pW = tramo(W.puerta), chM = tramo(M.chofer), chW = tramo(W.chofer);
-    grafico('gPuertas', [serie('Metal', pM, cMe, desde(pM)), serie('Madera', pW, cMa, desde(pW))], horas, 'Horas desde el inicio');
-    grafico('gChofer', [serie('Metal', chM, cMe, desde(chM)), serie('Madera', chW, cMa, desde(chW))], horas, 'Horas desde el inicio');
+    grafico('gPuertas', [serie('Metal ' + ddmm(pM[0].ms), pM, cMe, delDia), serie('Madera ' + ddmm(pW[0].ms), pW, cMa, delDia)], horaDia, 'Hora del día', 'dia');
+    grafico('gChofer', [serie('Metal ' + ddmm(chM[0].ms), chM, cMe, delDia), serie('Madera ' + ddmm(chW[0].ms), chW, cMa, delDia)], horaDia, 'Hora del día', 'dia');
     $('meta').innerHTML = 'Traslado de campo a planta · metal <strong>' + ddmm(rM.ini) + '</strong> · madera <strong>' + ddmm(rW.ini) + '</strong>' + (D.gen ? ' · cargado el ' + D.gen.slice(8, 10) + '/' + D.gen.slice(5, 7) + ' ' + D.gen.slice(11, 16) : '');
     $('contenido').hidden = false; $('btnPdf').hidden = false;
   }

@@ -8,15 +8,15 @@ De cada Excel saca:
   - si el sensor es del CHOFER o de la PUERTA: lo dice el título «SENSOR # … (FONDO - CHOFER)» o «(PUERTA)»
     que está arriba a la derecha (I4, J3, I5…; se busca en esa zona)
   - las lecturas: Hora (columna B) y Temperatura (columna C)
-  - el tramo que se analiza:
-      inicio = la fila pintada de AMARILLO   · fin = la fila pintada de ROJO (llegada a planta), las dos incluidas
-      Carro de METAL: el inicio NO es el amarillo, sino la primera lectura desde las 12:00 del día INICIO_METAL
-      (nunca antes de las 12:00).
+  - el tramo que se analiza (las dos lecturas incluidas):
+      inicio = la primera lectura desde la hora de inicio de cada carro (nunca antes):
+               METAL desde INICIO_METAL, MADERA desde INICIO_MADERA
+      fin    = la fila pintada de ROJO (llegada a planta)
 Lo guarda cifrado en carros.json (misma lista de DNIs y clave de administrador que el resto) y lo sube a GitHub.
 
 Uso (en Git Bash, dentro de la carpeta flujo-cosecha):
     python carros_temperatura.py --carpeta "C:/Users/jchinguel/Desktop/CARROS"
-    python carros_temperatura.py --carpeta "…" --inicio-metal "2026-10-28 12:00"
+    python carros_temperatura.py --carpeta "…" --inicio-metal "2026-10-28 11:00" --inicio-madera "2026-10-29 10:30"
     python carros_temperatura.py --carpeta "…" --sin-subir        (solo muestra el resumen)
 """
 
@@ -31,7 +31,8 @@ sys.path.insert(0, str(AQUI))
 import recepcion_sql as rs          # misma clave de administrador, mismo cifrado y misma subida a GitHub
 af, log, git = rs.af, rs.log, rs.git
 
-INICIO_METAL = "2026-10-28 12:00"   # metal: primera lectura desde esta hora (nunca antes)
+INICIO_METAL = "2026-10-28 11:00"   # metal: primera lectura desde esta hora (nunca antes)
+INICIO_MADERA = "2026-10-29 10:30"  # madera: primera lectura desde esta hora (nunca antes)
 AMARILLO, ROJO = "FFFFC000", "FFFF0000"
 RUTA = AQUI / "carros.json"
 
@@ -106,14 +107,15 @@ def main():
     ap = argparse.ArgumentParser(description="Temperaturas de los carros de metal y madera → carros.html")
     ap.add_argument("--carpeta", required=True, help="carpeta que tiene las carpetas «Carro Metal» y «Carro madera»")
     ap.add_argument("--inicio-metal", default=INICIO_METAL, help="metal: primera lectura desde esta hora (AAAA-MM-DD HH:MM)")
+    ap.add_argument("--inicio-madera", default=INICIO_MADERA, help="madera: primera lectura desde esta hora (AAAA-MM-DD HH:MM)")
     ap.add_argument("--sin-subir", action="store_true")
     a = ap.parse_args()
     raiz = Path(a.carpeta)
     if not raiz.is_dir():
         sys.exit(f"No encuentro la carpeta {raiz}")
-    desde_metal = fecha(a.inicio_metal)
-    if not desde_metal:
-        sys.exit("--inicio-metal debe ser como 2026-10-28 12:00")
+    desde = {"metal": fecha(a.inicio_metal), "madera": fecha(a.inicio_madera)}
+    if not all(desde.values()):
+        sys.exit("--inicio-metal y --inicio-madera deben ser como 2026-10-28 11:00")
 
     carros = {}
     for clave, palabra in (("metal", "METAL"), ("madera", "MADERA")):
@@ -122,8 +124,8 @@ def main():
             if f.name.startswith("~$"):
                 continue
             s = leer_sensor(f)
-            if clave == "metal":                      # metal: desde las 12:00, nunca antes
-                s["ini"] = next((i for i, (h, _) in enumerate(s["lect"]) if h >= desde_metal), None)
+            # inicio: primera lectura desde la hora del carro (nunca antes)
+            s["ini"] = next((i for i, (h, _) in enumerate(s["lect"]) if h >= desde[clave]), None)
             if s["ini"] is None:
                 sys.exit(f"{f.name}: no encontré el inicio del tramo")
             if s["pos"] in sens:
@@ -138,7 +140,7 @@ def main():
         carros[clave] = {p: {"archivo": s["archivo"], "titulo": s["titulo"], "ini": s["ini"], "fin": s["fin"],
                              "h": [h.strftime("%Y-%m-%d %H:%M") for h, _ in s["lect"]], "t": [t for _, t in s["lect"]]}
                          for p, s in sens.items()}
-    paquete = {"v": 1, "gen": datetime.now().strftime("%Y-%m-%dT%H:%M"), "inicioMetal": desde_metal.strftime("%Y-%m-%d %H:%M"), "carros": carros}
+    paquete = {"v": 1, "gen": datetime.now().strftime("%Y-%m-%dT%H:%M"), "inicioMetal": desde["metal"].strftime("%Y-%m-%d %H:%M"), "inicioMadera": desde["madera"].strftime("%Y-%m-%d %H:%M"), "carros": carros}
     if a.sin_subir:
         log("Prueba (--sin-subir): no se subió nada.")
         return
