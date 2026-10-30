@@ -210,7 +210,6 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
         <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
     </div>
-    <p class="nota">Tiempo por rango: lecturas seguidas en el mismo rango cuentan de la primera a la última; una lectura sola cuenta desde la lectura anterior hasta ella. Rangos: hasta 20 · 20.1–25 · 25.1–30 · 30.1–35 · 35.1–40 · más de 40 (desde 40.1). Madera: del inicio (amarillo) a la llegada a planta (rojo). Metal: desde la primera lectura a partir de las <span id="notaMetal">12:00</span> hasta la llegada a planta (rojo).</p>
   </div>
 </div>
 
@@ -318,7 +317,6 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
     $('subTabMadera').textContent = 'Tiempo en cada rango (h:mm) · ' + ddmm(rW.ini);
     $('subGMetal').textContent = 'Del ' + texto(rM).replace('→', 'al');
     $('subGMadera').textContent = 'Del ' + texto(rW).replace('→', 'al');
-    $('notaMetal').textContent = D.inicioMetal ? D.inicioMetal.slice(11, 16) + ' del ' + D.inicioMetal.slice(8, 10) + '/' + D.inicioMetal.slice(5, 7) : '12:00';
     var cC = css('--c-chofer'), cP = css('--c-puerta'), cMe = css('--c-metal'), cMa = css('--c-madera');
     var reloj_x = function (p) { return p.ms; };
     graficos.forEach(function (g) { g.destroy(); }); graficos = [];
