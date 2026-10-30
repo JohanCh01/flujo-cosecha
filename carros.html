@@ -107,9 +107,9 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .head .apps { flex: none; }
 @media (max-width: 700px) { .head { flex-wrap: wrap; } .head .tit { flex-basis: calc(100% - 50px); } }
 
-:root { --c-chofer: #c2410c; --c-puerta: #2563eb; --c-metal: #475569; --c-madera: #a16207; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-chofer: #fb923c; --c-puerta: #60a5fa; --c-metal: #cbd5e1; --c-madera: #e3b341; } }
-:root[data-theme="dark"] { --c-chofer: #fb923c; --c-puerta: #60a5fa; --c-metal: #cbd5e1; --c-madera: #e3b341; }
+:root { --c-chofer: #c2410c; --c-puerta: #2563eb; --c-metal: #475569; --c-madera: #a16207; --t-metal: rgba(71, 85, 105, .09); --t-madera: rgba(161, 98, 7, .10); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-chofer: #fb923c; --c-puerta: #60a5fa; --c-metal: #cbd5e1; --c-madera: #e3b341; --t-metal: rgba(203, 213, 225, .07); --t-madera: rgba(227, 179, 65, .08); } }
+:root[data-theme="dark"] { --c-chofer: #fb923c; --c-puerta: #60a5fa; --c-metal: #cbd5e1; --c-madera: #e3b341; --t-metal: rgba(203, 213, 225, .07); --t-madera: rgba(227, 179, 65, .08); }
 /* ---------- página de carros */
 .app { gap: 14px; }
 .fila { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -178,6 +178,23 @@ html.modo-pdf .rejilla .card { padding: 12px 16px 10px; }
 html.modo-pdf table.rng { font-size: 14px; } html.modo-pdf table.rng th, html.modo-pdf table.rng td { padding: 5px 8px; }
 html.modo-pdf table.rng thead th, html.modo-pdf table.rng thead small { font-size: 11.5px; }
 html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size: 12.5px; margin-bottom: 8px; }
+/* ---------- versión 2: una sola tabla arriba y los 4 gráficos abajo */
+.rejilla { grid-template-columns: 1fr !important; grid-template-rows: auto minmax(0, 1fr) !important; }
+.graf4 { min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.graf4 .card { display: flex; flex-direction: column; min-height: 0; padding: 8px 12px 6px; }
+.graf4 .lienzo { flex: 1 1 auto; min-height: 0; height: auto; }
+table.uni th.carro { text-align: center !important; font-size: 12px; letter-spacing: .05em; color: var(--ink); border-bottom: 2px solid; }
+table.uni th.carro.metal, table.uni .metal-c { background: var(--t-metal); }
+table.uni th.carro.madera, table.uni .madera-c { background: var(--t-madera); }
+table.uni th.carro.metal { border-bottom-color: var(--c-metal); } table.uni th.carro.madera { border-bottom-color: var(--c-madera); }
+table.uni .sep { border-left: 2px solid var(--line); }
+table.uni td, table.uni th { text-align: right; } table.uni td:first-child, table.uni th:first-child { text-align: left; }
+@media (max-width: 1100px), (max-height: 620px) { .graf4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .graf4 .lienzo { flex: none; height: 260px; } }
+@media (max-width: 700px) { .graf4 { grid-template-columns: 1fr; } }
+html.modo-pdf .rejilla { grid-template-columns: 1fr !important; grid-template-rows: auto minmax(0, 1fr) !important; }
+html.modo-pdf .graf4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+html.modo-pdf .graf4 .lienzo { flex: 1 1 auto !important; height: auto !important; }
+html.modo-pdf table.uni { font-size: 13px; } html.modo-pdf table.uni th, html.modo-pdf table.uni td { padding: 2px 10px; }
 </style>
 </head>
 <body>
@@ -207,20 +224,21 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
   <p class="vacio" id="vacio" hidden></p>
   <div id="contenido" hidden>
     <div class="rejilla">
-      <section class="card"><h2>Carro de metal · rangos (°C)</h2><p class="sub" id="subTabMetal"></p><div id="tabMetal"></div></section>
-      <section class="card"><h2>Carro de metal · chofer y puerta</h2><p class="sub" id="subGMetal"></p>
+      <section class="card tabla-uni"><h2>Tiempo en cada rango de temperatura (h:mm)</h2><p class="sub" id="subTab"></p><div id="tabUni"></div></section>
+      <div class="graf4">
+        <section class="card"><h2>Carro de metal · chofer y puerta</h2><p class="sub" id="subGMetal"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMetal" role="img" aria-label="Temperatura del chofer y la puerta del carro de metal en el tiempo"></canvas></div></section>
-      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
-        <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
-        <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
-      <section class="card"><h2>Carro de madera · rangos (°C)</h2><p class="sub" id="subTabMadera"></p><div id="tabMadera"></div></section>
-      <section class="card"><h2>Carro de madera · chofer y puerta</h2><p class="sub" id="subGMadera"></p>
+        <section class="card"><h2>Carro de madera · chofer y puerta</h2><p class="sub" id="subGMadera"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMadera" role="img" aria-label="Temperatura del chofer y la puerta del carro de madera en el tiempo"></canvas></div></section>
-      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
+        <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
+        <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
+        <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
+        <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
         <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
+      </div>
     </div>
   </div>
 </div>
@@ -275,6 +293,31 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
     return out;
   }
   function hm(min) { min = Math.round(min); return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0'); }
+  function numSensor(x) { var m = String(x.titulo || '').match(/\d{5,}/) || String(x.archivo || '').match(/\d{5,}/); return m ? m[0] : '—'; }
+  // una sola tabla: filas = rangos; columnas = metal (chofer, puerta) y madera (chofer, puerta)
+  function tablaUnica(D) {
+    var S = [['metal', 'chofer'], ['metal', 'puerta'], ['madera', 'chofer'], ['madera', 'puerta']].map(function (q) {
+      var s = D.carros[q[0]][q[1]], L = tramo(s);
+      return { carro: q[0], pos: q[1], s: s, r: resumen(L), t: tiempos(s) };
+    });
+    function cls(k) { return (S[k].carro === 'metal' ? 'metal-c' : 'madera-c') + (k === 2 ? ' sep' : ''); }
+    var rM = S[0].r, rW = S[2].r;
+    var h = '<div class="tabla-x"><table class="rng uni"><thead>' +
+      '<tr><th rowspan="2" style="vertical-align:bottom">Rango (°C)</th><th class="carro metal" colspan="2">CARRO DE METAL · ' + ddmm(rM.ini) + '</th><th class="carro madera sep" colspan="2">CARRO DE MADERA · ' + ddmm(rW.ini) + '</th></tr><tr>';
+    S.forEach(function (x, k) { h += '<th class="' + cls(k) + '">' + (x.pos === 'chofer' ? 'Chofer (fondo)' : 'Puerta') + '<br><small>Sensor # ' + numSensor(x.s) + '</small></th>'; });
+    h += '</tr></thead><tbody>';
+    RANGOS.forEach(function (rg, i) {
+      h += '<tr><td class="r">' + rg.k + '</td>';
+      S.forEach(function (x, k) { var n = x.t[i]; h += '<td class="n ' + cls(k) + (n ? '' : ' cero') + '">' + hm(n) + '</td>'; });
+      h += '</tr>';
+    });
+    h += '<tr class="tot"><td>Total</td>'; S.forEach(function (x, k) { h += '<td class="' + cls(k) + '">' + hm((x.r.fin - x.r.ini) / 60000) + '</td>'; }); h += '</tr>';
+    [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
+      h += '<tr class="res"><td>' + q[0] + ' (°C)</td>'; S.forEach(function (x, k) { h += '<td class="' + cls(k) + '">' + f1(x.r[q[1]]) + '</td>'; }); h += '</tr>';
+    });
+    h += '<tr class="res"><td>Tramo</td>'; S.forEach(function (x, k) { h += '<td class="' + cls(k) + '">' + hhmm(x.r.ini) + '–' + hhmm(x.r.fin) + '</td>'; }); h += '</tr>';
+    return h + '</tbody></table></div>';
+  }
   function tabla(C) {
     var ch = tramo(C.chofer), pu = tramo(C.puerta), rc = resumen(ch), rp = resumen(pu);
     var nc = tiempos(C.chofer), np = tiempos(C.puerta);
@@ -328,10 +371,9 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
   function pintar(D) {
     Chart.defaults.font.size = document.documentElement.classList.contains('modo-pdf') ? 13 : 11;
     var M = D.carros.metal, W = D.carros.madera;
-    $('tabMetal').innerHTML = tabla(M); $('tabMadera').innerHTML = tabla(W);
+    $('tabUni').innerHTML = tablaUnica(D);
     var rM = resumen(tramo(M.chofer)), rW = resumen(tramo(W.chofer));
-    $('subTabMetal').textContent = 'Tiempo en cada rango (h:mm) · ' + ddmm(rM.ini);
-    $('subTabMadera').textContent = 'Tiempo en cada rango (h:mm) · ' + ddmm(rW.ini);
+    $('subTab').textContent = 'Total = del inicio a la llegada a planta';
     $('subGMetal').textContent = 'Del ' + texto(rM).replace('→', 'al');
     $('subGMadera').textContent = 'Del ' + texto(rW).replace('→', 'al');
     var cC = css('--c-chofer'), cP = css('--c-puerta'), cMe = css('--c-metal'), cMa = css('--c-madera');
