@@ -210,7 +210,7 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
         <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
     </div>
-    <p class="nota">Rangos: un valor justo en el límite cuenta en el rango de abajo (25.0 °C va en 20 – 25). Madera: del inicio (amarillo) a la llegada a planta (rojo). Metal: desde la primera lectura a partir de las <span id="notaMetal">12:00</span> hasta la llegada a planta (rojo).</p>
+    <p class="nota">Tiempo por rango: lecturas seguidas en el mismo rango cuentan de la primera a la última; una lectura sola cuenta desde la lectura anterior hasta ella. Un valor justo en el límite va al rango de abajo (25.0 °C en 20 – 25). Madera: del inicio (amarillo) a la llegada a planta (rojo). Metal: desde la primera lectura a partir de las <span id="notaMetal">12:00</span> hasta la llegada a planta (rojo).</p>
   </div>
 </div>
 
@@ -247,15 +247,31 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
   function resumen(L) { var ts = L.map(function (p) { return p.t; }); return { n: ts.length, min: Math.min.apply(null, ts), max: Math.max.apply(null, ts), prom: ts.reduce(function (a, b) { return a + b; }, 0) / ts.length, ini: L[0].ms, fin: L[L.length - 1].ms }; }
   function texto(r) { return ddmm(r.ini) + ' ' + hhmm(r.ini) + ' → ' + (ddmm(r.fin) !== ddmm(r.ini) ? ddmm(r.fin) + ' ' : '') + hhmm(r.fin); }
 
+  // tiempo (minutos) en cada rango, con la regla de Calidad:
+  //   lecturas seguidas en el mismo rango → de la primera a la última de ese grupo
+  //   una lectura sola en su rango → desde la lectura anterior hasta ella
+  function rangoDe(t) { for (var k = 0; k < RANGOS.length; k++) if (RANGOS[k].ok(t)) return k; return -1; }
+  function tiempos(s) {
+    var out = RANGOS.map(function () { return 0; }), i = s.ini;
+    while (i <= s.fin) {
+      var r = rangoDe(s.t[i]), j = i;
+      while (j + 1 <= s.fin && rangoDe(s.t[j + 1]) === r) j++;
+      var min = j > i ? (fecha(s.h[j]) - fecha(s.h[i])) / 60000 : i > 0 ? (fecha(s.h[i]) - fecha(s.h[i - 1])) / 60000 : 0;
+      if (r >= 0) out[r] += min;
+      i = j + 1;
+    }
+    return out;
+  }
+  function hm(min) { min = Math.round(min); return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0'); }
   function tabla(C) {
     var ch = tramo(C.chofer), pu = tramo(C.puerta), rc = resumen(ch), rp = resumen(pu);
-    function cuenta(L) { return RANGOS.map(function (r) { return L.filter(function (p) { return r.ok(p.t); }).length; }); }
-    var nc = cuenta(ch), np = cuenta(pu);
+    var nc = tiempos(C.chofer), np = tiempos(C.puerta);
     function numSensor(x) { var m = String(x.titulo || '').match(/\d{5,}/) || String(x.archivo || '').match(/\d{5,}/); return m ? m[0] : '—'; }
-    function celda(n) { return '<td class="n' + (n ? '' : ' cero') + '">' + n + '</td>'; }
+    function celda(n) { return '<td class="n' + (n ? '' : ' cero') + '">' + hm(n) + '</td>'; }
     var h = '<div class="tabla-x"><table class="rng"><thead><tr><th>Rango (°C)</th><th>Chofer (fondo)<br><small>Sensor # ' + numSensor(C.chofer) + '</small></th><th>Puerta<br><small>Sensor # ' + numSensor(C.puerta) + '</small></th></tr></thead><tbody>';
     RANGOS.forEach(function (r, i) { h += '<tr><td class="r">' + r.k + '</td>' + celda(nc[i]) + celda(np[i]) + '</tr>'; });
-    h += '<tr class="tot"><td>Total</td><td>' + rc.n + '</td><td>' + rp.n + '</td></tr>';
+    var suma = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
+    h += '<tr class="tot"><td>Total</td><td>' + hm(suma(nc)) + '</td><td>' + hm(suma(np)) + '</td></tr>';
     [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
       h += '<tr class="res"><td>' + q[0] + ' (°C)</td><td>' + f1(rc[q[1]]) + '</td><td>' + f1(rp[q[1]]) + '</td></tr>';
     });
@@ -297,8 +313,8 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
     var M = D.carros.metal, W = D.carros.madera;
     $('tabMetal').innerHTML = tabla(M); $('tabMadera').innerHTML = tabla(W);
     var rM = resumen(tramo(M.chofer)), rW = resumen(tramo(W.chofer));
-    $('subTabMetal').textContent = 'Número de lecturas del tramo por rango · ' + ddmm(rM.ini);
-    $('subTabMadera').textContent = 'Número de lecturas del tramo por rango · ' + ddmm(rW.ini);
+    $('subTabMetal').textContent = 'Tiempo en cada rango (h:mm) · ' + ddmm(rM.ini);
+    $('subTabMadera').textContent = 'Tiempo en cada rango (h:mm) · ' + ddmm(rW.ini);
     $('subGMetal').textContent = 'Del ' + texto(rM).replace('→', 'al');
     $('subGMadera').textContent = 'Del ' + texto(rW).replace('→', 'al');
     $('notaMetal').textContent = D.inicioMetal ? D.inicioMetal.slice(11, 16) + ' del ' + D.inicioMetal.slice(8, 10) + '/' + D.inicioMetal.slice(5, 7) : '12:00';
