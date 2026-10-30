@@ -170,6 +170,14 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
   .rejilla .lienzo { flex: none; height: 280px; }
 }
 @media (max-width: 700px) { .rejilla { grid-template-columns: 1fr; } }
+/* ---------- armado del PDF: la misma rejilla 3 × 2 a tamaño fijo, sin importar la pantalla */
+html.modo-pdf #contenido { position: fixed; left: 0; top: 0; z-index: 50; background: #fff; padding: 0; flex: none; }
+html.modo-pdf .rejilla { grid-template-columns: minmax(300px, .85fr) minmax(0, 1.1fr) minmax(0, 1.1fr) !important; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important; height: 100%; }
+html.modo-pdf .rejilla .lienzo { flex: 1 1 auto !important; height: auto !important; }
+html.modo-pdf .rejilla .card { padding: 12px 16px 10px; }
+html.modo-pdf table.rng { font-size: 14px; } html.modo-pdf table.rng th, html.modo-pdf table.rng td { padding: 5px 8px; }
+html.modo-pdf table.rng thead th, html.modo-pdf table.rng thead small { font-size: 11.5px; }
+html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size: 12.5px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -314,6 +322,7 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
   function horas(v, largo) { var h = Math.floor(v + 1e-9), m = Math.round((v - h) * 60); if (m === 60) { h++; m = 0; } return largo ? h + ' h ' + String(m).padStart(2, '0') + ' min desde el inicio' : h + ' h'; }
 
   function pintar(D) {
+    Chart.defaults.font.size = document.documentElement.classList.contains('modo-pdf') ? 13 : 11;
     var M = D.carros.metal, W = D.carros.madera;
     $('tabMetal').innerHTML = tabla(M); $('tabMadera').innerHTML = tabla(W);
     var rM = resumen(tramo(M.chofer)), rW = resumen(tramo(W.chofer));
@@ -342,28 +351,69 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
       document.head.appendChild(e);
     });
   }
+  // ---------- descargar en PDF (A4 horizontal, colores claros): franja de título, resumen por sensor,
+  // tablas y gráficos ocupando toda la hoja, y pie de página
+  var PDF_W = 1600, PDF_H = 885;                      // tamaño en que se arma el cuerpo para la foto (misma proporción que su espacio en la hoja)
+  function resumenSensores() {
+    var D = DATOS.carros, out = [];
+    [['metal', 'Carro de metal'], ['madera', 'Carro de madera']].forEach(function (c) {
+      [['chofer', 'Chofer (fondo)'], ['puerta', 'Puerta']].forEach(function (q) {
+        var s = D[c[0]][q[0]], r = resumen(tramo(s)), t = tiempos(s);
+        out.push({ carro: c[1], pos: q[1], num: (String(s.titulo || '').match(/\d{5,}/) || [''])[0], prom: r.prom, max: r.max, sobre40: t[5], total: (r.fin - r.ini) / 60000, ini: r.ini, fin: r.fin });
+      });
+    });
+    return out;
+  }
   $('btnPdf').onclick = function () {
     if (!DATOS) return;
-    var b = this, raiz = document.documentElement, temaAntes = raiz.getAttribute('data-theme');
+    var b = this, raiz = document.documentElement, temaAntes = raiz.getAttribute('data-theme'), C = $('contenido');
     b.disabled = true;
     Promise.all([cargarJs('lib/html2canvas.min.js'), cargarJs('lib/jspdf.umd.min.js')]).then(function () {
-      raiz.setAttribute('data-theme', 'light'); pintar(DATOS);
-      return new Promise(function (ok) { setTimeout(ok, 120); });
+      raiz.setAttribute('data-theme', 'light'); raiz.classList.add('modo-pdf');
+      C.style.width = PDF_W + 'px'; C.style.height = PDF_H + 'px';
+      pintar(DATOS);
+      return new Promise(function (ok) { setTimeout(ok, 150); });
     }).then(function () {
-      return window.html2canvas($('contenido'), { scale: 2, backgroundColor: '#f2f4ef', logging: false,
+      return window.html2canvas(C, { scale: 2, backgroundColor: '#ffffff', logging: false, width: PDF_W, height: PDF_H, windowWidth: PDF_W + 40,
         onclone: function (doc) { Array.prototype.forEach.call(doc.querySelectorAll('table.rng'), function (t) { t.style.fontVariantNumeric = 'normal'; }); } });
     }).then(function (cv) {
-      var pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }), PW = 297, PH = 210, M = 10;
-      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); pdf.setTextColor(23, 32, 26);
-      pdf.text('Temperaturas en carros', M, M + 5);
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9.5); pdf.setTextColor(92, 106, 96);
-      pdf.text($('meta').textContent, M, M + 11);
-      var top = M + 15, aw = PW - 2 * M, ah = PH - top - M, k = Math.min(aw / cv.width, ah / cv.height), w = cv.width * k, h = cv.height * k;
-      pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', M + (aw - w) / 2, top, w, h);
-      var d = new Date(), dd = function (n) { return (n < 10 ? '0' : '') + n; };
-      pdf.save('Temperaturas en carros (' + dd(d.getDate()) + '-' + dd(d.getMonth() + 1) + '-' + d.getFullYear() + ').pdf');
+      var pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }), PW = 297, PH = 210, M = 9;
+      var VERDE = [44, 106, 59], TINTA = [23, 32, 26], GRIS = [92, 106, 96], LINEA = [217, 223, 214];
+      var hoy = new Date(), dd = function (n) { return (n < 10 ? '0' : '') + n; };
+      var hoyTxt = dd(hoy.getDate()) + '/' + dd(hoy.getMonth() + 1) + '/' + hoy.getFullYear() + ' ' + dd(hoy.getHours()) + ':' + dd(hoy.getMinutes());
+      // franja de título
+      pdf.setFillColor.apply(pdf, VERDE); pdf.rect(0, 0, PW, 20, 'F');
+      pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+      pdf.text('Temperaturas en carros', M, 9.5);
+      var R = resumenSensores(), fM = R[0], fW = R[2];
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9.5);
+      pdf.text('Traslado de campo a planta  ·  Carro de metal ' + ddmm(fM.ini) + '  ·  Carro de madera ' + ddmm(fW.ini), M, 15.5);
+      pdf.setFontSize(8.5); pdf.text('Generado el ' + hoyTxt, PW - M, 9.5, { align: 'right' });
+      // resumen por sensor
+      var y0 = 24, alto = 18, gap = 4, ancho = (PW - 2 * M - 3 * gap) / 4;
+      R.forEach(function (r, i) {
+        var x = M + i * (ancho + gap);
+        pdf.setDrawColor.apply(pdf, LINEA); pdf.setFillColor(247, 249, 245); pdf.roundedRect(x, y0, ancho, alto, 2, 2, 'FD');
+        pdf.setFillColor.apply(pdf, r.pos === 'Puerta' ? [37, 99, 235] : [194, 65, 12]); pdf.rect(x, y0 + 2, 1.2, alto - 4, 'F');
+        pdf.setTextColor.apply(pdf, TINTA); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+        pdf.text(r.carro + ' · ' + r.pos, x + 4, y0 + 5.5);
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5); pdf.setTextColor.apply(pdf, GRIS);
+        pdf.text('Sensor # ' + r.num + '  ·  ' + hhmm(r.ini) + '–' + hhmm(r.fin) + '  (' + hm(r.total) + ' h)', x + 4, y0 + 9.5);
+        pdf.setTextColor.apply(pdf, TINTA); pdf.setFontSize(8.5);
+        pdf.text('Prom. ' + f1(r.prom) + ' °C   Máx. ' + f1(r.max) + ' °C   > 40 °C: ' + hm(r.sobre40) + ' h', x + 4, y0 + 14.5);
+      });
+      // tablas y gráficos
+      var top = y0 + alto + 4, aw = PW - 2 * M, ah = PH - top - 9, k = Math.min(aw / cv.width, ah / cv.height), w = cv.width * k, h = cv.height * k;
+      pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', M + (aw - w) / 2, top + (ah - h) / 2, w, h);
+      // pie
+      pdf.setDrawColor.apply(pdf, LINEA); pdf.line(M, PH - 7, PW - M, PH - 7);
+      pdf.setFontSize(7.5); pdf.setTextColor.apply(pdf, GRIS);
+      pdf.text('Flujo de cosecha · Temperaturas en carros', M, PH - 3.5);
+      pdf.text('Tiempo por rango en h:mm · Total = del inicio a la llegada a planta', PW - M, PH - 3.5, { align: 'right' });
+      pdf.save('Temperaturas en carros (' + dd(hoy.getDate()) + '-' + dd(hoy.getMonth() + 1) + '-' + hoy.getFullYear() + ').pdf');
     }).catch(function (e) { $('meta').insertAdjacentHTML('beforeend', ' · <span class="err">No se pudo generar el PDF (' + esc(e.message) + ')</span>'); }).then(function () {
       if (temaAntes == null) raiz.removeAttribute('data-theme'); else raiz.setAttribute('data-theme', temaAntes);
+      raiz.classList.remove('modo-pdf'); C.style.width = ''; C.style.height = '';
       pintar(DATOS); b.disabled = false;
     });
   };
