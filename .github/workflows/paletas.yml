@@ -5,22 +5,23 @@ name: Stock de paletas
 # Entra a la intranet, descarga el Reporte Lanzado de Paletas (ayer → hoy) y deja la tabla en paletas.json.
 
 on:
-  # UNA sola corrida al día: la de las 6:00 a. m. (Lima), que tiene que estar lista antes de las 7:00,
+  # UNA sola corrida al día: la de las 3:00 a. m. (Lima), que tiene que estar lista antes de las 7:00,
   # porque después empieza el proceso y el stock ya no es el real.
-  #   1. La arranca a la hora exacta un servicio externo (cron-job.org) con «Run workflow» y turno = 06:00.
-  #   2. Respaldo: avisos de GitHub de 6:00 a 6:55 (GitHub los suelta con retraso). Desde las 7:00 ya no corre sola.
+  #   Aviso de GitHub a las 3:00 y dos de respaldo (3:30 y 4:00) por si GitHub se retrasa o falla;
+  #   los respaldos no hacen nada si la de las 3:00 ya salió bien. Desde las 7:00 ya no corre sola.
   # Cuando ya hubo una corrida buena en el día (automática o con «Generar tabla»), se rechaza cualquier otra
   # hasta el día siguiente. Solo «Run workflow» con «forzar» marcado la vuelve a correr.
   # Para cambiar las horas, edita HORA y HORA_LIMITE en el paso «Ver si toca correr ahora».
   schedule:
-    - cron: "0,5,15,25,35,45,55 11 * * *"   # la hora va en UTC (Lima + 5 h): 11:00 UTC = 6:00 a. m. de Lima
+    - cron: "0,30 8 * * *"   # la hora va en UTC (Lima + 5 h): 8:00 UTC = 3:00 a. m. de Lima, y 3:30 de respaldo
+    - cron: "0 9 * * *"      # 4:00 a. m. de Lima, último respaldo
   push:
     paths:
       - solicitud_paletas.json
   workflow_dispatch:
     inputs:
       turno:
-        description: "Turno automático (HH:MM, por ejemplo 06:00). Vacío = corrida a mano."
+        description: "Turno automático (HH:MM, por ejemplo 03:00). Vacío = corrida a mano."
         required: false
         default: ""
       forzar:
@@ -45,7 +46,7 @@ jobs:
       - name: Ver si toca correr ahora
         id: turno
         run: |
-          HORA="06:00"          # corrida automática del día (hora de Lima, 24 h)
+          HORA="03:00"          # corrida automática del día (hora de Lima, 24 h)
           HORA_LIMITE="07:00"   # desde esta hora ya no corre sola (el proceso ya empezó)
           dia=$(TZ=America/Lima date +%F)
           ahora=$(TZ=America/Lima date +%H:%M)
