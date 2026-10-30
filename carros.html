@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Temperaturas en carros</title>
+<script>
+/* Publicada junto al Flujo de cosecha: no se muestra hasta comprobar la sesión iniciada allá */
+if (/\.github\.io$/i.test(location.hostname) || /[?&]sitio=1\b/.test(location.search)) document.documentElement.classList.add('locked');
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<style>
+:root {
+  --bg: #f2f4ef; --surface: #ffffff; --surface-2: #f7f9f5; --ink: #17201a; --ink-soft: #47554c; --muted: #5c6a60;
+  --line: #d9dfd6; --line-soft: #e9ede6; --accent: #2c6a3b; --accent-ink: #ffffff; --accent-soft: #e0eee1;
+  --danger: #a3301f; --warn: #8a5a00; --warn-soft: #fbf0d6; --pop: 0 10px 28px rgba(23, 32, 26, .18);
+  /* colores de grupo (los mismos de la matriz de Power BI, en versión suave) */
+  --g-gen: #f3f5f1;   --g-gen-h: #e4e9e1;
+  --g-proc: #e6f4e2;  --g-proc-h: #c9e8c0; --g-proc-x: #5fb24c;
+  --g-dias: #fdf3cf;  --g-dias-h: #f6e19a; --g-dias-x: #e2b412;
+  --g-pt: #fce6e8;    --g-pt-h: #f6c9ce;
+  --g-em: #e1f0f7;    --g-em-h: #bfdfee;
+  --g-ind: #eceeeb;   --g-ind-h: #d8dcd6;
+  --zero: #9aa59c;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
+    --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
+    --danger: #f08a78; --warn: #e7bf6a; --warn-soft: #33290f; --pop: 0 10px 28px rgba(0, 0, 0, .55);
+    --g-gen: #1c231e;  --g-gen-h: #263028;
+    --g-proc: #1b2a1c; --g-proc-h: #24402a; --g-proc-x: #4f9c45;
+    --g-dias: #2b2614; --g-dias-h: #46391a; --g-dias-x: #b78f1b;
+    --g-pt: #2d1e21;   --g-pt-h: #4a2a30;
+    --g-em: #18262e;   --g-em-h: #22404f;
+    --g-ind: #212622;  --g-ind-h: #2f3631;
+    --zero: #5d6a61;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111612; --surface: #19201b; --surface-2: #1e2620; --ink: #e5ebe5; --ink-soft: #b9c4bb; --muted: #98a69b;
+  --line: #2c372f; --line-soft: #232c26; --accent: #7cc38a; --accent-ink: #0f1711; --accent-soft: #223427;
+  --danger: #f08a78; --warn: #e7bf6a; --warn-soft: #33290f; --pop: 0 10px 28px rgba(0, 0, 0, .55);
+  --g-gen: #1c231e;  --g-gen-h: #263028;
+  --g-proc: #1b2a1c; --g-proc-h: #24402a; --g-proc-x: #4f9c45;
+  --g-dias: #2b2614; --g-dias-h: #46391a; --g-dias-x: #b78f1b;
+  --g-pt: #2d1e21;   --g-pt-h: #4a2a30;
+  --g-em: #18262e;   --g-em-h: #22404f;
+  --g-ind: #212622;  --g-ind-h: #2f3631;
+  --zero: #5d6a61;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.4; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.gate { display: none; }
+html.locked .app { display: none; }
+html.locked .gate { display: grid; place-items: center; min-height: 100vh; color: var(--muted); }
+
+.app { max-width: 1680px; margin: 0 auto; padding: 16px clamp(16px, 2.4vw, 32px) 28px; display: flex; flex-direction: column; gap: 14px; min-height: 100vh; }
+
+/* ---------- selector de páginas (igual que en las otras páginas) */
+.apps { position: relative; display: flex; align-items: center; height: 32px; }
+.apps-b { width: 32px; height: 32px; padding: 0; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--accent); cursor: pointer; }
+.apps-b svg { width: 18px; height: 18px; }
+.apps-b:hover, .apps.abierto .apps-b { background: var(--surface-2); border-color: var(--accent); }
+.apps-m { position: absolute; left: 38px; top: 0; height: 32px; display: flex; align-items: center; gap: 4px; padding: 0 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, .12); z-index: 30;
+  visibility: hidden; opacity: 0; transform: translateX(-6px); transition: opacity .16s, transform .16s, visibility 0s .16s; }
+.apps.abierto .apps-m { visibility: visible; opacity: 1; transform: none; transition: opacity .16s, transform .16s; }
+.apps-i { position: relative; width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--ink-soft); text-decoration: none; }
+.apps-i svg { width: 20px; height: 20px; }
+.apps-i:hover, .apps-i:focus-visible { background: var(--surface-2); color: var(--accent); }
+.apps-i[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.apps-i::after { content: attr(data-nombre); position: absolute; left: 0; top: calc(100% + 7px); white-space: nowrap; background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 5px; pointer-events: none; opacity: 0; transition: opacity .12s; }
+.apps-i:hover::after, .apps-i:focus-visible::after { opacity: 1; }
+
+/* ---------- encabezado */
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.head h1 { margin: 0; font-family: var(--font-cond); font-weight: 600; font-size: 26px; letter-spacing: .01em; line-height: 1.1; }
+.meta { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.meta strong { color: var(--ink); font-weight: 500; }
+.meta .err { color: var(--danger); font-weight: 500; }
+.head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 500; text-decoration: none; color: var(--ink); font-size: 13.5px; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(.93); }
+.btn[disabled] { opacity: .6; cursor: progress; }
+.btn.icono { width: 36px; padding: 0; justify-content: center; }
+.btn.icono img { width: 24px; height: 24px; display: block; }
+
+/* ---------- encabezado compacto en una sola fila */
+.app { gap: 10px; padding-top: 10px; }
+.head { align-items: center; flex-wrap: nowrap; gap: 12px; }
+.head .tit { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.head h1 { font-size: 20px; }
+.head .meta { margin: 0; font-size: 12.5px; }
+.head .btn { height: 32px; padding: 0 12px; font-size: 13px; }
+.head .apps { flex: none; }
+@media (max-width: 700px) { .head { flex-wrap: wrap; } .head .tit { flex-basis: calc(100% - 50px); } }
+
+:root { --c-chofer: #c2410c; --c-puerta: #2563eb; --c-metal: #475569; --c-madera: #a16207; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-chofer: #fb923c; --c-puerta: #60a5fa; --c-metal: #cbd5e1; --c-madera: #e3b341; } }
+:root[data-theme="dark"] { --c-chofer: #fb923c; --c-puerta: #60a5fa; --c-metal: #cbd5e1; --c-madera: #e3b341; }
+/* ---------- página de carros */
+.app { gap: 14px; }
+.fila { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) { .fila { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 12px; min-width: 0; }
+.card h2 { margin: 0; font-family: var(--font-cond); font-size: 16px; font-weight: 600; letter-spacing: .01em; }
+.card .sub { margin: 2px 0 10px; color: var(--muted); font-size: 12.5px; }
+.ley { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 6px; font-size: 12.5px; color: var(--ink-soft); }
+.ley span { display: inline-flex; align-items: center; gap: 6px; }
+.ley i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.lienzo { position: relative; height: 300px; }
+table.rng { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+table.rng th, table.rng td { padding: 7px 10px; border-bottom: 1px solid var(--line-soft); text-align: right; white-space: nowrap; }
+table.rng th:first-child, table.rng td:first-child { text-align: left; }
+table.rng thead th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
+table.rng thead tr:first-child th { text-align: center; }
+table.rng td.r { font-weight: 600; }
+table.rng td.p { min-width: 104px; }
+table.rng td.p .pc { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+table.rng td.p b { font-weight: 600; min-width: 46px; text-align: right; }
+table.rng td.p .pista { width: 44px; height: 8px; border-radius: 4px; background: var(--line-soft); overflow: hidden; flex: none; }
+table.rng td.p .bar { display: block; height: 100%; border-radius: 4px; }
+.tabla-x { overflow-x: auto; }
+@media (max-width: 560px) {
+  table.rng { font-size: 12.5px; } table.rng th, table.rng td { padding: 6px 5px; }
+  table.rng td.p { min-width: 0; } table.rng td.p .pista { display: none; } table.rng td.p b { min-width: 0; }
+  .card { padding: 12px 10px 10px; } .lienzo { height: 260px; }
+}
+table.rng td.n { color: var(--muted); }
+table.rng tr.tot td { border-top: 1px solid var(--line); border-bottom: 0; font-weight: 600; }
+table.rng tr.res td { border-bottom: 0; color: var(--ink-soft); padding-top: 4px; padding-bottom: 4px; }
+table.rng .cero { color: var(--zero); }
+.nota { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+.vacio { padding: 40px 16px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="gate">Comprobando acceso…</div>
+<div class="app">
+  <header class="head">
+  <div class="apps" id="apps">
+    <button class="apps-b" id="appsB" type="button" aria-expanded="false" aria-controls="appsM" aria-label="Ir a otra página" title="Páginas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
+    </button>
+    <nav class="apps-m" id="appsM" aria-label="Páginas">
+      <a class="apps-i" id="navFlujo" href="https://johanch01.github.io/flujo-cosecha/" aria-label="Flujo de cosecha" data-nombre="Flujo de cosecha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4.2l3.3 3.4v2.6h-7.5z"/><circle cx="7" cy="17.3" r="1.8"/><circle cx="17" cy="17.3" r="1.8"/></svg></a>
+      <a class="apps-i" href="fitosanitario.html" aria-label="Evaluación fitosanitaria" data-nombre="Evaluación fitosanitaria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10.5-10M9.3 14.8l-.4-3.4M12.3 12l2.9.4"/></svg></a>
+      <a class="apps-i" href="reporte.html" aria-label="Reporte diario" data-nombre="Reporte diario"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M7.5 16v-3M12 16V9M16.5 16v-5"/></svg></a>
+      <a class="apps-i" href="comparativo.html" aria-label="Comparativo de despachos" data-nombre="Comparativo de despachos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M9 4.5v15M15 9.5v10"/></svg></a>
+      <a class="apps-i" href="temperaturas.html" aria-label="Temperaturas de cámaras" data-nombre="Temperaturas de cámaras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0Z"/><path d="M12 9v7"/></svg></a>
+      <a class="apps-i" href="carros.html" aria-label="Temperaturas en carros" aria-current="page" data-nombre="Temperaturas en carros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5h10v8h-10zM12.5 11h3.6l2.9 3v2.5h-6.5z"/><circle cx="6.5" cy="17.6" r="1.6"/><circle cx="16" cy="17.6" r="1.6"/><path d="M20 3.5v5.2a1.6 1.6 0 1 1-1.6 0V3.5a.8.8 0 0 1 1.6 0z"/></svg></a>
+    </nav>
+  </div>
+    <div class="tit">
+      <h1>Temperaturas en carros</h1>
+      <p class="meta" id="meta">Cargando…</p>
+    </div>
+  </header>
+
+  <p class="vacio" id="vacio" hidden></p>
+  <div id="contenido" hidden>
+    <div class="fila">
+      <section class="card"><h2>Carro de metal · rangos de temperatura</h2><p class="sub" id="subTabMetal"></p><div id="tabMetal"></div></section>
+      <section class="card"><h2>Carro de madera · rangos de temperatura</h2><p class="sub" id="subTabMadera"></p><div id="tabMadera"></div></section>
+    </div>
+    <div class="fila" style="margin-top:14px">
+      <section class="card"><h2>Carro de metal · chofer y puerta</h2><p class="sub" id="subGMetal"></p>
+        <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
+        <div class="lienzo"><canvas id="gMetal" role="img" aria-label="Temperatura del chofer y la puerta del carro de metal en el tiempo"></canvas></div></section>
+      <section class="card"><h2>Carro de madera · chofer y puerta</h2><p class="sub" id="subGMadera"></p>
+        <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
+        <div class="lienzo"><canvas id="gMadera" role="img" aria-label="Temperatura del chofer y la puerta del carro de madera en el tiempo"></canvas></div></section>
+    </div>
+    <div class="fila" style="margin-top:14px">
+      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo de cada carro</p>
+        <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
+        <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
+      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo de cada carro</p>
+        <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
+        <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
+    </div>
+    <p class="nota">Rangos: un valor justo en el límite cuenta en el rango de abajo (25.0 °C va en 20 – 25). Madera: del inicio (amarillo) a la llegada a planta (rojo). Metal: desde la primera lectura a partir de las <span id="notaMetal">12:00</span> hasta la llegada a planta (rojo).</p>
+  </div>
+</div>
+
+<script src="lib/chart.umd.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- selector de páginas
+  function appsAbrir(on) { $('apps').classList.toggle('abierto', on); $('appsB').setAttribute('aria-expanded', String(on)); }
+  $('appsB').addEventListener('click', function (e) { e.stopPropagation(); appsAbrir(!$('apps').classList.contains('abierto')); });
+  $('appsM').addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && a.getAttribute('aria-current') === 'page') { e.preventDefault(); appsAbrir(false); } });
+  document.addEventListener('click', function (e) { if (!e.target.closest('#apps')) appsAbrir(false); });
+
+  // ---------- rangos: (a, b] — un valor justo en el límite va al rango de abajo; <20 incluye 20 en el siguiente
+  var RANGOS = [
+    { k: '< 20', ok: function (t) { return t < 20; } },
+    { k: '20 – 25', ok: function (t) { return t >= 20 && t <= 25; } },
+    { k: '25 – 30', ok: function (t) { return t > 25 && t <= 30; } },
+    { k: '30 – 35', ok: function (t) { return t > 30 && t <= 35; } },
+    { k: '35 – 40', ok: function (t) { return t > 35 && t <= 40; } },
+    { k: '> 40', ok: function (t) { return t > 40; } }
+  ];
+  function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+  function fecha(s) { var m = s.match(/(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d)/); return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime(); }
+  function hhmm(ms) { var d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function ddmm(ms) { var d = new Date(ms); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+  function f1(x) { return x.toFixed(1); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // tramo analizado de un sensor → [{ms, t}]
+  function tramo(s) { var o = []; for (var i = s.ini; i <= s.fin; i++) o.push({ ms: fecha(s.h[i]), t: s.t[i] }); return o; }
+  function resumen(L) { var ts = L.map(function (p) { return p.t; }); return { n: ts.length, min: Math.min.apply(null, ts), max: Math.max.apply(null, ts), prom: ts.reduce(function (a, b) { return a + b; }, 0) / ts.length, ini: L[0].ms, fin: L[L.length - 1].ms }; }
+  function texto(r) { return ddmm(r.ini) + ' ' + hhmm(r.ini) + ' → ' + (ddmm(r.fin) !== ddmm(r.ini) ? ddmm(r.fin) + ' ' : '') + hhmm(r.fin); }
+
+  function tabla(C) {
+    var ch = tramo(C.chofer), pu = tramo(C.puerta), rc = resumen(ch), rp = resumen(pu);
+    function cuenta(L) { return RANGOS.map(function (r) { return L.filter(function (p) { return r.ok(p.t); }).length; }); }
+    var nc = cuenta(ch), np = cuenta(pu), colC = css('--c-chofer'), colP = css('--c-puerta');
+    function celdas(n, tot, col) {
+      var p = tot ? n / tot : 0;
+      return '<td class="n' + (n ? '' : ' cero') + '">' + n + '</td><td class="p"><span class="pc"><span class="pista"><span class="bar" style="width:' + (p * 100).toFixed(1) + '%;background:' + col + '"></span></span><b' + (n ? '' : ' class="cero"') + '>' + (p * 100).toFixed(1) + '%</b></span></td>';
+    }
+    var h = '<div class="tabla-x"><table class="rng"><thead><tr><th rowspan="2" style="vertical-align:bottom">Rango (°C)</th><th colspan="2">Chofer (fondo)</th><th colspan="2">Puerta</th></tr>' +
+      '<tr><th>Lect.</th><th>%</th><th>Lect.</th><th>%</th></tr></thead><tbody>';
+    RANGOS.forEach(function (r, i) { h += '<tr><td class="r">' + r.k + '</td>' + celdas(nc[i], rc.n, colC) + celdas(np[i], rp.n, colP) + '</tr>'; });
+    h += '<tr class="tot"><td>Total</td><td>' + rc.n + '</td><td>100%</td><td>' + rp.n + '</td><td>100%</td></tr>';
+    [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
+      h += '<tr class="res"><td>' + q[0] + ' (°C)</td><td colspan="2">' + f1(rc[q[1]]) + '</td><td colspan="2">' + f1(rp[q[1]]) + '</td></tr>';
+    });
+    h += '<tr class="res"><td>Tramo</td><td colspan="2">' + texto(rc) + '</td><td colspan="2">' + texto(rp) + '</td></tr></tbody></table></div>';
+    return h;
+  }
+
+  var graficos = [];
+  function opciones(ejeX, titX, lim) {
+    var tinta = css('--ink-soft'), linea = css('--line-soft');
+    return {
+      responsive: true, maintainAspectRatio: false, animation: false, parsing: false, normalized: true,
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: function (it) { return it.length ? ejeX(it[0].parsed.x, true) : ''; },
+        label: function (c) { return ' ' + c.dataset.label + ': ' + f1(c.parsed.y) + ' °C'; } } } },
+      scales: {
+        x: { type: 'linear', min: lim.min, max: lim.max, title: { display: !!titX, text: titX, color: tinta }, ticks: { color: tinta, stepSize: lim.paso, autoSkip: true, maxTicksLimit: 13, callback: function (v) { return ejeX(v); } }, grid: { color: linea } },
+        y: { title: { display: true, text: 'Temperatura (°C)', color: tinta }, ticks: { color: tinta }, grid: { color: linea } }
+      },
+      elements: { point: { radius: 0, hoverRadius: 4 }, line: { borderWidth: 2, tension: .25 } }
+    };
+  }
+  function serie(label, L, col, x) { return { label: label, data: L.map(function (p) { return { x: x(p), y: p.t }; }), borderColor: col, backgroundColor: col }; }
+  // eje X en horas exactas: de la hora entera anterior al primer dato a la hora entera siguiente al último
+  function grafico(id, series, ejeX, titX, unidad) {
+    var xs = []; series.forEach(function (d) { d.data.forEach(function (q) { xs.push(q.x); }); });
+    var lo = Math.min.apply(null, xs), hi = Math.max.apply(null, xs), lim;
+    if (unidad === 'ms') { var H = 3600000, base = new Date(lo); base.setMinutes(0, 0, 0); lim = { min: base.getTime(), max: Math.ceil((hi - base.getTime()) / H) * H + base.getTime() }; lim.paso = (lim.max - lim.min) / H > 12 ? 2 * H : H; }
+    else lim = { min: 0, max: Math.ceil(hi), paso: 1 };
+    graficos.push(new Chart($(id), { type: 'line', data: { datasets: series }, options: opciones(ejeX, titX, lim) }));
+  }
+  function reloj(v, largo) { return largo ? ddmm(v) + ' ' + hhmm(v) : hhmm(v); }
+  function horas(v, largo) { var h = Math.floor(v + 1e-9), m = Math.round((v - h) * 60); if (m === 60) { h++; m = 0; } return largo ? h + ' h ' + String(m).padStart(2, '0') + ' min desde el inicio' : h + ' h'; }
+
+  function pintar(D) {
+    var M = D.carros.metal, W = D.carros.madera;
+    $('tabMetal').innerHTML = tabla(M); $('tabMadera').innerHTML = tabla(W);
+    var rM = resumen(tramo(M.chofer)), rW = resumen(tramo(W.chofer));
+    $('subTabMetal').textContent = 'Lecturas del tramo por rango · ' + ddmm(rM.ini);
+    $('subTabMadera').textContent = 'Lecturas del tramo por rango · ' + ddmm(rW.ini);
+    $('subGMetal').textContent = 'Del ' + texto(rM).replace('→', 'al');
+    $('subGMadera').textContent = 'Del ' + texto(rW).replace('→', 'al');
+    $('notaMetal').textContent = D.inicioMetal ? D.inicioMetal.slice(11, 16) + ' del ' + D.inicioMetal.slice(8, 10) + '/' + D.inicioMetal.slice(5, 7) : '12:00';
+    var cC = css('--c-chofer'), cP = css('--c-puerta'), cMe = css('--c-metal'), cMa = css('--c-madera');
+    var reloj_x = function (p) { return p.ms; };
+    graficos.forEach(function (g) { g.destroy(); }); graficos = [];
+    grafico('gMetal', [serie('Chofer', tramo(M.chofer), cC, reloj_x), serie('Puerta', tramo(M.puerta), cP, reloj_x)], reloj, 'Hora', 'ms');
+    grafico('gMadera', [serie('Chofer', tramo(W.chofer), cC, reloj_x), serie('Puerta', tramo(W.puerta), cP, reloj_x)], reloj, 'Hora', 'ms');
+    function desde(L) { var t0 = L[0].ms; return function (p) { return (p.ms - t0) / 3600000; }; }
+    var pM = tramo(M.puerta), pW = tramo(W.puerta), chM = tramo(M.chofer), chW = tramo(W.chofer);
+    grafico('gPuertas', [serie('Metal', pM, cMe, desde(pM)), serie('Madera', pW, cMa, desde(pW))], horas, 'Horas desde el inicio');
+    grafico('gChofer', [serie('Metal', chM, cMe, desde(chM)), serie('Madera', chW, cMa, desde(chW))], horas, 'Horas desde el inicio');
+    $('meta').innerHTML = 'Traslado de campo a planta · metal <strong>' + ddmm(rM.ini) + '</strong> · madera <strong>' + ddmm(rW.ini) + '</strong>' + (D.gen ? ' · cargado el ' + D.gen.slice(8, 10) + '/' + D.gen.slice(5, 7) + ' ' + D.gen.slice(11, 16) : '');
+    $('contenido').hidden = false;
+  }
+  var DATOS = null;
+  var tema = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  if (tema && tema.addEventListener) tema.addEventListener('change', function () { if (DATOS) pintar(DATOS); });
+  function sinDatos(t) { $('meta').textContent = ''; $('vacio').textContent = t; $('vacio').hidden = false; }
+
+  // ---------- sitio publicado: misma sesión (DNI) del Flujo de cosecha
+  function unb64(str) { var t = atob(str), u8 = new Uint8Array(t.length); for (var i = 0; i < t.length; i++) u8[i] = t.charCodeAt(i); return u8; }
+  function read(store, k) { try { return store.getItem(k); } catch (e) { return null; } }
+  function toLogin() { location.replace('./'); }
+  function getJson(name) { return fetch(name + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function aes(raw) { return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']); }
+  function open(key, iv, data) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(data)); }
+  async function admKey(pass, pk) {
+    var base = await crypto.subtle.importKey('raw', new TextEncoder().encode('adm:' + pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: unb64(pk.adm.s), iterations: pk.it, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  }
+  async function unlock(pk, dk, adm) {
+    if (dk && pk.keys) for (var i = 0; i < pk.keys.length; i++) { try { return new Uint8Array(await open(dk, pk.keys[i].i, pk.keys[i].c)); } catch (e) { /* otra cerradura */ } }
+    if (adm && pk.adm) { try { return unb64(JSON.parse(new TextDecoder().decode(await open(await admKey(adm, pk), pk.adm.i, pk.adm.c))).k); } catch (e) { /* clave vieja */ } }
+    return null;
+  }
+  async function gunzip(bytes) {
+    return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+  }
+  if (/\.github\.io$/i.test(location.hostname)) $('navFlujo').href = './';
+  var ses = null;
+  try { ses = JSON.parse(read(sessionStorage, 'fc.ses') || read(localStorage, 'fc.ses') || 'null'); } catch (e) { ses = null; }
+  var adm = read(localStorage, 'fc.adm');
+  if ((!ses || !ses.k) && !adm || !window.crypto || !crypto.subtle) return toLogin();
+
+  (async function () {
+    var dk = null;
+    try { if (ses && ses.k) dk = await aes(unb64(ses.k)); } catch (e) { dk = null; }
+    var pk = await getJson('datos.json');      // la sesión tiene que seguir abriendo el flujo (si se quitó el acceso, ya no entra)
+    if (!pk) return toLogin();
+    var raw = await unlock(pk, dk, adm);
+    if (!raw) return toLogin();
+    document.documentElement.classList.remove('locked');
+    var ck = await getJson('carros.json');
+    if (!ck) return sinDatos('Todavía no hay datos de los carros: corre carros_temperatura.py en tu laptop.');
+    var llave = await unlock(ck, dk, adm);
+    if (!llave) return sinDatos('Tu acceso no abre los datos de los carros. Pide que vuelvan a subirlos.');
+    var plano = new Uint8Array(await open(await aes(llave), ck.iv, ck.data));
+    if (ck.z) plano = await gunzip(plano);
+    DATOS = JSON.parse(new TextDecoder().decode(plano));
+    pintar(DATOS);
+  })().catch(toLogin);
+})();
+</script>
+</body>
+</html>
