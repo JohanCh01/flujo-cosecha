@@ -452,10 +452,10 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
 <div class="tip" id="tip" hidden></div>
 <div class="modal" id="comp" role="dialog" aria-modal="true" aria-labelledby="comp-t" hidden>
   <div class="modal-b">
-    <h2 id="comp-t">Compartir con acceso por DNI</h2>
-    <p class="modal-p" id="compP">Se descarga un archivo HTML con todos los días cargados, cifrado. Quien lo abra escribe su DNI como usuario y como contraseña; si no está en esta lista, ve «Acceso denegado».</p>
-    <label class="f-l" for="dnis">DNIs autorizados (uno por línea)</label>
-    <textarea id="dnis" rows="8" spellcheck="false"></textarea>
+    <h2 id="comp-t">Compartir con usuario y contraseña</h2>
+    <p class="modal-p" id="compP">Se descarga un archivo HTML con todos los días cargados, cifrado. Quien lo abra escribe este usuario y esta contraseña; si no coinciden, ve «Acceso denegado».</p>
+    <div id="accBox"><label class="f-l" for="au">Usuario</label><input id="au" autocomplete="off" spellcheck="false">
+    <label class="f-l" for="ac">Contraseña (mínimo 12 letras o números)</label><input id="ac" autocomplete="off" spellcheck="false"></div>
     <div id="tokBox" hidden><label class="f-l" for="tokNew">Token de GitHub nuevo (solo si el anterior venció)</label><input id="tokNew" type="password" autocomplete="off"></div>
     <div class="modal-s" id="compS"></div>
     <div class="carga-btns"><button class="btn" id="compDl" type="button">Descargar archivo</button><button class="btn ghost" id="compSave" type="button">Guardar lista</button><button class="btn ghost" id="compX" type="button">Cerrar</button><button class="btn ghost" id="compOut" type="button" hidden>Cerrar sesión</button></div>
@@ -465,11 +465,11 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
   <form class="login-b" id="loginF">
     <svg class="ic" aria-hidden="true"><use href="#i-granja"/></svg>
     <h2>Flujo comparativo de la cosecha</h2>
-    <p class="modal-p">Ingresa tu DNI como usuario y como contraseña.</p>
+    <p class="modal-p">Ingresa el usuario y la contraseña de acceso.</p>
     <label class="f-l" for="lu">Usuario</label>
-    <input id="lu" name="usuario" inputmode="numeric" autocomplete="username" required>
+    <input id="lu" name="usuario" autocomplete="username" autocapitalize="off" spellcheck="false" required>
     <label class="f-l" for="lp">Contraseña</label>
-    <input id="lp" name="clave" type="password" inputmode="numeric" autocomplete="current-password" required>
+    <input id="lp" name="clave" type="password" autocomplete="current-password" required>
     <label class="keep" for="lk"><input type="checkbox" id="lk"> Mantener sesión iniciada en este equipo</label>
     <button class="btn" type="submit" id="lb">Ingresar</button>
     <div class="login-m" id="lm" role="alert"></div>
@@ -485,7 +485,7 @@ textarea{resize:vertical;min-height:130px;font-family:ui-monospace,Consolas,mono
     <input id="at" type="password" autocomplete="off" required>
     <button class="btn" type="submit" id="ab">Entrar como administrador</button>
     <div class="login-m" id="am" role="alert"></div>
-    <button type="button" class="lnk" id="aBack">Volver al ingreso con DNI</button>
+    <button type="button" class="lnk" id="aBack">Volver al ingreso</button>
   </form>
 </div>
 
@@ -1095,14 +1095,13 @@ function unb64(str){ var t=atob(str), u=new Uint8Array(t.length); for(var i=0;i<
 async function pipe(bytes,stream){ return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
 function cleanDni(v){ return String(v==null?'':v).toUpperCase().replace(/[^0-9A-Z]/g,''); }
 function keyDni(v){ var d=cleanDni(v); return /^\d+$/.test(d) ? d.replace(/^0+(?=\d)/,'') : d; }   // un DNI con o sin ceros a la izquierda es el mismo
+/* Acceso único: usuario + contraseña comunes. La «llave» es los dos juntos, en mayúsculas y sin espacios ni signos
+   (igual que hace cambiar_acceso.py). Así una contraseña larga hace imposible adivinar el ingreso. */
+var MIN_CLAVE=12;
+function credOf(u,p){ var a=cleanDni(u), b=cleanDni(p); return (a && b.length>=MIN_CLAVE) ? keyDni(a+b) : ''; }
 async function dniKey(dni,salt,it){
   var base=await crypto.subtle.importKey('raw',te.encode(dni),'PBKDF2',false,['deriveKey']);
   return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:it,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-}
-function parseDnis(t){
-  var seen=new Set(), ok=[], bad=0;
-  String(t||'').split(/[\s,;]+/).forEach(function(x){ if(!x) return; var c=cleanDni(x), k=keyDni(x); if(/^[0-9A-Z]{5,15}$/.test(c)){ if(!seen.has(k)){ seen.add(k); ok.push(c); } } else bad++; });
-  return {ok:ok,bad:bad};
 }
 async function buildPackage(dnis,onStep,admPass){
   if(!window.crypto || !crypto.subtle) throw {msg:'Este navegador no permite cifrar desde esta ubicación. Abre la página por https o desde el archivo guardado en tu equipo.'};
@@ -1139,26 +1138,25 @@ async function saveFile(name,data){
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function(){ URL.revokeObjectURL(a.href); },5000);
 }
-var comp=$('#comp'), dnisEl=$('#dnis'), compS=$('#compS'), compBusy=false, dnisLoaded=false;
+var comp=$('#comp'), compS=$('#compS'), compBusy=false;
 function compStatus(msg,err){ compS.textContent=msg; compS.className='modal-s'+(err?' err':''); }
 function compCount(){
-  var r=parseDnis(dnisEl.value), d=S.index.dias;
-  compStatus(r.ok.length+' '+(r.ok.length===1?'DNI válido':'DNIs válidos')+(r.bad?' · '+r.bad+' '+(r.bad===1?'entrada ignorada':'entradas ignoradas'):'')+(d.length?' · '+(S.site?'se publicarán ':'el archivo incluirá ')+d.length+' '+(d.length===1?'día':'días')+' ('+fLargo(d[0])+' a '+fLargo(d[d.length-1])+')':''));
+  var d=S.index.dias, r;
+  if(S.site){ r={ok:S.dnis||[]}; }   // en el enlace el acceso se cambia con la tarea «Cambiar acceso» de GitHub
+  else { var c=credOf($('#au').value,$('#ac').value); r={ok:c?[c]:[]}; }
+  var ped=!r.ok.length ? (S.site?'':'Escribe el usuario y una contraseña de al menos '+MIN_CLAVE+' letras o números.') : '';
+  compStatus((ped || (S.site?'Se mantiene el usuario y la contraseña actuales.':'Usuario y contraseña listos.'))+(d.length?' · '+(S.site?'se publicarán ':'el archivo incluirá ')+d.length+' '+(d.length===1?'día':'días')+' ('+fLargo(d[0])+' a '+fLargo(d[d.length-1])+')':''));
   return r;
 }
 async function saveDnis(list){ if(!S.db) return false; await retry(function(){ return S.db.doc('acceso/lista').set({dnis:list, actualizado:new Date().toISOString()}); }); return true; }
 async function openComp(){
   comp.hidden=false;
   if(S.site){
-    $('#comp-t').textContent='Accesos por DNI';
-    $('#compP').textContent='Solo las personas de esta lista pueden entrar al enlace, con su DNI como usuario y como contraseña. Al guardar se publica de inmediato.';
-    $('#compDl').textContent='Guardar y publicar'; $('#compSave').hidden=true; $('#tokBox').hidden=false; $('#compOut').hidden=false;
-    if(!dnisLoaded){ dnisEl.value=(S.dnis||[]).join('\n'); dnisLoaded=true; }
+    $('#comp-t').textContent='Accesos';
+    $('#compP').textContent='Al enlace se entra con un usuario y una contraseña comunes. Para cambiarlos: en GitHub cambia el secreto ACCESO_CODIGO y corre la tarea «Cambiar acceso» (Actions → Cambiar acceso → Run workflow). Aquí solo se vuelve a publicar o se renueva el token.';
+    $('#compDl').textContent='Guardar y publicar'; $('#compSave').hidden=true; $('#tokBox').hidden=false; $('#compOut').hidden=false; $('#accBox').hidden=true;
   }
-  if(!dnisLoaded && S.db){
-    try{ var sn=await S.db.doc('acceso/lista').get(); if(sn.exists && Array.isArray(sn.data().dnis) && !dnisEl.value) dnisEl.value=sn.data().dnis.join('\n'); dnisLoaded=true; }catch(e){}
-  }
-  compCount(); dnisEl.focus();
+  compCount(); if(!S.site) $('#au').focus();
 }
 function closeComp(){ if(!compBusy) comp.hidden=true; }
 function compLock(on){ compBusy=on; ['#compDl','#compSave','#compX'].forEach(function(q){ $(q).disabled=on; }); }
@@ -1166,16 +1164,16 @@ $('#btnComp').addEventListener('click',openComp);
 $('#compOut').addEventListener('click',function(){ logout(); });
 $('#compX').addEventListener('click',closeComp);
 comp.addEventListener('click',function(e){ if(e.target===comp) closeComp(); });
-dnisEl.addEventListener('input',compCount);
+$('#au').addEventListener('input',compCount); $('#ac').addEventListener('input',compCount);
 $('#compSave').addEventListener('click',async function(){
-  var r=compCount(); if(!r.ok.length){ compStatus('Escribe al menos un DNI.',true); return; }
+  var r=compCount(); if(!r.ok.length){ compStatus(S.site?'No se pudo leer el acceso actual. Vuelve a entrar como administrador.':'Escribe el usuario y una contraseña de al menos '+MIN_CLAVE+' letras o números.',true); return; }
   compLock(true);
-  try{ compStatus((await saveDnis(r.ok)) ? 'Lista guardada: '+r.ok.length+' '+(r.ok.length===1?'DNI':'DNIs')+'.' : 'No hay dónde guardar la lista en esta vista.', false); }
+  try{ compStatus((await saveDnis(r.ok)) ? 'Acceso guardado.' : 'No hay dónde guardar el acceso en esta vista.', false); }
   catch(e){ compStatus('No se pudo guardar la lista. Vuelve a intentar.',true); }
   compLock(false);
 });
 $('#compDl').addEventListener('click',async function(){
-  var r=compCount(); if(!r.ok.length){ compStatus('Escribe al menos un DNI.',true); return; }
+  var r=compCount(); if(!r.ok.length){ compStatus(S.site?'No se pudo leer el acceso actual. Vuelve a entrar como administrador.':'Escribe el usuario y una contraseña de al menos '+MIN_CLAVE+' letras o números.',true); return; }
   compLock(true);
   try{
     if(S.site){
@@ -1192,7 +1190,7 @@ $('#compDl').addEventListener('click',async function(){
     compStatus('Generando el archivo…');
     await saveFile('index.html', buildFile(pk));   // nombre fijo: es el que espera GitHub Pages
     try{ await saveDnis(r.ok); }catch(e){}
-    compStatus('Archivo index.html listo. Súbelo a tu GitHub reemplazando el anterior, o compártelo por carpeta o correo: cada persona entra con su DNI.');
+    compStatus('Archivo index.html listo. Compártelo por carpeta o correo: se entra con el usuario y la contraseña que escribiste.');
   }catch(e){
     var c=e&&e.code;
     compStatus((e&&e.msg) || (S.site?'No se pudo conectar con GitHub. Revisa tu conexión y vuelve a intentar.':c==='declined'?'Descarga cancelada.':c==='rate_limited'?'Ya hay una descarga pendiente de confirmar.':'No se pudo generar el archivo. Vuelve a intentar.'), true);
@@ -1459,7 +1457,7 @@ $('#btnRep').addEventListener('click',async function(){
   b.disabled=false;
 });
 
-/* ---------- ingreso con DNI (solo en el archivo compartido) ---------- */
+/* ---------- ingreso con usuario y contraseña ---------- */
 function memDb(docs,writable){
   return {doc:function(path){ return { get:async function(){ return {exists:path in docs, data:function(){ return docs[path]; }}; }, set:async function(d){ if(!writable) throw {code:'invalid_argument'}; docs[path]=d; } }; }};
 }
@@ -1471,8 +1469,8 @@ async function openData(raw){
   Object.keys(o.days).forEach(function(k){ docs['dias/'+k]=o.days[k]; });
   return docs;
 }
-/* La sesión recordada no guarda el DNI: guarda la llave derivada de él, que solo sirve para este informe.
-   Si al DNI se le quita el acceso, esa llave deja de abrir los datos y vuelve a pedirse el ingreso. */
+/* La sesión recordada no guarda la contraseña: guarda la llave derivada de ella, que solo sirve para este informe.
+   Si se cambia la contraseña (tarea «Cambiar acceso»), esa llave deja de abrir los datos y vuelve a pedirse el ingreso. */
 async function dniBits(dni,salt,it){
   var base=await crypto.subtle.importKey('raw',te.encode(dni),'PBKDF2',false,['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:salt,iterations:it,hash:'SHA-256'},base,256));
@@ -1486,11 +1484,11 @@ async function openWith(bits){
 }
 function forget(){ try{ localStorage.removeItem('fc.ses'); }catch(e){} try{ sessionStorage.removeItem('fc.ses'); }catch(e){} }
 async function unlock(u,p,keep){
-  u=keyDni(u); p=keyDni(p);
-  if(!PKG || !u || u!==p) return false;
-  var bits=await dniBits(u,unb64(PKG.salt),PKG.it);
+  var c=credOf(u,p);
+  if(!PKG || !c) return false;
+  var bits=await dniBits(c,unb64(PKG.salt),PKG.it);
   if(!(await openWith(bits))) return false;
-  S.who='DNI •••'+u.slice(-3);
+  S.who=String(u).trim().slice(0,30);
   forget();   // con la casilla queda en el equipo; sin ella, solo mientras siga abierta la pestaña (sirve para pasar a las otras páginas del sitio)
   try{ (keep?localStorage:sessionStorage).setItem('fc.ses',JSON.stringify({k:b64(bits),s:PKG.salt,w:S.who})); }catch(e){}
   return true;
@@ -1499,7 +1497,7 @@ async function resume(){
   var o=null; try{ o=JSON.parse(localStorage.getItem('fc.ses')||'null'); }catch(e){}
   if(!o){ try{ o=JSON.parse(sessionStorage.getItem('fc.ses')||'null'); }catch(e){} }
   if(!o || !o.k || !PKG || !window.crypto || !crypto.subtle) return false;
-  try{ if(await openWith(unb64(o.k))){ S.who=o.w||'DNI'; return true; } }catch(e){}
+  try{ if(await openWith(unb64(o.k))){ S.who=o.w||'Usuario'; return true; } }catch(e){}
   forget(); return false;
 }
 function logout(){ forget(); try{ localStorage.removeItem('fc.adm'); localStorage.removeItem('fc.tok'); }catch(e){} location.reload(); }
@@ -1596,7 +1594,7 @@ $('#loginF').addEventListener('submit',async function(e){
   var ok=false;
   try{ ok=await unlock($('#lu').value,$('#lp').value,$('#lk').checked); }catch(x){ ok=false; }
   b.disabled=false; b.textContent='Ingresar';
-  if(!ok){ m.textContent='Acceso denegado. Ese DNI no está autorizado para ver este informe.'; $('#lp').value=''; $('#lp').focus(); return; }
+  if(!ok){ m.textContent='Acceso denegado. El usuario o la contraseña no son correctos.'; $('#lp').value=''; $('#lp').focus(); return; }
   $('#lu').value=''; $('#lp').value=''; $('#login').hidden=true;
   boot();
 });

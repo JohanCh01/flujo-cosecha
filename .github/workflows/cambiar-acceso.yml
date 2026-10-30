@@ -1,0 +1,55 @@
+name: Cambiar acceso
+
+# Cambia el usuario y la contraseña con los que se entra al sitio, y renueva todas las llaves.
+# Se corre A MANO: Actions → Cambiar acceso → Run workflow.
+# Antes, en Settings → Secrets and variables → Actions, deja listos:
+#   ACCESO_CODIGO   la contraseña común (mínimo 12 letras o números)
+#   TOKEN_REPORTE   (recomendado) un token nuevo de GitHub para el guardado del Reporte diario
+# El usuario común se cambia aquí abajo, en ACCESO_USUARIO.
+# No lo corras entre las 6:00 y las 7:00 a. m. (es la hora del stock de paletas).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: actualizar-datos        # la misma de «Actualizar datos de cosecha»: nunca corren a la vez
+  cancel-in-progress: false
+
+jobs:
+  cambiar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar lo necesario
+        run: pip install --quiet cryptography
+
+      - name: Volver a cifrar todo con el acceso nuevo
+        env:
+          ADMIN_CLAVE: ${{ secrets.ADMIN_CLAVE }}
+          ACCESO_USUARIO: "Calidadnv5"
+          ACCESO_CODIGO: ${{ secrets.ACCESO_CODIGO }}
+          TOKEN_REPORTE: ${{ secrets.TOKEN_REPORTE }}
+        run: python cambiar_acceso.py
+
+      - name: Publicar el cambio
+        run: |
+          git add -A -- '*.json'
+          if git diff --cached --quiet; then echo "Sin cambios."; exit 0; fi
+          git config user.name "actualizacion-automatica"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "Cambia el acceso y renueva las llaves ($(TZ=America/Lima date '+%d/%m/%Y %H:%M'))"
+          git push
+          curl -sS -o /dev/null -w "Publicación del sitio: respuesta %{http_code}\n" -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds" || true
