@@ -1,17 +1,14 @@
 name: Actualizar datos de cosecha
 
-# Dos actualizaciones al día (hora de Lima), las dos traen el día de AYER completo:
-#   - 4:02 a. m.
-#   - 5:03 a. m.  -> vuelve a repasar (recoge lo que se registró tarde o si falló la de las 4:02)
-# GitHub puede soltar las tareas con retraso. Cada corrida mira la hora de Lima y no repite
-# una actualización que ya se hizo.
-# Para cambiar las horas: cambia las dos líneas "cron" (van en hora UTC = Lima + 5 h)
-# y también HORA_1 y HORA_2 en el paso "Ver si toca actualizar ahora".
+# Una actualización al día: 4:02 a. m. (hora de Lima). Trae el día de AYER completo
+# (y repasa los últimos 7 días, para recoger recojos registrados tarde).
+# GitHub puede soltar la tarea con retraso; si falla, córrela a mano con «Run workflow».
+# Para cambiar la hora: cambia la línea "cron" (va en hora UTC = Lima + 5 h)
+# y también HORA_1 en el paso "Ver si toca actualizar ahora".
 
 on:
   schedule:
     - cron: "2 9 * * *"     # 4:02 a. m. de Lima (9:02 UTC)
-    - cron: "3 10 * * *"    # 5:03 a. m. de Lima (10:03 UTC)
   workflow_dispatch:             # botón "Run workflow" para correrlo a mano, de inmediato
     inputs:
       dias:
@@ -48,13 +45,11 @@ jobs:
           fi
           # Horas de Lima (formato 24 horas, HH:MM) desde las que toca cada actualización
           HORA_1="04:02"
-          HORA_2="05:03"
           ahora=$(TZ=America/Lima date +%H:%M)
           dia=$(TZ=America/Lima date +%F)
           echo "En Lima son las $ahora del $dia."
           # "HH:MM" con ceros a la izquierda se puede comparar como texto
-          if [ ! "$ahora" \< "$HORA_2" ]; then turno=$HORA_2; hoy=false
-          elif [ ! "$ahora" \< "$HORA_1" ]; then turno=$HORA_1; hoy=false
+          if [ ! "$ahora" \< "$HORA_1" ]; then turno=$HORA_1; hoy=false
           else echo "Todavía no son las $HORA_1: no toca."; echo "correr=no" >> "$GITHUB_OUTPUT"; exit 0
           fi
           marca="$dia-$turno"
