@@ -18,6 +18,8 @@ Datos que usa (en GitHub son «secrets»; nunca van escritos aquí):
     ACCESO_USUARIO   el usuario común (en la tarea: Calidadnv5)
     ACCESO_CODIGO    la contraseña común: al menos 12 letras o números (no distingue mayúsculas)
     TOKEN_REPORTE    (opcional) token nuevo de GitHub para el guardado compartido del Reporte diario
+    ADMIN_CLAVE_NUEVA (opcional) clave de administrador nueva (mínimo 16 caracteres). Después de correr la tarea,
+                     pon ese mismo valor en ADMIN_CLAVE y borra ADMIN_CLAVE_NUEVA.
 """
 
 import base64
@@ -37,6 +39,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 CARPETA = Path(os.environ.get("CARPETA_SITIO", "."))
 PAQUETES = ["datos.json", "fito.json", "paletas.json", "comparativo.json"]   # datos.json primero: de ahí leen los demás scripts
 MIN_CLAVE = 12
+MIN_ADMIN = 16
 
 
 def log(m):
@@ -73,6 +76,7 @@ def abrir(pk, clave_admin):
 
 
 def recifrar(pk, plano, a, cred, clave_admin, sal, it):
+    """clave_admin aquí es la clave con la que quedará el archivo (la nueva, si se cambia)."""
     """Llave nueva para los datos, una sola cerradura (el acceso común) y la del administrador."""
     nueva, iv, kiv = os.urandom(32), os.urandom(12), os.urandom(12)
     pk = dict(pk)
@@ -108,6 +112,12 @@ def main():
         raise af.Detener("Falta el secreto ADMIN_CLAVE.")
     cred = credencial(os.environ.get("ACCESO_USUARIO", ""), os.environ.get("ACCESO_CODIGO", ""))
     token = os.environ.get("TOKEN_REPORTE", "").strip()
+    admin_nueva = os.environ.get("ADMIN_CLAVE_NUEVA", "").strip()
+    if admin_nueva and len(admin_nueva) < MIN_ADMIN:
+        raise af.Detener(f"La clave de administrador nueva (ADMIN_CLAVE_NUEVA) debe tener al menos {MIN_ADMIN} caracteres.")
+    if not admin_nueva and len(clave_admin) < MIN_ADMIN:
+        log("- AVISO: la clave de administrador es corta y se podría adivinar. Conviene cambiarla con ADMIN_CLAVE_NUEVA.")
+    admin_final = admin_nueva or clave_admin
 
     ruta_datos = CARPETA / "datos.json"
     if not ruta_datos.exists():
@@ -161,14 +171,18 @@ def main():
             plano = gzip.compress(json.dumps(contenido, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), mtime=0)
             pk["z"] = True
 
-        nuevo = recifrar(pk, plano, a, cred, clave_admin, sal, it)
+        nuevo = recifrar(pk, plano, a, cred, admin_final, sal, it)
         comprobar(nuevo, cred)
+        af._abrir_adm(nuevo, admin_final)          # y que el administrador también lo abra
         salida[nombre] = json.dumps(nuevo, separators=(",", ":"))
         log(f"- {nombre}: cifrado con el acceso nuevo y comprobado.")
 
     for nombre, texto in salida.items():
         (CARPETA / nombre).write_text(texto, encoding="utf-8")
     log(f"Listo: {len(salida)} archivo(s) actualizados. Desde ahora se entra con el usuario y la contraseña nuevos.")
+    if admin_nueva:
+        log("IMPORTANTE: la clave de administrador cambió. AHORA MISMO pon el valor de ADMIN_CLAVE_NUEVA en el secreto ADMIN_CLAVE,"
+            " borra ADMIN_CLAVE_NUEVA y actualiza el archivo .flujo_cosecha_clave de tu laptop.")
 
 
 if __name__ == "__main__":

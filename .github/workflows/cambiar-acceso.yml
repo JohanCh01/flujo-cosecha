@@ -5,6 +5,7 @@ name: Cambiar acceso
 # Antes, en Settings → Secrets and variables → Actions, deja listos:
 #   ACCESO_CODIGO   la contraseña común (mínimo 12 letras o números)
 #   TOKEN_REPORTE   (recomendado) un token nuevo de GitHub para el guardado del Reporte diario
+#   ADMIN_CLAVE_NUEVA (opcional) clave de administrador nueva; después cópiala a ADMIN_CLAVE y borra este secreto
 # El usuario común se cambia aquí abajo, en ACCESO_USUARIO.
 # No lo corras entre las 6:00 y las 7:00 a. m. (es la hora del stock de paletas).
 
@@ -39,6 +40,7 @@ jobs:
           ACCESO_USUARIO: "Calidadnv5"
           ACCESO_CODIGO: ${{ secrets.ACCESO_CODIGO }}
           TOKEN_REPORTE: ${{ secrets.TOKEN_REPORTE }}
+          ADMIN_CLAVE_NUEVA: ${{ secrets.ADMIN_CLAVE_NUEVA }}
         run: python cambiar_acceso.py
 
       - name: Publicar el cambio
