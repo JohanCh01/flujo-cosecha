@@ -125,7 +125,8 @@ table.rng { width: 100%; border-collapse: collapse; font-variant-numeric: tabula
 table.rng th, table.rng td { padding: 7px 10px; border-bottom: 1px solid var(--line-soft); text-align: right; white-space: nowrap; }
 table.rng th:first-child, table.rng td:first-child { text-align: left; }
 table.rng thead th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
-table.rng thead tr:first-child th { text-align: center; }
+table.rng thead th:not(:first-child) { text-align: right; } table.rng thead small { font-weight: 500; text-transform: none; letter-spacing: 0; }
+table.rng td.n { color: var(--ink); font-weight: 600; } table.rng td.n.cero { color: var(--zero); font-weight: 400; }
 table.rng td.r { font-weight: 600; }
 table.rng td.p { min-width: 104px; }
 table.rng td.p .pc { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
@@ -138,7 +139,6 @@ table.rng td.p .bar { display: block; height: 100%; border-radius: 4px; }
   table.rng td.p { min-width: 0; } table.rng td.p .pista { display: none; } table.rng td.p b { min-width: 0; }
   .card { padding: 12px 10px 10px; } .lienzo { height: 260px; }
 }
-table.rng td.n { color: var(--muted); }
 table.rng tr.tot td { border-top: 1px solid var(--line); border-bottom: 0; font-weight: 600; }
 table.rng tr.res td { border-bottom: 0; color: var(--ink-soft); padding-top: 4px; padding-bottom: 4px; }
 table.rng .cero { color: var(--zero); }
@@ -231,19 +231,15 @@ table.rng .cero { color: var(--zero); }
   function tabla(C) {
     var ch = tramo(C.chofer), pu = tramo(C.puerta), rc = resumen(ch), rp = resumen(pu);
     function cuenta(L) { return RANGOS.map(function (r) { return L.filter(function (p) { return r.ok(p.t); }).length; }); }
-    var nc = cuenta(ch), np = cuenta(pu), colC = css('--c-chofer'), colP = css('--c-puerta');
-    function celdas(n, tot, col) {
-      var p = tot ? n / tot : 0;
-      return '<td class="n' + (n ? '' : ' cero') + '">' + n + '</td><td class="p"><span class="pc"><span class="pista"><span class="bar" style="width:' + (p * 100).toFixed(1) + '%;background:' + col + '"></span></span><b' + (n ? '' : ' class="cero"') + '>' + (p * 100).toFixed(1) + '%</b></span></td>';
-    }
-    var h = '<div class="tabla-x"><table class="rng"><thead><tr><th rowspan="2" style="vertical-align:bottom">Rango (°C)</th><th colspan="2">Chofer (fondo)</th><th colspan="2">Puerta</th></tr>' +
-      '<tr><th>Lect.</th><th>%</th><th>Lect.</th><th>%</th></tr></thead><tbody>';
-    RANGOS.forEach(function (r, i) { h += '<tr><td class="r">' + r.k + '</td>' + celdas(nc[i], rc.n, colC) + celdas(np[i], rp.n, colP) + '</tr>'; });
-    h += '<tr class="tot"><td>Total</td><td>' + rc.n + '</td><td>100%</td><td>' + rp.n + '</td><td>100%</td></tr>';
+    var nc = cuenta(ch), np = cuenta(pu);
+    function celda(n) { return '<td class="n' + (n ? '' : ' cero') + '">' + n + '</td>'; }
+    var h = '<div class="tabla-x"><table class="rng"><thead><tr><th>Rango (°C)</th><th>Chofer (fondo)<br><small>lecturas</small></th><th>Puerta<br><small>lecturas</small></th></tr></thead><tbody>';
+    RANGOS.forEach(function (r, i) { h += '<tr><td class="r">' + r.k + '</td>' + celda(nc[i]) + celda(np[i]) + '</tr>'; });
+    h += '<tr class="tot"><td>Total</td><td>' + rc.n + '</td><td>' + rp.n + '</td></tr>';
     [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
-      h += '<tr class="res"><td>' + q[0] + ' (°C)</td><td colspan="2">' + f1(rc[q[1]]) + '</td><td colspan="2">' + f1(rp[q[1]]) + '</td></tr>';
+      h += '<tr class="res"><td>' + q[0] + ' (°C)</td><td>' + f1(rc[q[1]]) + '</td><td>' + f1(rp[q[1]]) + '</td></tr>';
     });
-    h += '<tr class="res"><td>Tramo</td><td colspan="2">' + texto(rc) + '</td><td colspan="2">' + texto(rp) + '</td></tr></tbody></table></div>';
+    h += '<tr class="res"><td>Tramo</td><td>' + texto(rc) + '</td><td>' + texto(rp) + '</td></tr></tbody></table></div>';
     return h;
   }
 
