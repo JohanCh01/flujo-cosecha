@@ -210,7 +210,7 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
         <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
     </div>
-    <p class="nota">Tiempo por rango: lecturas seguidas en el mismo rango cuentan de la primera a la última; una lectura sola cuenta desde la lectura anterior hasta ella. Un valor justo en el límite va al rango de abajo (25.0 °C en 20 – 25). Madera: del inicio (amarillo) a la llegada a planta (rojo). Metal: desde la primera lectura a partir de las <span id="notaMetal">12:00</span> hasta la llegada a planta (rojo).</p>
+    <p class="nota">Tiempo por rango: lecturas seguidas en el mismo rango cuentan de la primera a la última; una lectura sola cuenta desde la lectura anterior hasta ella. Rangos: hasta 20 · 20.1–25 · 25.1–30 · 30.1–35 · 35.1–40 · más de 40 (desde 40.1). Madera: del inicio (amarillo) a la llegada a planta (rojo). Metal: desde la primera lectura a partir de las <span id="notaMetal">12:00</span> hasta la llegada a planta (rojo).</p>
   </div>
 </div>
 
@@ -226,13 +226,14 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
   $('appsM').addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && a.getAttribute('aria-current') === 'page') { e.preventDefault(); appsAbrir(false); } });
   document.addEventListener('click', function (e) { if (!e.target.closest('#apps')) appsAbrir(false); });
 
-  // ---------- rangos: (a, b] — un valor justo en el límite va al rango de abajo; <20 incluye 20 en el siguiente
+  // ---------- rangos (las lecturas vienen con 1 decimal): hasta 20 · 20.1–25 · 25.1–30 · 30.1–35 · 35.1–40 · más de 40 (40.1 o más)
+  // un valor justo en el límite va al rango de abajo: 30.0 → 25.1 – 30
   var RANGOS = [
-    { k: '< 20', ok: function (t) { return t < 20; } },
-    { k: '20 – 25', ok: function (t) { return t >= 20 && t <= 25; } },
-    { k: '25 – 30', ok: function (t) { return t > 25 && t <= 30; } },
-    { k: '30 – 35', ok: function (t) { return t > 30 && t <= 35; } },
-    { k: '35 – 40', ok: function (t) { return t > 35 && t <= 40; } },
+    { k: '≤ 20', ok: function (t) { return t <= 20; } },
+    { k: '20.1 – 25', ok: function (t) { return t > 20 && t <= 25; } },
+    { k: '25.1 – 30', ok: function (t) { return t > 25 && t <= 30; } },
+    { k: '30.1 – 35', ok: function (t) { return t > 30 && t <= 35; } },
+    { k: '35.1 – 40', ok: function (t) { return t > 35 && t <= 40; } },
     { k: '> 40', ok: function (t) { return t > 40; } }
   ];
   function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
