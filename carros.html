@@ -271,8 +271,8 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
     function celda(n) { return '<td class="n' + (n ? '' : ' cero') + '">' + hm(n) + '</td>'; }
     var h = '<div class="tabla-x"><table class="rng"><thead><tr><th>Rango (°C)</th><th>Chofer (fondo)<br><small>Sensor # ' + numSensor(C.chofer) + '</small></th><th>Puerta<br><small>Sensor # ' + numSensor(C.puerta) + '</small></th></tr></thead><tbody>';
     RANGOS.forEach(function (r, i) { h += '<tr><td class="r">' + r.k + '</td>' + celda(nc[i]) + celda(np[i]) + '</tr>'; });
-    var suma = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
-    h += '<tr class="tot"><td>Total</td><td>' + hm(suma(nc)) + '</td><td>' + hm(suma(np)) + '</td></tr>';
+    // total = duración del tramo: desde que empieza hasta el corte (llegada a planta)
+    h += '<tr class="tot"><td>Total</td><td>' + hm((rc.fin - rc.ini) / 60000) + '</td><td>' + hm((rp.fin - rp.ini) / 60000) + '</td></tr>';
     [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
       h += '<tr class="res"><td>' + q[0] + ' (°C)</td><td>' + f1(rc[q[1]]) + '</td><td>' + f1(rp[q[1]]) + '</td></tr>';
     });
