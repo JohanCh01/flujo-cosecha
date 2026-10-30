@@ -144,6 +144,29 @@ table.rng tr.res td { border-bottom: 0; color: var(--ink-soft); padding-top: 4px
 table.rng .cero { color: var(--zero); }
 .nota { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
 .vacio { padding: 40px 16px; text-align: center; color: var(--muted); }
+/* ---------- todo en una sola vista (pantallas grandes) */
+.app { height: 100vh; min-height: 0; gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+#contenido { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+#contenido[hidden] { display: none; }
+.rejilla { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(300px, .85fr) minmax(0, 1.1fr) minmax(0, 1.1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.rejilla .card { display: flex; flex-direction: column; min-height: 0; padding: 8px 12px 6px; }
+.card h2 { font-size: 14px; }
+.card .sub { margin: 0 0 4px; font-size: 11.5px; }
+.ley { margin: 0 0 2px; font-size: 11.5px; gap: 4px 12px; }
+.rejilla .lienzo { flex: 1 1 auto; min-height: 0; height: auto; }
+table.rng { font-size: 12px; }
+table.rng th, table.rng td { padding: 2px 6px; }
+.rejilla table.rng th:first-child, .rejilla table.rng td:first-child { padding-left: 2px; }
+table.rng thead th { font-size: 10.5px; }
+table.rng thead small { font-size: 10.5px; }
+table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
+.nota { margin: 0; font-size: 11px; }
+@media (max-width: 1100px), (max-height: 620px) {
+  .app { height: auto; min-height: 100vh; }
+  .rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
+  .rejilla .lienzo { flex: none; height: 280px; }
+}
+@media (max-width: 700px) { .rejilla { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -171,23 +194,19 @@ table.rng .cero { color: var(--zero); }
 
   <p class="vacio" id="vacio" hidden></p>
   <div id="contenido" hidden>
-    <div class="fila">
-      <section class="card"><h2>Carro de metal · rangos de temperatura</h2><p class="sub" id="subTabMetal"></p><div id="tabMetal"></div></section>
-      <section class="card"><h2>Carro de madera · rangos de temperatura</h2><p class="sub" id="subTabMadera"></p><div id="tabMadera"></div></section>
-    </div>
-    <div class="fila" style="margin-top:14px">
+    <div class="rejilla">
+      <section class="card"><h2>Carro de metal · rangos (°C)</h2><p class="sub" id="subTabMetal"></p><div id="tabMetal"></div></section>
       <section class="card"><h2>Carro de metal · chofer y puerta</h2><p class="sub" id="subGMetal"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMetal" role="img" aria-label="Temperatura del chofer y la puerta del carro de metal en el tiempo"></canvas></div></section>
+      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo</p>
+        <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
+        <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
+      <section class="card"><h2>Carro de madera · rangos (°C)</h2><p class="sub" id="subTabMadera"></p><div id="tabMadera"></div></section>
       <section class="card"><h2>Carro de madera · chofer y puerta</h2><p class="sub" id="subGMadera"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMadera" role="img" aria-label="Temperatura del chofer y la puerta del carro de madera en el tiempo"></canvas></div></section>
-    </div>
-    <div class="fila" style="margin-top:14px">
-      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo de cada carro</p>
-        <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
-        <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
-      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo de cada carro</p>
+      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Horas desde el inicio del tramo</p>
         <div class="ley"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
     </div>
@@ -240,10 +259,12 @@ table.rng .cero { color: var(--zero); }
     [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
       h += '<tr class="res"><td>' + q[0] + ' (°C)</td><td>' + f1(rc[q[1]]) + '</td><td>' + f1(rp[q[1]]) + '</td></tr>';
     });
-    h += '<tr class="res"><td>Tramo</td><td>' + texto(rc) + '</td><td>' + texto(rp) + '</td></tr></tbody></table></div>';
+    var corto = function (r) { return hhmm(r.ini) + '–' + hhmm(r.fin); };
+    h += '<tr class="res"><td>Tramo</td><td>' + corto(rc) + '</td><td>' + corto(rp) + '</td></tr></tbody></table></div>';
     return h;
   }
 
+  Chart.defaults.font.size = 11;
   var graficos = [];
   function opciones(ejeX, titX, lim) {
     var tinta = css('--ink-soft'), linea = css('--line-soft');
