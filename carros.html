@@ -232,8 +232,9 @@ table.rng .cero { color: var(--zero); }
     var ch = tramo(C.chofer), pu = tramo(C.puerta), rc = resumen(ch), rp = resumen(pu);
     function cuenta(L) { return RANGOS.map(function (r) { return L.filter(function (p) { return r.ok(p.t); }).length; }); }
     var nc = cuenta(ch), np = cuenta(pu);
+    function numSensor(x) { var m = String(x.titulo || '').match(/\d{5,}/) || String(x.archivo || '').match(/\d{5,}/); return m ? m[0] : '—'; }
     function celda(n) { return '<td class="n' + (n ? '' : ' cero') + '">' + n + '</td>'; }
-    var h = '<div class="tabla-x"><table class="rng"><thead><tr><th>Rango (°C)</th><th>Chofer (fondo)<br><small>lecturas</small></th><th>Puerta<br><small>lecturas</small></th></tr></thead><tbody>';
+    var h = '<div class="tabla-x"><table class="rng"><thead><tr><th>Rango (°C)</th><th>Chofer (fondo)<br><small>Sensor # ' + numSensor(C.chofer) + '</small></th><th>Puerta<br><small>Sensor # ' + numSensor(C.puerta) + '</small></th></tr></thead><tbody>';
     RANGOS.forEach(function (r, i) { h += '<tr><td class="r">' + r.k + '</td>' + celda(nc[i]) + celda(np[i]) + '</tr>'; });
     h += '<tr class="tot"><td>Total</td><td>' + rc.n + '</td><td>' + rp.n + '</td></tr>';
     [['Mínima', 'min'], ['Máxima', 'max'], ['Promedio', 'prom']].forEach(function (q) {
@@ -275,8 +276,8 @@ table.rng .cero { color: var(--zero); }
     var M = D.carros.metal, W = D.carros.madera;
     $('tabMetal').innerHTML = tabla(M); $('tabMadera').innerHTML = tabla(W);
     var rM = resumen(tramo(M.chofer)), rW = resumen(tramo(W.chofer));
-    $('subTabMetal').textContent = 'Lecturas del tramo por rango · ' + ddmm(rM.ini);
-    $('subTabMadera').textContent = 'Lecturas del tramo por rango · ' + ddmm(rW.ini);
+    $('subTabMetal').textContent = 'Número de lecturas del tramo por rango · ' + ddmm(rM.ini);
+    $('subTabMadera').textContent = 'Número de lecturas del tramo por rango · ' + ddmm(rW.ini);
     $('subGMetal').textContent = 'Del ' + texto(rM).replace('→', 'al');
     $('subGMadera').textContent = 'Del ' + texto(rW).replace('→', 'al');
     $('notaMetal').textContent = D.inicioMetal ? D.inicioMetal.slice(11, 16) + ' del ' + D.inicioMetal.slice(8, 10) + '/' + D.inicioMetal.slice(5, 7) : '12:00';
