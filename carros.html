@@ -144,6 +144,9 @@ table.rng tr.res td { border-bottom: 0; color: var(--ink-soft); padding-top: 4px
 table.rng .cero { color: var(--zero); }
 .nota { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
 .vacio { padding: 40px 16px; text-align: center; color: var(--muted); }
+.btn-pdf { align-self: center; width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); cursor: pointer; }
+.btn-pdf:hover { border-color: var(--accent); } .btn-pdf[disabled] { opacity: .5; cursor: progress; }
+.head .tit { align-items: center; }
 /* ---------- todo en una sola vista (pantallas grandes) */
 .app { height: 100vh; min-height: 0; gap: 8px; padding-top: 8px; padding-bottom: 8px; }
 #contenido { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -188,6 +191,7 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
   </div>
     <div class="tit">
       <h1>Temperaturas en carros</h1>
+      <button class="btn-pdf" id="btnPdf" type="button" title="Descargar en PDF" aria-label="Descargar en PDF" hidden><img src="lib/ico_pdf_rojo.png" alt="" width="22" height="22"></button>
       <p class="meta" id="meta">Cargando…</p>
     </div>
   </header>
@@ -327,8 +331,42 @@ table.rng tr.res td { padding-top: 1px; padding-bottom: 1px; }
     grafico('gPuertas', [serie('Metal', pM, cMe, desde(pM)), serie('Madera', pW, cMa, desde(pW))], horas, 'Horas desde el inicio');
     grafico('gChofer', [serie('Metal', chM, cMe, desde(chM)), serie('Madera', chW, cMa, desde(chW))], horas, 'Horas desde el inicio');
     $('meta').innerHTML = 'Traslado de campo a planta · metal <strong>' + ddmm(rM.ini) + '</strong> · madera <strong>' + ddmm(rW.ini) + '</strong>' + (D.gen ? ' · cargado el ' + D.gen.slice(8, 10) + '/' + D.gen.slice(5, 7) + ' ' + D.gen.slice(11, 16) : '');
-    $('contenido').hidden = false;
+    $('contenido').hidden = false; $('btnPdf').hidden = false;
   }
+
+  // ---------- descargar en PDF (hoja A4 horizontal, siempre en colores claros)
+  function cargarJs(src) {
+    return new Promise(function (ok, mal) {
+      if (document.querySelector('script[data-lib="' + src + '"]')) return ok();
+      var e = document.createElement('script'); e.src = src; e.setAttribute('data-lib', src); e.onload = ok; e.onerror = function () { mal(new Error('No se pudo cargar ' + src)); };
+      document.head.appendChild(e);
+    });
+  }
+  $('btnPdf').onclick = function () {
+    if (!DATOS) return;
+    var b = this, raiz = document.documentElement, temaAntes = raiz.getAttribute('data-theme');
+    b.disabled = true;
+    Promise.all([cargarJs('lib/html2canvas.min.js'), cargarJs('lib/jspdf.umd.min.js')]).then(function () {
+      raiz.setAttribute('data-theme', 'light'); pintar(DATOS);
+      return new Promise(function (ok) { setTimeout(ok, 120); });
+    }).then(function () {
+      return window.html2canvas($('contenido'), { scale: 2, backgroundColor: '#f2f4ef', logging: false,
+        onclone: function (doc) { Array.prototype.forEach.call(doc.querySelectorAll('table.rng'), function (t) { t.style.fontVariantNumeric = 'normal'; }); } });
+    }).then(function (cv) {
+      var pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }), PW = 297, PH = 210, M = 10;
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); pdf.setTextColor(23, 32, 26);
+      pdf.text('Temperaturas en carros', M, M + 5);
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9.5); pdf.setTextColor(92, 106, 96);
+      pdf.text($('meta').textContent, M, M + 11);
+      var top = M + 15, aw = PW - 2 * M, ah = PH - top - M, k = Math.min(aw / cv.width, ah / cv.height), w = cv.width * k, h = cv.height * k;
+      pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', M + (aw - w) / 2, top, w, h);
+      var d = new Date(), dd = function (n) { return (n < 10 ? '0' : '') + n; };
+      pdf.save('Temperaturas en carros (' + dd(d.getDate()) + '-' + dd(d.getMonth() + 1) + '-' + d.getFullYear() + ').pdf');
+    }).catch(function (e) { $('meta').insertAdjacentHTML('beforeend', ' · <span class="err">No se pudo generar el PDF (' + esc(e.message) + ')</span>'); }).then(function () {
+      if (temaAntes == null) raiz.removeAttribute('data-theme'); else raiz.setAttribute('data-theme', temaAntes);
+      pintar(DATOS); b.disabled = false;
+    });
+  };
   var DATOS = null;
   var tema = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
   if (tema && tema.addEventListener) tema.addEventListener('change', function () { if (DATOS) pintar(DATOS); });
