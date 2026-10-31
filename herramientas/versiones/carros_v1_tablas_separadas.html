@@ -211,14 +211,14 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
       <section class="card"><h2>Carro de metal · chofer y puerta</h2><p class="sub" id="subGMetal"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMetal" role="img" aria-label="Temperatura del chofer y la puerta del carro de metal en el tiempo"></canvas></div></section>
-      <section class="card"><h2>Puerta · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
+      <section class="card"><h2>Puerta · metal vs. madera</h2>
         <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gPuertas" role="img" aria-label="Comparación de la temperatura de la puerta entre el carro de metal y el de madera"></canvas></div></section>
       <section class="card"><h2>Carro de madera · rangos (°C)</h2><p class="sub" id="subTabMadera"></p><div id="tabMadera"></div></section>
       <section class="card"><h2>Carro de madera · chofer y puerta</h2><p class="sub" id="subGMadera"></p>
         <div class="ley"><span><i style="background:var(--c-chofer)"></i>Chofer (fondo)</span><span><i style="background:var(--c-puerta)"></i>Puerta</span></div>
         <div class="lienzo"><canvas id="gMadera" role="img" aria-label="Temperatura del chofer y la puerta del carro de madera en el tiempo"></canvas></div></section>
-      <section class="card"><h2>Chofer · metal vs. madera</h2><p class="sub">Hora del día · cada carro en su fecha</p>
+      <section class="card"><h2>Chofer · metal vs. madera</h2>
         <div class="ley ley-cmp"><span><i style="background:var(--c-metal)"></i>Metal</span><span><i style="background:var(--c-madera)"></i>Madera</span></div>
         <div class="lienzo"><canvas id="gChofer" role="img" aria-label="Comparación de la temperatura del chofer entre el carro de metal y el de madera"></canvas></div></section>
     </div>
@@ -345,8 +345,8 @@ html.modo-pdf .card h2 { font-size: 16px; } html.modo-pdf .card .sub { font-size
     // comparativos: cada carro en la hora del día (los dos viajes fueron en días distintos)
     function delDia(p) { var d = new Date(p.ms); return d.getHours() + d.getMinutes() / 60; }
     var pM = tramo(M.puerta), pW = tramo(W.puerta), chM = tramo(M.chofer), chW = tramo(W.chofer);
-    grafico('gPuertas', [serie('Metal ' + ddmm(pM[0].ms), pM, cMe, delDia), serie('Madera ' + ddmm(pW[0].ms), pW, cMa, delDia)], horaDia, 'Hora del día', 'dia');
-    grafico('gChofer', [serie('Metal ' + ddmm(chM[0].ms), chM, cMe, delDia), serie('Madera ' + ddmm(chW[0].ms), chW, cMa, delDia)], horaDia, 'Hora del día', 'dia');
+    grafico('gPuertas', [serie('Metal ' + ddmm(pM[0].ms), pM, cMe, delDia), serie('Madera ' + ddmm(pW[0].ms), pW, cMa, delDia)], horaDia, 'Horas', 'dia');
+    grafico('gChofer', [serie('Metal ' + ddmm(chM[0].ms), chM, cMe, delDia), serie('Madera ' + ddmm(chW[0].ms), chW, cMa, delDia)], horaDia, 'Horas', 'dia');
     $('meta').innerHTML = 'Traslado de campo a planta · metal <strong>' + ddmm(rM.ini) + '</strong> · madera <strong>' + ddmm(rW.ini) + '</strong>' + (D.gen ? ' · cargado el ' + D.gen.slice(8, 10) + '/' + D.gen.slice(5, 7) + ' ' + D.gen.slice(11, 16) : '');
     $('contenido').hidden = false; $('btnPdf').hidden = false;
   }
