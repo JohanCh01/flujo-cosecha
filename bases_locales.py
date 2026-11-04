@@ -62,15 +62,28 @@ def fecha_archivo(f):
     return datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%dT%H:%M")
 
 
-def revisar(raiz):
-    """Muestra qué columnas trae la base de FOSFINA y cuántas evaluaciones entran al Reporte diario por semana y zona."""
+def revisar(raiz, web=False):
+    """Muestra qué columnas trae la base de FOSFINA y cuántas evaluaciones entran al Reporte diario por semana y zona.
+    web=True: lo mismo, pero de la base que está SUBIDA para la página (fito.json), no del Excel."""
     from collections import Counter
-    f = excel_mas_reciente(raiz / "FOSFINA")
-    if not f:
-        sys.exit(f"No hay Excel en {raiz / 'FOSFINA'}")
-    log(f"Revisando «{f.name}»…")
-    d = af.leer_fosfina(f)
-    print("\nColumnas del Excel:", " | ".join(d["headers"]))
+    if web:
+        clave = rs.clave_admin()
+        git("pull", "--ff-only", "-q")
+        contenido = af.abrir_fito(clave)[0] or {}
+        d = contenido.get("fito")
+        if not d:
+            sys.exit("fito.json no tiene base fitosanitaria.")
+        print("\nBase subida para la página:", d.get("name"), "· fito.json generado el", contenido.get("gen"))
+        print("De dónde vino cada base:", contenido.get("fuentes"))
+        print("Calidades: hasta el", (contenido.get("cal") or {}).get("maxYmd"), "· Longitudes: hasta el", (contenido.get("lon") or {}).get("maxYmd"))
+    else:
+        f = excel_mas_reciente(raiz / "FOSFINA")
+        if not f:
+            sys.exit(f"No hay Excel en {raiz / 'FOSFINA'}")
+        log(f"Revisando «{f.name}»…")
+        d = af.leer_fosfina(f)
+    print("Evaluaciones:", d.get("nRows"), "· hasta el", d.get("maxYmd"), "· ancho ind:", d.get("indW"))
+    print("\nColumnas del Excel:", " | ".join(d.get("headers") or []))
     print("Columnas que usa el reporte y SÍ encontró:", ", ".join(d["indCols"]) or "(ninguna)")
     print("Valores de STATUS:", d["statuses"])
     W, ind, ev = d["indW"], d["ind"], d["ev"]
@@ -99,6 +112,7 @@ def main():
     ap.add_argument("--forzar", action="store_true", help="leer aunque el Excel no haya cambiado")
     ap.add_argument("--sin-subir", action="store_true", help="solo leer y mostrar; no sube nada")
     ap.add_argument("--revisar", action="store_true", help="revisa la base de FOSFINA (no sube nada)")
+    ap.add_argument("--revisar-web", action="store_true", help="revisa la base de FOSFINA que está subida para la página (no sube nada)")
     a = ap.parse_args()
 
     raiz = carpeta_mmpp(a.carpeta)
@@ -106,8 +120,8 @@ def main():
         sys.exit(f"No encuentro la carpeta {raiz}.\n"
                  'Ponla entre comillas, por ejemplo:  python bases_locales.py --carpeta "C:/Users/jchinguel/Desktop/SEGUIMIENTO DE MMPP"')
     log(f"Carpeta: {raiz}")
-    if a.revisar:
-        return revisar(raiz)
+    if a.revisar or a.revisar_web:
+        return revisar(raiz, web=a.revisar_web)
 
     clave = None if a.sin_subir else rs.clave_admin()
     if clave:
