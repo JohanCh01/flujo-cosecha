@@ -108,6 +108,22 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .sel, .inp { height: 36px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 0 11px; min-width: 96px; }
 .sel { padding-right: 28px; cursor: pointer; }
 .inp { width: 150px; }
+/* desplegable de selección múltiple (Mes, Cliente, Conteo) */
+.ms { position: relative; }
+.ms-b { display: flex; align-items: center; min-width: 120px; max-width: 220px; text-align: left; font: inherit; color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23666' stroke-width='1.6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 11px; }
+.ms-b > span { overflow: hidden; text-overflow: ellipsis; }
+.ms-b[aria-expanded="true"] { border-color: var(--accent, #2c6a3b); }
+.ms-p { position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: 300px; max-height: 320px; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px; }
+.ms-p[hidden] { display: none; }
+.ms-o { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.ms-o:hover { background: var(--line-soft, rgba(0,0,0,.05)); }
+.ms-o input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent, #2c6a3b); cursor: pointer; flex: none; }
+.ms-o .nom { flex: 1; }
+.ms-o .solo { border: 0; background: none; font: inherit; font-size: 12px; color: var(--accent, #2c6a3b); cursor: pointer; padding: 2px 6px; border-radius: 5px; opacity: 0; }
+.ms-o:hover .solo, .ms-o .solo:focus-visible { opacity: 1; } .ms-o .solo:hover { text-decoration: underline; }
+@media (hover: none) { .ms-o .solo { opacity: 1; } }
+.ms-todos { border-bottom: 1px solid var(--line); margin-bottom: 4px; padding-bottom: 8px; font-weight: 600; }
 .inp::placeholder { color: var(--muted); }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
 .seg button { height: 34px; padding: 0 11px; border: 0; border-right: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 13px; white-space: nowrap; }
@@ -281,11 +297,11 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
 
   <section class="filters" aria-label="Filtros">
     <label class="field"><span>Año</span><select class="sel" id="fAnio"></select></label>
-    <label class="field"><span>Mes</span><select class="sel" id="fMes"></select></label>
-    <label class="field"><span>Cliente</span><select class="sel" id="fCli"></select></label>
+    <div class="field"><span id="fMesL">Mes</span><div class="ms" id="fMes"><button type="button" class="sel ms-b" aria-haspopup="true" aria-expanded="false" aria-labelledby="fMesL fMes-t"><span id="fMes-t">Todos</span></button><div class="ms-p" role="group" hidden></div></div></div>
+    <div class="field"><span id="fCliL">Cliente</span><div class="ms" id="fCli"><button type="button" class="sel ms-b" aria-haspopup="true" aria-expanded="false" aria-labelledby="fCliL fCli-t"><span id="fCli-t">Todos</span></button><div class="ms-p" role="group" hidden></div></div></div>
     <label class="field"><span>Pedido de venta</span><input class="inp" id="fPv" type="search" inputmode="numeric" placeholder="Buscar pedido" autocomplete="off"></label>
     <label class="field"><span>N° FCL / AWB</span><select class="sel" id="fFcl"></select></label>
-    <label class="field"><span>Conteo</span><select class="sel" id="fConteo"></select></label>
+    <div class="field"><span id="fConteoL">Conteo</span><div class="ms" id="fConteo"><button type="button" class="sel ms-b" aria-haspopup="true" aria-expanded="false" aria-labelledby="fConteoL fConteo-t"><span id="fConteo-t">Todos</span></button><div class="ms-p" role="group" hidden></div></div></div>
     <fieldset class="field"><legend>Tipo de envío</legend><div class="seg" id="fTipo"></div></fieldset>
     <button class="limpiar" id="btnLimpiar" type="button">Quitar filtros</button>
   </section>
@@ -387,7 +403,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     { id: 'ind', nombre: 'Indicadores', cols: [['Resultados Inspección', 'Resultado inspección', 'x'], ['Vida Útil', 'Vida útil', 't'], ['Con Tolerancia', 'Con tolerancia', 's'], ['Status Final', 'Status', 'x']] }
   ];
 
-  var state = { data: null, rows: [], vista: [], f: { anio: '', mes: '', cli: '', pv: '', fcl: '', conteo: '', tipo: '' }, subidas: null, subErr: '' };
+  var state = { data: null, rows: [], vista: [], f: { anio: '', mes: [], cli: [], pv: '', fcl: '', conteo: [], tipo: '' }, subidas: null, subErr: '' };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fecha(s) { if (!s) return ''; var p = String(s).slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s; }
@@ -423,14 +439,53 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     cont.innerHTML = valores.map(function (v) { return '<button type="button" data-v="' + esc(v[0]) + '" aria-pressed="' + (String(v[0]) === String(valor)) + '">' + esc(v[1]) + '</button>'; }).join('');
     cont.onclick = function (e) { var b = e.target.closest('button'); if (b) alCambiar(b.getAttribute('data-v')); };
   }
+  // desplegable con casillas: varias a la vez, o «solo» para quedarse con una; sin ninguna marcada = Todos
+  function multi(id, valores, elegidos, clave) {
+    var caja = $(id), panel = caja.querySelector('.ms-p'), hay = valores.map(function (v) { return String(v[0]); });
+    elegidos = (elegidos || []).filter(function (x) { return hay.indexOf(String(x)) >= 0; });
+    var nombre = function (x) { var v = valores.filter(function (w) { return String(w[0]) === String(x); })[0]; return v ? v[1] : x; };
+    $(id + '-t').textContent = !elegidos.length ? 'Todos' : elegidos.length === 1 ? nombre(elegidos[0]) : elegidos.length + ' seleccionados';
+    caja.querySelector('.ms-b').title = elegidos.length > 1 ? elegidos.map(nombre).join(', ') : '';
+    var abierto = !panel.hidden, arriba = panel.scrollTop;
+    panel.innerHTML = '<label class="ms-o ms-todos"><input type="checkbox" data-todos="1"' + (elegidos.length ? '' : ' checked') + '><span class="nom">Todos</span></label>' +
+      valores.map(function (v) {
+        var on = elegidos.indexOf(String(v[0])) >= 0;
+        return '<label class="ms-o"><input type="checkbox" value="' + esc(v[0]) + '"' + (on ? ' checked' : '') + '><span class="nom">' + esc(v[1]) + '</span>' +
+          '<button type="button" class="solo" data-solo="' + esc(v[0]) + '" title="Ver solo ' + esc(v[1]) + '">solo</button></label>';
+      }).join('');
+    panel.hidden = !abierto; panel.scrollTop = arriba;
+    panel.onclick = function (e) {
+      var b = e.target.closest('[data-solo]');
+      if (b) { e.preventDefault(); state.f[clave] = [b.getAttribute('data-solo')]; refrescar(); return; }
+    };
+    panel.onchange = function (e) {
+      var c = e.target;
+      if (c.getAttribute('data-todos')) state.f[clave] = [];
+      else state.f[clave] = Array.prototype.filter.call(panel.querySelectorAll('input[value]'), function (x) { return x.checked; }).map(function (x) { return x.value; });
+      refrescar();
+    };
+    return elegidos;
+  }
+  function cerrarMs(excepto) {
+    Array.prototype.forEach.call(document.querySelectorAll('.ms'), function (m) {
+      if (m === excepto) return; m.querySelector('.ms-p').hidden = true; m.querySelector('.ms-b').setAttribute('aria-expanded', 'false');
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.ms'), function (m) {
+    m.querySelector('.ms-b').addEventListener('click', function () {
+      var p = m.querySelector('.ms-p'), abrir = p.hidden; cerrarMs(m); p.hidden = !abrir; this.setAttribute('aria-expanded', String(abrir));
+    });
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.ms')) cerrarMs(null); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarMs(null); });
   function unicos(lista) { return Array.from(new Set(lista.filter(function (x) { return x != null && x !== ''; }))); }
   function pasa(r, f, sin) {
     if (sin !== 'anio' && f.anio && String(r.anio) !== f.anio) return false;
-    if (sin !== 'mes' && f.mes && String(r.om) !== f.mes) return false;
-    if (sin !== 'cli' && f.cli && r.cli !== f.cli) return false;
+    if (sin !== 'mes' && f.mes.length && f.mes.indexOf(String(r.om)) < 0) return false;
+    if (sin !== 'cli' && f.cli.length && f.cli.indexOf(r.cli) < 0) return false;
     if (f.pv && String(r.pv).indexOf(f.pv.replace(/\D/g, '')) < 0) return false;
     if (sin !== 'fcl' && f.fcl && r.fcl !== f.fcl) return false;
-    if (sin !== 'conteo' && f.conteo && String(r.conteo || '').split(' / ').indexOf(f.conteo) < 0) return false;
+    if (sin !== 'conteo' && f.conteo.length && !String(r.conteo || '').split(' / ').some(function (c) { return f.conteo.indexOf(c) >= 0; })) return false;
     if (f.tipo && r.tipo !== f.tipo) return false;
     return true;
   }
@@ -440,13 +495,13 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     if (!f.anio && anios.length && !state.anioTocado) f.anio = String(anios[0]);
     f.anio = opciones($('fAnio'), anios.map(function (a) { return [a, a]; }), 'Todos', f.anio);
     var meses = unicos(R.filter(function (r) { return pasa(r, f, 'mes'); }).map(function (r) { return r.om; })).sort(function (a, b) { return a - b; });
-    f.mes = opciones($('fMes'), meses.map(function (m) { return [m, MESES[m - 1]]; }), 'Todos', f.mes);
+    f.mes = multi('fMes', meses.map(function (m) { return [String(m), MESES[m - 1]]; }), f.mes, 'mes');
     var clis = unicos(R.filter(function (r) { return pasa(r, f, 'cli'); }).map(function (r) { return r.cli; })).sort();
-    f.cli = opciones($('fCli'), clis.map(function (c) { return [c, c]; }), 'Todos', f.cli);
+    f.cli = multi('fCli', clis.map(function (c) { return [c, c]; }), f.cli, 'cli');
     var fcls = unicos(R.filter(function (r) { return pasa(r, f, 'fcl'); }).map(function (r) { return r.fcl; })).sort();
     f.fcl = opciones($('fFcl'), fcls.map(function (c) { return [c, c]; }), 'Todos', f.fcl);
     var cont = unicos([].concat.apply([], R.filter(function (r) { return pasa(r, f, 'conteo'); }).map(function (r) { return String(r.conteo || '').split(' / '); }))).sort();
-    f.conteo = opciones($('fConteo'), cont.map(function (c) { return [c, c]; }), 'Todos', f.conteo);
+    f.conteo = multi('fConteo', cont.map(function (c) { return [c, c]; }), f.conteo, 'conteo');
     seg($('fTipo'), [['', 'Todos']].concat(TIPOS.map(function (t) { return [t, t]; })), f.tipo, function (v) { f.tipo = v; refrescar(); });
   }
   function refrescar() { armarFiltros(); render(); }
@@ -511,10 +566,10 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
       (extra ? '. <span class="err">' + esc(extra) + '</span>' : '') : (extra ? '<span class="err">' + esc(extra) + '</span>' : 'Sin datos todavía');
   }
 
-  ['fAnio', 'fMes', 'fCli', 'fFcl', 'fConteo'].forEach(function (id) {
+  ['fAnio', 'fFcl'].forEach(function (id) {
     $(id).addEventListener('change', function () {
-      var k = { fAnio: 'anio', fMes: 'mes', fCli: 'cli', fFcl: 'fcl', fConteo: 'conteo' }[id];
-      state.f[k] = this.value; if (k === 'anio') { state.anioTocado = true; state.f.mes = ''; }
+      var k = { fAnio: 'anio', fFcl: 'fcl' }[id];
+      state.f[k] = this.value; if (k === 'anio') { state.anioTocado = true; state.f.mes = []; }
       refrescar();
     });
   });
@@ -524,7 +579,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     clearTimeout(tBusca); tBusca = setTimeout(refrescar, 150);
   });
   $('btnLimpiar').onclick = function () {
-    state.f = { anio: '', mes: '', cli: '', pv: '', fcl: '', conteo: '', tipo: '' }; state.anioTocado = true;
+    state.f = { anio: '', mes: [], cli: [], pv: '', fcl: '', conteo: [], tipo: '' }; state.anioTocado = true;
     $('fPv').value = ''; refrescar();
   };
 
@@ -701,11 +756,11 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
   function textoFiltros() {
     var f = state.f, t = [];
     t.push(f.anio ? 'Año ' + f.anio : 'Todos los años');
-    t.push(f.mes ? MESES[f.mes - 1] : 'todos los meses');
-    if (f.cli) t.push('cliente ' + f.cli);
+    t.push(f.mes.length ? f.mes.map(function (m) { return MESES[m - 1]; }).join(', ') : 'todos los meses');
+    if (f.cli.length) t.push((f.cli.length > 1 ? 'clientes ' : 'cliente ') + f.cli.join(', '));
     if (f.pv) t.push('pedido que contiene ' + f.pv);
     if (f.fcl) t.push('FCL/AWB ' + f.fcl);
-    if (f.conteo) t.push('conteo ' + f.conteo);
+    if (f.conteo.length) t.push('conteo ' + f.conteo.join(', '));
     if (f.tipo) t.push('envío ' + f.tipo);
     return t.join(', ');
   }
@@ -1104,7 +1159,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     // pie con número de página
     var n = doc.getNumberOfPages();
     for (var i = 1; i <= n; i++) { doc.setPage(i); font(false, 7, C.muted); t(W - M, H - 6, 'Página ' + i + ' de ' + n, { align: 'right' }); t(M, H - 6, 'Danper - Aseguramiento de la Calidad'); }
-    var f = state.f, nombre = 'Comparativo_' + (f.mes ? MESES[f.mes - 1] + '_' : '') + (f.anio || 'todos') + (f.cli ? '_' + f.cli : '') + '.pdf';
+    var f = state.f, nombre = 'Comparativo_' + (f.mes.length === 1 ? MESES[f.mes[0] - 1] + '_' : f.mes.length > 1 ? f.mes.length + '_meses_' : '') + (f.anio || 'todos') + (f.cli.length === 1 ? '_' + f.cli[0] : f.cli.length > 1 ? '_' + f.cli.length + '_clientes' : '') + '.pdf';
     return { doc: doc, nombre: nombre.replace(/\s+/g, '_') };
   }
 
