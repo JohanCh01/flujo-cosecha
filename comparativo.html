@@ -120,9 +120,6 @@ html.locked .gate { display: grid; place-items: center; min-height: 100vh; color
 .ms-o:hover { background: var(--line-soft, rgba(0,0,0,.05)); }
 .ms-o input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent, #2c6a3b); cursor: pointer; flex: none; }
 .ms-o .nom { flex: 1; }
-.ms-o .solo { border: 0; background: none; font: inherit; font-size: 12px; color: var(--accent, #2c6a3b); cursor: pointer; padding: 2px 6px; border-radius: 5px; opacity: 0; }
-.ms-o:hover .solo, .ms-o .solo:focus-visible { opacity: 1; } .ms-o .solo:hover { text-decoration: underline; }
-@media (hover: none) { .ms-o .solo { opacity: 1; } }
 .ms-todos { border-bottom: 1px solid var(--line); margin-bottom: 4px; padding-bottom: 8px; font-weight: 600; }
 .inp::placeholder { color: var(--muted); }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
@@ -439,7 +436,7 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     cont.innerHTML = valores.map(function (v) { return '<button type="button" data-v="' + esc(v[0]) + '" aria-pressed="' + (String(v[0]) === String(valor)) + '">' + esc(v[1]) + '</button>'; }).join('');
     cont.onclick = function (e) { var b = e.target.closest('button'); if (b) alCambiar(b.getAttribute('data-v')); };
   }
-  // desplegable con casillas: varias a la vez, o «solo» para quedarse con una; sin ninguna marcada = Todos
+  // desplegable con casillas: una o varias a la vez; sin ninguna marcada = Todos
   function multi(id, valores, elegidos, clave) {
     var caja = $(id), panel = caja.querySelector('.ms-p'), hay = valores.map(function (v) { return String(v[0]); });
     elegidos = (elegidos || []).filter(function (x) { return hay.indexOf(String(x)) >= 0; });
@@ -450,14 +447,9 @@ table.cmp { border-collapse: separate; border-spacing: 0; font-size: 12.5px; fon
     panel.innerHTML = '<label class="ms-o ms-todos"><input type="checkbox" data-todos="1"' + (elegidos.length ? '' : ' checked') + '><span class="nom">Todos</span></label>' +
       valores.map(function (v) {
         var on = elegidos.indexOf(String(v[0])) >= 0;
-        return '<label class="ms-o"><input type="checkbox" value="' + esc(v[0]) + '"' + (on ? ' checked' : '') + '><span class="nom">' + esc(v[1]) + '</span>' +
-          '<button type="button" class="solo" data-solo="' + esc(v[0]) + '" title="Ver solo ' + esc(v[1]) + '">solo</button></label>';
+        return '<label class="ms-o"><input type="checkbox" value="' + esc(v[0]) + '"' + (on ? ' checked' : '') + '><span class="nom">' + esc(v[1]) + '</span>' + '</label>';
       }).join('');
     panel.hidden = !abierto; panel.scrollTop = arriba;
-    panel.onclick = function (e) {
-      var b = e.target.closest('[data-solo]');
-      if (b) { e.preventDefault(); state.f[clave] = [b.getAttribute('data-solo')]; refrescar(); return; }
-    };
     panel.onchange = function (e) {
       var c = e.target;
       if (c.getAttribute('data-todos')) state.f[clave] = [];
